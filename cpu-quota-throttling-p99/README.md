@@ -25,12 +25,14 @@ Verification code for [shinagawa-web/sre-consulting-plan#364](https://github.com
 |---|---|---|
 | `sections/s3_repro.sh` | `--cpus 0.5`, W=4, Poisson RPS 10, seed=1, 60s | `results/s3/` |
 | `sections/s4_investigate.sh` | Runs nothing. Reads `results/s3` | Throttle rate, 1s-average utilization, cpu.pressure during throttling, Recv-Q |
-| `sections/s5_cause.sh` | RPS 5 / 20 (W=4), W=1 (RPS 10). `DUR` seconds each, default 60 (s3 is always 60s) | `results/s5/<condition>/` and a 4-row comparison table including s3 (with a duration column) |
+| `sections/s5_cause.sh [condition]` | RPS 5 / 20 (W=4), W=1 (RPS 10) as `rps5_w4`, `rps20_w4`, `rps10_w1`. `DUR` seconds each, default 60 (s3 is always 60s). With a condition name, runs only that condition | `results/s5/<condition>/`. Without an argument it also prints the table from `sections/table.sh s5` |
 | `sections/s6_mechanism.sh` | Runs nothing. Reads `results/s3` | Length of one throttle, number of threads using CPU at the same time, number of throttles crossed by requests at or above p99 |
-| `sections/s9_verify.sh` | CPU limit 0.75 / 1.0 / 1.5 / 2.0 with W=4, Poisson RPS 10, `DUR` seconds each, default 60 (0.5 is s3) | `results/s9/<condition>/` and a 5-row comparison table including s3 |
+| `sections/s9_verify.sh [condition]` | CPU limit 0.75 / 1.0 / 1.5 / 2.0 with W=4, Poisson RPS 10 as `cpus0.75_w4`, `cpus1.0_w4`, `cpus1.5_w4`, `cpus2.0_w4`. `DUR` seconds each, default 60 (0.5 is s3). With a condition name, runs only that condition | `results/s9/<condition>/`. Without an argument it also prints the table from `sections/table.sh s9` |
 | `sections/s10_env.sh` | No load. Starts an idle `--cpus 0.5` Docker container, a transient systemd service and scope with `CPUQuota=50%`, and (unless `SKIP_K3S=1`) installs k3s, runs a Pod with `resources.limits.cpu: 500m`, then uninstalls k3s | `results/s10/env.jsonl` and a table of cgroup path, `cpu.max` and `cpu.stat` read on the host and inside the container / Pod |
 
-s4, s5, s6 and s9 stop if `results/s3` does not exist.
+| `sections/table.sh <s5\|s9>` | Runs nothing. Reads `results/s3` and `results/<section>/<condition>/` that exist | Comparison table with s3 as the first row. Missing runs are skipped with a note on stderr |
+
+s4 and s6 stop if `results/s3` does not exist. The condition lists for s5 and s9 are in `sections/common.sh`.
 
 ## Switching the execution environment
 
@@ -90,14 +92,14 @@ The host needs outbound HTTPS to get.k3s.io and the image registries.
 
 ## CI
 
-`.github/workflows/cpu-quota-throttling-p99.yml` (at the repository root) runs the sections on `ubuntu-24.04` with `EXEC=`, `SAME_HOST=1` and `DUR=60`, one job per section:
+`.github/workflows/cpu-quota-throttling-p99.yml` (at the repository root) runs on `ubuntu-24.04` with `EXEC=`, `SAME_HOST=1` and `DUR=60`. All jobs except `report` start at the same time, each on its own runner:
 
-| Job | Needs | What it does | Artifact |
-|---|---|---|---|
-| `preflight` | - | Checks cgroup v2, the Docker cgroup driver, bpftrace with BTF, and that kprobes attach to `throttle_cfs_rq` / `unthrottle_cfs_rq` | `cpu-quota-throttling-p99-preflight` |
-| `s3` | preflight | Runs section 3 | `cpu-quota-throttling-p99-s3` |
-| `s4`, `s6` | s3 | Download the s3 artifact and only aggregate it | `cpu-quota-throttling-p99-s4`, `-s6` |
-| `s5`, `s9` | preflight | Run the s3 baseline again on the same runner first, then the section, so the comparison table only mixes values from one machine | `cpu-quota-throttling-p99-s5`, `-s9` |
-| `s10` | preflight | Installs and removes k3s on its own runner | `cpu-quota-throttling-p99-s10` |
+| Job | What it does | Artifact |
+|---|---|---|
+| `s3` | Runs section 3, then sections 4 and 6 on that result | `cpu-quota-throttling-p99-s3` |
+| `s5` (matrix: `rps5_w4`, `rps20_w4`, `rps10_w1`) | `sections/s5_cause.sh <condition>` | `cpu-quota-throttling-p99-s5-<condition>` |
+| `s9` (matrix: `cpus0.75_w4`, `cpus1.0_w4`, `cpus1.5_w4`, `cpus2.0_w4`) | `sections/s9_verify.sh <condition>` | `cpu-quota-throttling-p99-s9-<condition>` |
+| `s10` | Installs and removes k3s on its own runner | `cpu-quota-throttling-p99-s10` |
+| `report` (needs all above, `if: always()`) | Downloads every artifact and runs `sections/table.sh s5` and `s9` on what arrived; writes the tables to the job summary | `cpu-quota-throttling-p99-report` |
 
-Every job that measures runs the same checks first (`.github/actions/cpu-quota-throttling-p99-preflight`) and writes `results/runner_<section>.txt` with the host name, CPU model, CPU count, kernel and cgroup driver. The comparison tables also show the host name and CPU model of each run.
+Matrix jobs use `fail-fast: false`. Every measuring job first runs `.github/actions/cpu-quota-throttling-p99-preflight`, which fails the job unless cgroup v2, Docker on cgroup v2, bpftrace with BTF and kprobes on `throttle_cfs_rq` / `unthrottle_cfs_rq` are available, and writes `results/runner_<job>.txt` with the host name, CPU model, CPU count, kernel and cgroup driver. Because s3 and each condition run on different runners, the comparison tables show the host name and CPU model of every row.

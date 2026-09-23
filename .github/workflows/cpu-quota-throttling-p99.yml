@@ -19,22 +19,7 @@ defaults:
     working-directory: cpu-quota-throttling-p99
 
 jobs:
-  preflight:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/cpu-quota-throttling-p99-preflight
-        with:
-          section: preflight
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cpu-quota-throttling-p99-preflight
-          path: cpu-quota-throttling-p99/results/
-
   s3:
-    needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -46,100 +31,65 @@ jobs:
         run: |
           set -o pipefail
           sections/s3_repro.sh | tee results/s3_stdout.txt
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cpu-quota-throttling-p99-s3
-          path: cpu-quota-throttling-p99/results/
-
-  s4:
-    needs: s3
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: cpu-quota-throttling-p99-s3
-          path: cpu-quota-throttling-p99/results/
-      - name: Section 4 (investigation, reads s3 only)
+      - name: Section 4 (investigation, reads s3)
         run: |
           set -o pipefail
           sections/s4_investigate.sh | tee results/s4_stdout.txt
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cpu-quota-throttling-p99-s4
-          path: cpu-quota-throttling-p99/results/s4_stdout.txt
-
-  s6:
-    needs: s3
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: cpu-quota-throttling-p99-s3
-          path: cpu-quota-throttling-p99/results/
-      - name: Section 6 (mechanism, reads s3 only)
+      - name: Section 6 (mechanism, reads s3)
         run: |
           set -o pipefail
           sections/s6_mechanism.sh | tee results/s6_stdout.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cpu-quota-throttling-p99-s6
-          path: cpu-quota-throttling-p99/results/s6_stdout.txt
+          name: cpu-quota-throttling-p99-s3
+          path: cpu-quota-throttling-p99/results/
 
   s5:
-    needs: preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [rps5_w4, rps20_w4, rps10_w1]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/cpu-quota-throttling-p99-preflight
         with:
-          section: s5
-      - name: Section 3 baseline on this runner
+          section: s5-${{ matrix.cond }}
+      - name: Section 5 (cause), ${{ matrix.cond }}
         run: |
           set -o pipefail
-          sections/s3_repro.sh | tee results/s3_stdout.txt
-      - name: Section 5 (cause), compared with the s3 baseline of this runner
-        run: |
-          set -o pipefail
-          sections/s5_cause.sh | tee results/s5_stdout.txt
+          sections/s5_cause.sh "${{ matrix.cond }}" | tee "results/s5_${{ matrix.cond }}_stdout.txt"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cpu-quota-throttling-p99-s5
+          name: cpu-quota-throttling-p99-s5-${{ matrix.cond }}
           path: cpu-quota-throttling-p99/results/
 
   s9:
-    needs: preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [cpus0.75_w4, cpus1.0_w4, cpus1.5_w4, cpus2.0_w4]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/cpu-quota-throttling-p99-preflight
         with:
-          section: s9
-      - name: Section 3 baseline on this runner
+          section: s9-${{ matrix.cond }}
+      - name: Section 9 (verification), ${{ matrix.cond }}
         run: |
           set -o pipefail
-          sections/s3_repro.sh | tee results/s3_stdout.txt
-      - name: Section 9 (verification), compared with the s3 baseline of this runner
-        run: |
-          set -o pipefail
-          sections/s9_verify.sh | tee results/s9_stdout.txt
+          sections/s9_verify.sh "${{ matrix.cond }}" | tee "results/s9_${{ matrix.cond }}_stdout.txt"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cpu-quota-throttling-p99-s9
+          name: cpu-quota-throttling-p99-s9-${{ matrix.cond }}
           path: cpu-quota-throttling-p99/results/
 
   s10:
-    needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -156,3 +106,38 @@ jobs:
         with:
           name: cpu-quota-throttling-p99-s10
           path: cpu-quota-throttling-p99/results/
+
+  report:
+    needs: [s3, s5, s9, s10]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cpu-quota-throttling-p99-*
+          merge-multiple: true
+          path: cpu-quota-throttling-p99/results/
+      - name: Build comparison tables
+        run: |
+          mkdir -p results/report
+          find results -maxdepth 3 | sort > results/report/files.txt
+          sections/table.sh s5 | tee results/report/s5_table.md
+          sections/table.sh s9 | tee results/report/s9_table.md
+          {
+            echo "## Section 5 (cause)"
+            echo
+            cat results/report/s5_table.md
+            echo
+            echo "## Section 9 (verification)"
+            echo
+            cat results/report/s9_table.md
+            echo
+            echo "s3 and each s5 / s9 condition ran on separate runners; see the host and cpu_model columns."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cpu-quota-throttling-p99-report
+          path: cpu-quota-throttling-p99/results/report/
