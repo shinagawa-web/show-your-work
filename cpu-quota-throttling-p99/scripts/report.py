@@ -113,13 +113,14 @@ def md_s10(path):
 
 
 def md_table(results, section, title):
-    dirs, missing = [], []
-    for d in [os.path.join(results, "s3")] + [os.path.join(results, section, n) for n in conditions(section)]:
-        (dirs if os.path.exists(os.path.join(d, "summary.json")) else missing).append(d)
-    s = f"### {title}\n\n" + (table(dirs) if dirs else "no results\n")
-    if missing:
-        s += "\nnot found: " + ", ".join(os.path.relpath(m, results) for m in missing) + "\n"
-    return s
+    runs = [os.path.join(results, section, n) for n in conditions(section)]
+    runs = [d for d in runs if os.path.exists(os.path.join(d, "summary.json"))]
+    if not runs:
+        return None
+    s3 = os.path.join(results, "s3")
+    if os.path.exists(os.path.join(s3, "summary.json")):
+        runs.insert(0, s3)
+    return f"### {title}\n\n" + table(runs)
 
 
 def summary(results):
@@ -136,13 +137,12 @@ def summary(results):
     s3 = os.path.join(results, "s3")
     if os.path.exists(os.path.join(s3, "summary.json")):
         parts += [md_s3(s3), md_s4(s3), md_s6(s3)]
-    else:
-        parts.append("### Sections 3, 4, 6\n\nnot run (results/s3 not found)\n")
-    parts.append(md_table(results, "s5", "Section 5 (cause), s3 as the first row"))
-    parts.append(md_table(results, "s9", "Section 9 (verification), s3 as the first row"))
+    parts.append(md_table(results, "s5", "Section 5 (cause)" + (", s3 as the first row" if os.path.exists(os.path.join(s3, "summary.json")) else "")))
+    parts.append(md_table(results, "s9", "Section 9 (verification)" + (", s3 as the first row" if os.path.exists(os.path.join(s3, "summary.json")) else "")))
     env = os.path.join(results, "s10", "env.jsonl")
-    parts.append(md_s10(env) if os.path.exists(env) else "### Section 10 (environments)\n\nnot run\n")
-    return "\n".join(parts)
+    if os.path.exists(env):
+        parts.append(md_s10(env))
+    return "\n".join(p for p in parts if p)
 
 
 if __name__ == "__main__":

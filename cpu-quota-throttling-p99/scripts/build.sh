@@ -6,7 +6,7 @@ if ! docker image inspect cqt-server >/dev/null 2>&1; then
   echo "build: cqt-server image" >&2
   docker build -q -t cqt-server "$here/server" >&2
 fi
-if [ ! -x "$bin" ] || [ "$here/loadgen/main.go" -nt "$bin" ]; then
+if [ ! -x "$bin" ] || [ -n "$(find "$here/loadgen" -maxdepth 1 \( -name '*.go' -o -name go.mod \) -newer "$bin")" ]; then
   mkdir -p "$here/loadgen/bin"
   if command -v go >/dev/null; then
     echo "build: loadgen with $(go version)" >&2

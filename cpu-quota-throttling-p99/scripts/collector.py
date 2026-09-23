@@ -19,12 +19,12 @@ def pressure(path):
 
 keys = ["usage_usec", "nr_periods", "nr_throttled", "throttled_usec"]
 print("t_unix_ns,t_mono_ns," + ",".join(keys) + ",cg_some_avg10,cg_some_total,cg_full_avg10,cg_full_total,sys_some_avg10,sys_some_total", flush=True)
-end = time.time() + duration
-nxt = time.time()
+end = time.monotonic() + duration
+nxt = time.monotonic()
 while True:
     s, p, q = stat(), pressure(cg + "/cpu.pressure"), pressure("/proc/pressure/cpu")
     print(",".join([str(time.time_ns()), str(time.monotonic_ns())] + [s[k] for k in keys] + [p["some_avg10"], p["some_total"], p["full_avg10"], p["full_total"], q["some_avg10"], q["some_total"]]), flush=True)
-    if time.time() >= end:
+    if time.monotonic() >= end:
         break
     nxt += interval
-    time.sleep(max(0, nxt - time.time()))
+    time.sleep(max(0, nxt - time.monotonic()))

@@ -15,10 +15,10 @@ def recvq():
     return q
 
 
-print("t_unix_ns,recv_q", flush=True)
-end = time.time() + duration
-nxt = time.time()
-while time.time() < end:
-    print(f"{time.time_ns()},{recvq()}", flush=True)
+print("t_unix_ns,t_mono_ns,recv_q", flush=True)
+end = time.monotonic() + duration
+nxt = time.monotonic()
+while time.monotonic() < end:
+    print(f"{time.time_ns()},{time.monotonic_ns()},{recvq()}", flush=True)
     nxt += interval
-    time.sleep(max(0, nxt - time.time()))
+    time.sleep(max(0, nxt - time.monotonic()))

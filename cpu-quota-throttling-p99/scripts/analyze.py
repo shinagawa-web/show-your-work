@@ -22,35 +22,76 @@ def merge(iv):
     return out
 
 
+def wall_segments(s10):
+    segs = []
+    for r in s10:
+        off = int(r["t_unix_ns"]) - int(r["t_mono_ns"])
+        if not segs or abs(off - segs[-1][1]) > 1_000_000:
+            segs.append((int(r["t_mono_ns"]), off))
+    return segs
+
+
+def wall_to_mono(w, segs):
+    for k in range(len(segs) - 1, -1, -1):
+        m = w - segs[k][1]
+        if m >= segs[k][0] and (k == len(segs) - 1 or m < segs[k + 1][0]):
+            return m
+    return w - segs[0][1]
+
+
+def send_mono_from_schedule(r, t0_wall, segs):
+    base = segs[0][1]
+    t0_mono = wall_to_mono(t0_wall, segs)
+    late = int(r["send_unix_ns"]) - t0_wall - int(r["sched_ns"])
+    fixes = [late - (off - base) for _, off in segs]
+    ok = [f for f in fixes if -5_000_000 <= f <= 50_000_000]
+    return t0_mono + int(r["sched_ns"]) + (min(ok, key=abs) if ok else 0)
+
+
+def recvq_mono(rq_rows, segs):
+    if rq_rows and rq_rows[0].get("t_mono_ns"):
+        return [(int(r["t_mono_ns"]), int(r["recv_q"])) for r in rq_rows]
+    out, k, prev = [], 0, None
+    for r in rq_rows:
+        w = int(r["t_unix_ns"])
+        if prev is not None and w - prev < -1_000_000 and k + 1 < len(segs):
+            k += 1
+        prev = w
+        out.append((w - segs[k][1], int(r["recv_q"])))
+    return out
+
+
 def analyze(d):
     meta = {}
     for l in open(f"{d}/meta.txt"):
-        for kv in l.split() if l.startswith("label=") else [l.strip()]:
+        for kv in l.split() if l.startswith(("label=", "sent=")) else [l.strip()]:
             if "=" in kv:
                 k, v = kv.split("=", 1)
                 meta[k] = v
     cpus, dur = float(meta["cpus"]), float(meta["dur"])
     bpf = meta.get("bpftrace") == "1" and os.path.exists(f"{d}/throttle_raw.txt")
 
+    s10, s1 = rows(f"{d}/cpustat_10ms.csv"), rows(f"{d}/cpustat_1s.csv")
+    for r in s10 + s1:
+        r["t"] = int(r["t_mono_ns"])
+    segs = wall_segments(s10)
+
     reqs = rows(f"{d}/requests.csv")
     ok = [r for r in reqs if not r["err"]]
     for r in ok:
-        r["s"] = int(r["send_unix_ns"])
+        r["s"] = int(r["send_mono_ns"]) if int(r.get("send_mono_ns") or 0) > 0 else send_mono_from_schedule(r, int(meta["t0"]), segs)
         r["e"] = r["s"] + int(r["latency_ns"])
         r["lat"] = (r["e"] - r["s"]) / 1e6
     t0 = min(r["s"] for r in ok)
     t1 = t0 + int(dur * 1e9)
 
-    s10, s1 = rows(f"{d}/cpustat_10ms.csv"), rows(f"{d}/cpustat_1s.csv")
-    mono2wall = statistics.median(int(r["t_unix_ns"]) - int(r["t_mono_ns"]) for r in s10)
-
     ev = []
     for l in open(f"{d}/throttle_raw.txt") if bpf else []:
         f = l.strip().split(",")
         if f[0] == "T" and len(f) == 4 and f[3] == "1":
-            ev.append(("T", int(f[1]) + mono2wall, int(f[2])))
+            ev.append(("T", int(f[1]), int(f[2])))
         elif f[0] == "U" and len(f) == 3:
-            ev.append(("U", int(f[1]) + mono2wall, int(f[2])))
+            ev.append(("U", int(f[1]), int(f[2])))
     ev.sort(key=lambda e: e[1])
     open_t, per_cpu = {}, []
     for k, t, c in ev:
@@ -63,23 +104,23 @@ def analyze(d):
     per_cpu_w = [p for p in per_cpu if t0 <= p[0] < t1]
 
     def util_between(x, y):
-        return (int(y["usage_usec"]) - int(x["usage_usec"])) / 1e6 / ((int(y["t_unix_ns"]) - int(x["t_unix_ns"])) / 1e9)
+        return (int(y["usage_usec"]) - int(x["usage_usec"])) / 1e6 / ((y["t"] - x["t"]) / 1e9)
 
     def nearest(series, t):
-        return min(series, key=lambda r: abs(int(r["t_unix_ns"]) - t))
+        return min(series, key=lambda r: abs(r["t"] - t))
 
     a, b = nearest(s1, t0), nearest(s1, t1)
     ia, ib = s1.index(a), s1.index(b)
     dd = {k: int(b[k]) - int(a[k]) for k in ["usage_usec", "nr_periods", "nr_throttled", "throttled_usec"]}
-    win = (int(b["t_unix_ns"]) - int(a["t_unix_ns"])) / 1e9
+    win = (b["t"] - a["t"]) / 1e9
     util1 = [util_between(x, y) / cpus * 100 for x, y in zip(s1[ia:ib], s1[ia + 1:ib + 1])]
 
-    T10 = [int(r["t_unix_ns"]) for r in s10]
+    T10 = [r["t"] for r in s10]
     NT10 = [int(r["nr_throttled"]) for r in s10]
     c10 = []
     for x, y in zip(s10, s10[1:]):
-        if t0 <= int(x["t_unix_ns"]) < t1:
-            c10.append((int(x["t_unix_ns"]), int(y["t_unix_ns"]), util_between(x, y), x, y))
+        if t0 <= x["t"] < t1:
+            c10.append((x["t"], y["t"], util_between(x, y), x, y))
 
     def in_union(a, b):
         i = bisect.bisect_right([u[0] for u in union], b)
@@ -95,7 +136,7 @@ def analyze(d):
         thr_cls[k][1] += int(y["cg_some_total"]) - int(x["cg_some_total"])
         thr_cls[k][2] += int(y["cg_full_total"]) - int(x["cg_full_total"])
 
-    rq = [(int(r["t_unix_ns"]), int(r["recv_q"])) for r in rows(f"{d}/recvq_10ms.csv")]
+    rq = recvq_mono(rows(f"{d}/recvq_10ms.csv"), segs)
     rqT = [x for x, _ in rq]
     rq_w = [v for t, v in rq if t0 <= t < t1]
     rq_gaps = [(y - x) / 1e6 for x, y in zip(rqT, rqT[1:])]
