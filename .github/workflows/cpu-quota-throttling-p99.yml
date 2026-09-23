@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/cpu-quota-throttling-p99-preflight
         with:
           section: s3
@@ -39,7 +39,7 @@ jobs:
         run: |
           set -o pipefail
           sections/s6_mechanism.sh | tee results/s6_stdout.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cpu-quota-throttling-p99-s3
@@ -53,7 +53,7 @@ jobs:
       matrix:
         cond: [rps5_w4, rps20_w4, rps10_w1]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/cpu-quota-throttling-p99-preflight
         with:
           section: s5-${{ matrix.cond }}
@@ -61,7 +61,7 @@ jobs:
         run: |
           set -o pipefail
           sections/s5_cause.sh "${{ matrix.cond }}" | tee "results/s5_${{ matrix.cond }}_stdout.txt"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cpu-quota-throttling-p99-s5-${{ matrix.cond }}
@@ -75,7 +75,7 @@ jobs:
       matrix:
         cond: [cpus0.75_w4, cpus1.0_w4, cpus1.5_w4, cpus2.0_w4]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/cpu-quota-throttling-p99-preflight
         with:
           section: s9-${{ matrix.cond }}
@@ -83,7 +83,7 @@ jobs:
         run: |
           set -o pipefail
           sections/s9_verify.sh "${{ matrix.cond }}" | tee "results/s9_${{ matrix.cond }}_stdout.txt"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cpu-quota-throttling-p99-s9-${{ matrix.cond }}
@@ -93,7 +93,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/cpu-quota-throttling-p99-preflight
         with:
           section: s10
@@ -101,7 +101,7 @@ jobs:
         run: |
           set -o pipefail
           sections/s10_env.sh | tee results/s10_stdout.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cpu-quota-throttling-p99-s10
@@ -113,8 +113,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: cpu-quota-throttling-p99-*
           merge-multiple: true
@@ -136,7 +136,7 @@ jobs:
             echo
             echo "s3 and each s5 / s9 condition ran on separate runners; see the host and cpu_model columns."
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cpu-quota-throttling-p99-report
