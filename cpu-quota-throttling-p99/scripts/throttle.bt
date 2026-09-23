@@ -1,0 +1,22 @@
+kprobe:throttle_cfs_rq
+{
+  $c = (struct cfs_rq *)arg0;
+  if ($c->tg->css.cgroup->kn->id == $1) {
+    @arg[tid] = 1;
+  }
+}
+
+kretprobe:throttle_cfs_rq
+/@arg[tid]/
+{
+  delete(@arg[tid]);
+  printf("T,%llu,%d,%d\n", nsecs, cpu, retval);
+}
+
+kprobe:unthrottle_cfs_rq
+{
+  $c = (struct cfs_rq *)arg0;
+  if ($c->tg->css.cgroup->kn->id == $1) {
+    printf("U,%llu,%d\n", nsecs, cpu);
+  }
+}
