@@ -17,13 +17,4 @@ if [ "${SKIP_K3S:-0}" != 1 ]; then
   trap - EXIT
   probe state after_k3s_uninstall | tee -a "$out/env.jsonl"
 fi
-python3 - "$out/env.jsonl" <<'PY'
-import json, sys
-rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
-cols = ["env", "limit_setting", "host_cgroup", "host_cpu.max", "host_cpu.stat", "host_cpu.stat_after_exec", "pod_cgroup", "pod_cpu.max", "inside_cpu.max", "inside_cpu.stat", "cpu.max_same", "cpu.stat_same"]
-print("| " + " | ".join(cols) + " |")
-print("|" + "---|" * len(cols))
-for r in rows:
-    if "env" in r:
-        print("| " + " | ".join(str(r.get(c, "-")).strip() for c in cols) + " |")
-PY
+report md s10 "$out/env.jsonl"

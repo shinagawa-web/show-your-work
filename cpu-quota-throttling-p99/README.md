@@ -10,7 +10,7 @@ Verification code for [shinagawa-web/sre-consulting-plan#364](https://github.com
 | `loadgen/` | Load tool. Send times are fixed in advance and requests are sent without waiting for responses, one connection per request. It records only send/receive times and errors |
 | `scripts/run.sh` | Building block that runs one condition |
 | `scripts/analyze.py` | Building block that aggregates one condition and writes `summary.json` |
-| `scripts/report.py` | Extracts fields (`show`) and builds a comparison table (`table`) from `summary.json` |
+| `scripts/report.py` | Extracts fields (`show`), builds a comparison table (`table`) from `summary.json`, and prints Markdown for a section (`md s3\|s4\|s6 results/s3`, `md s10 results/s10/env.jsonl`), used for the CI job summaries |
 | `scripts/collector.py` | Reads the cgroup's `cpu.stat` / `cpu.pressure` and `/proc/pressure/cpu` every 10ms and 1s |
 | `scripts/recvq.py` | Reads rx_queue (the same value as `ss -lnt` Recv-Q) from the LISTEN line of `/proc/<pid>/net/tcp` and `tcp6` of the container PID, every 10ms in one process |
 | `scripts/throttle.bt` | bpftrace. Records, per CPU, when the cgroup under test is throttled and unthrottled, via kprobes on `throttle_cfs_rq` / `unthrottle_cfs_rq` |
@@ -102,4 +102,4 @@ The host needs outbound HTTPS to get.k3s.io and the image registries.
 | `s10` | Installs and removes k3s on its own runner | `cpu-quota-throttling-p99-s10` |
 | `report` (needs all above, `if: always()`) | Downloads every artifact and runs `sections/table.sh s5` and `s9` on what arrived; writes the tables to the job summary | `cpu-quota-throttling-p99-report` |
 
-Matrix jobs use `fail-fast: false`. Every measuring job first runs `.github/actions/cpu-quota-throttling-p99-preflight`, which fails the job unless cgroup v2, Docker on cgroup v2, bpftrace with BTF and kprobes on `throttle_cfs_rq` / `unthrottle_cfs_rq` are available, and writes `results/runner_<job>.txt` with the host name, CPU model, CPU count, kernel and cgroup driver. Because s3 and each condition run on different runners, the comparison tables show the host name and CPU model of every row.
+The `s3` job writes the section 3, 4 and 6 key figures and the `s10` job writes the environment table to the job summary with `scripts/report.py md`; `report` writes the s5 and s9 comparison tables. Matrix jobs use `fail-fast: false`. Every measuring job first runs `.github/actions/cpu-quota-throttling-p99-preflight`, which fails the job unless cgroup v2, Docker on cgroup v2, bpftrace with BTF and kprobes on `throttle_cfs_rq` / `unthrottle_cfs_rq` are available, and writes `results/runner_<job>.txt` with the host name, CPU model, CPU count, kernel and cgroup driver. Because s3 and each condition run on different runners, the comparison tables show the host name and CPU model of every row.

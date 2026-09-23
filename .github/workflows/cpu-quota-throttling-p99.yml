@@ -31,14 +31,17 @@ jobs:
         run: |
           set -o pipefail
           sections/s3_repro.sh | tee results/s3_stdout.txt
+          python3 scripts/report.py md s3 results/s3 >> "$GITHUB_STEP_SUMMARY"
       - name: Section 4 (investigation, reads s3)
         run: |
           set -o pipefail
           sections/s4_investigate.sh | tee results/s4_stdout.txt
+          python3 scripts/report.py md s4 results/s3 >> "$GITHUB_STEP_SUMMARY"
       - name: Section 6 (mechanism, reads s3)
         run: |
           set -o pipefail
           sections/s6_mechanism.sh | tee results/s6_stdout.txt
+          python3 scripts/report.py md s6 results/s3 >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -101,6 +104,7 @@ jobs:
         run: |
           set -o pipefail
           sections/s10_env.sh | tee results/s10_stdout.txt
+          python3 scripts/report.py md s10 results/s10/env.jsonl >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
