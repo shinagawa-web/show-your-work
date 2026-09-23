@@ -1,5 +1,7 @@
 import bisect, csv, json, os, statistics, sys
 
+SKIP = "skipped (bpftrace unavailable)"
+
 
 def pct(xs, p):
     xs = sorted(xs)
@@ -28,13 +30,13 @@ def analyze(d):
                 k, v = kv.split("=", 1)
                 meta[k] = v
     cpus, dur = float(meta["cpus"]), float(meta["dur"])
-    offset = (int(meta.get("clock_offset_before_ns", 0)) + int(meta.get("clock_offset_after_ns", 0))) // 2
+    bpf = meta.get("bpftrace") == "1" and os.path.exists(f"{d}/throttle_raw.txt")
 
     reqs = rows(f"{d}/requests.csv")
     ok = [r for r in reqs if not r["err"]]
     for r in ok:
-        r["s"] = int(r["send_unix_ns"]) + offset
-        r["e"] = int(r["recv_unix_ns"]) + offset
+        r["s"] = int(r["send_unix_ns"])
+        r["e"] = r["s"] + int(r["latency_ns"])
         r["lat"] = (r["e"] - r["s"]) / 1e6
     t0 = min(r["s"] for r in ok)
     t1 = t0 + int(dur * 1e9)
@@ -43,7 +45,7 @@ def analyze(d):
     mono2wall = statistics.median(int(r["t_unix_ns"]) - int(r["t_mono_ns"]) for r in s10)
 
     ev = []
-    for l in open(f"{d}/throttle_raw.txt"):
+    for l in open(f"{d}/throttle_raw.txt") if bpf else []:
         f = l.strip().split(",")
         if f[0] == "T" and len(f) == 4 and f[3] == "1":
             ev.append(("T", int(f[1]) + mono2wall, int(f[2])))
@@ -71,7 +73,6 @@ def analyze(d):
     dd = {k: int(b[k]) - int(a[k]) for k in ["usage_usec", "nr_periods", "nr_throttled", "throttled_usec"]}
     win = (int(b["t_unix_ns"]) - int(a["t_unix_ns"])) / 1e9
     util1 = [util_between(x, y) / cpus * 100 for x, y in zip(s1[ia:ib], s1[ia + 1:ib + 1])]
-    sum1 = {k: sum(int(y[k]) - int(x[k]) for x, y in zip(s1[ia:ib], s1[ia + 1:ib + 1])) for k in ["nr_periods", "nr_throttled", "throttled_usec"]}
 
     T10 = [int(r["t_unix_ns"]) for r in s10]
     NT10 = [int(r["nr_throttled"]) for r in s10]
@@ -84,9 +85,12 @@ def analyze(d):
         i = bisect.bisect_right([u[0] for u in union], b)
         return any(u[1] > a for u in union[max(0, i - 1):i])
 
+    def throttled_by_counter(x, y):
+        return int(y["throttled_usec"]) > int(x["throttled_usec"]) or int(y["nr_throttled"]) > int(x["nr_throttled"])
+
     thr_cls = {True: [0, 0, 0], False: [0, 0, 0]}
     for a_, b_, _, x, y in c10:
-        k = in_union(a_, b_)
+        k = in_union(a_, b_) if bpf else throttled_by_counter(x, y)
         thr_cls[k][0] += (b_ - a_) // 1000
         thr_cls[k][1] += int(y["cg_some_total"]) - int(x["cg_some_total"])
         thr_cls[k][2] += int(y["cg_full_total"]) - int(x["cg_full_total"])
@@ -128,7 +132,7 @@ def analyze(d):
         "cond": {k: meta.get(k) for k in ["cpus", "W", "rps", "mode", "dur", "seed", "burst", "cpu_ms"]},
         "host": meta.get("host"), "cpu_model": meta.get("cpu_model"), "nproc": meta.get("nproc"),
         "cgroup": meta["cgroup"], "cpu.max": meta["cpu.max"],
-        "clock": {k: int(meta.get(k, 0)) for k in ["clock_offset_before_ns", "clock_offset_after_ns", "rtt_before_ns", "rtt_after_ns"]},
+        "bpftrace": bpf,
         "n_requests": len(reqs), "n_errors": len(reqs) - len(ok),
         "latency_ms": {"p50": round(pct(lat, 50), 2), "p99": round(p99, 2), "max": round(max(lat), 2)},
         "util_window_pct": round(dd["usage_usec"] / 1e6 / win / cpus * 100, 1), "window_s": round(win, 3),
@@ -136,7 +140,7 @@ def analyze(d):
         "delta_window": dd,
         "throttle_rate": round(dd["nr_throttled"] / dd["nr_periods"], 4) if dd["nr_periods"] else None,
         "throttled_usec_per_nr_throttled": round(dd["throttled_usec"] / dd["nr_throttled"], 1) if dd["nr_throttled"] else None,
-        "kprobe": {
+        "kprobe": SKIP if not bpf else {
             "throttle_events_in_window_per_cpu": len(per_cpu_w),
             "throttle_windows_in_window_union": len(union_w),
             "union_len_ms": {"p50": round(pct(ulen, 50), 2), "max": round(max(ulen), 2), "min": round(min(ulen), 2)} if ulen else None,
@@ -148,14 +152,16 @@ def analyze(d):
         "pressure": {
             "cg_some_avg10_max": max(float(r["cg_some_avg10"]) for r in s1[ia:ib + 1]),
             "sys_some_avg10_max": max(float(r["sys_some_avg10"]) for r in s1[ia:ib + 1]),
-            "10ms_overlapping_kprobe_throttle": {"elapsed_us": thr_cls[True][0], "cg_some_us": thr_cls[True][1], "cg_full_us": thr_cls[True][2]},
+            "throttle_interval_source": "kprobe" if bpf else "10ms cpu.stat nr_throttled / throttled_usec increase",
+            "10ms_overlapping_throttle": {"elapsed_us": thr_cls[True][0], "cg_some_us": thr_cls[True][1], "cg_full_us": thr_cls[True][2]},
             "10ms_not_overlapping": {"elapsed_us": thr_cls[False][0], "cg_some_us": thr_cls[False][1], "cg_full_us": thr_cls[False][2]},
         },
         "recvq": {"max": max(rq_w) if rq_w else None, "mean": round(statistics.mean(rq_w), 3) if rq_w else None,
                   "mean_first10s": round(statistics.mean(first10), 3) if first10 else None, "mean_last10s": round(statistics.mean(last10), 3) if last10 else None,
                   "sample_gap_ms": {"p50": round(pct(rq_gaps, 50), 2), "max": round(max(rq_gaps), 2)} if rq_gaps else None},
-        "requests_crossing_throttle": {"n_ge1": sum(crossings(r["s"], r["e"]) >= 1 for r in ok), "n": len(ok)},
-        "slow_ge_p99": [{"lat_ms": round(r["lat"], 1), "kprobe_crossings": crossings(r["s"], r["e"]), "nr_throttled_delta_10ms": nr_thr(r["s"], r["e"]),
+        "requests_crossing_throttle": {"n_ge1": sum(crossings(r["s"], r["e"]) >= 1 for r in ok) if bpf else SKIP,
+                                       "n_ge1_nr_throttled_10ms": sum(nr_thr(r["s"], r["e"]) >= 1 for r in ok), "n": len(ok)},
+        "slow_ge_p99": [{"lat_ms": round(r["lat"], 1), "kprobe_crossings": crossings(r["s"], r["e"]) if bpf else SKIP, "nr_throttled_delta_10ms": nr_thr(r["s"], r["e"]),
                          "recvq_at_send": rq_at(r["s"]), "cpus_in_use_at_send": conc_at(r["s"])} for r in slow],
         "hist_latency_10ms": dict(sorted(hist.items())),
         "util_1s_series_pct": [round(u, 1) for u in util1],
@@ -166,5 +172,3 @@ if __name__ == "__main__":
     for d in sys.argv[1:]:
         o = analyze(d)
         json.dump(o, open(f"{d}/summary.json", "w"), indent=1)
-        print(os.path.basename(d.rstrip("/")))
-        print(json.dumps({k: v for k, v in o.items() if k not in ("util_1s_series_pct",)}, ensure_ascii=False, indent=1))

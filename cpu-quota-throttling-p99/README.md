@@ -2,85 +2,119 @@
 
 Verification code for [shinagawa-web/sre-consulting-plan#364](https://github.com/shinagawa-web/sre-consulting-plan/issues/364). It reproduces, in a container with a CPU limit (CFS quota), the symptom where only p99 jumps while the 60s-average utilization stays low, and measures it from outside the server.
 
-## Layout
+## Quick start
 
-| Path | Role |
+On a Linux host (cgroup v2, Docker):
+
+```
+cd cpu-quota-throttling-p99
+./run-all.sh
+```
+
+This runs every section and writes `results/summary.md`. Everything runs on the same host: the container under test, the load generator and the collectors.
+
+## Entry point
+
+```
+./run-all.sh [target ...]
+```
+
+| Target | What it runs |
 |---|---|
-| `server/` | Server under test. W workers accept a connection, use `CPU_MS` of CPU time, return an empty 200 and close. It records nothing |
-| `loadgen/` | Load tool. Send times are fixed in advance and requests are sent without waiting for responses, one connection per request. It records only send/receive times and errors |
-| `scripts/run.sh` | Building block that runs one condition |
-| `scripts/analyze.py` | Building block that aggregates one condition and writes `summary.json` |
-| `scripts/report.py` | Extracts fields (`show`), builds a comparison table (`table`) from `summary.json`, and prints Markdown for a section (`md s3\|s4\|s6 results/s3`, `md s10 results/s10/env.jsonl`), used for the CI job summaries |
-| `scripts/collector.py` | Reads the cgroup's `cpu.stat` / `cpu.pressure` and `/proc/pressure/cpu` every 10ms and 1s |
-| `scripts/recvq.py` | Reads rx_queue (the same value as `ss -lnt` Recv-Q) from the LISTEN line of `/proc/<pid>/net/tcp` and `tcp6` of the container PID, every 10ms in one process |
-| `scripts/throttle.bt` | bpftrace. Records, per CPU, when the cgroup under test is throttled and unthrottled, via kprobes on `throttle_cfs_rq` / `unthrottle_cfs_rq` |
-| `scripts/env_probe.sh` | Runs on the host under test for s10: checks where the CPU limit appears in Docker, systemd and k3s, installs and uninstalls k3s, and records host state before and after |
-| `scripts/clocksrv.py` | Clock synchronization when the load tool and the host under test are different machines |
-| `sections/sN_*.sh` | One script per section of the issue |
-| `lima.yaml` | Definition of the Lima VM used locally |
+| `s3` | Section 3 (repro): `--cpus 0.5`, W=4, Poisson RPS 10 |
+| `s4`, `s6` | Sections 4 and 6: read `results/s3` (run s3 first if it is missing) |
+| `s5` or `s5:<name>` | Section 5 (cause): all conditions, or one of `rps5_w4`, `rps20_w4`, `rps10_w1` |
+| `s9` or `s9:<name>` | Section 9 (verification): all conditions, or one of `cpus0.75_w4`, `cpus1.0_w4`, `cpus1.5_w4`, `cpus2.0_w4` |
+| `s10` | Section 10 (environments): where the CPU limit appears in Docker and systemd, and in k3s with `K3S=1` |
 
-## Section scripts
+With no target it runs `s3 s4 s5 s6 s9 s10`. Examples:
 
-| Script | What it runs | What it outputs |
-|---|---|---|
-| `sections/s3_repro.sh` | `--cpus 0.5`, W=4, Poisson RPS 10, seed=1, 60s | `results/s3/` |
-| `sections/s4_investigate.sh` | Runs nothing. Reads `results/s3` | Throttle rate, 1s-average utilization, cpu.pressure during throttling, Recv-Q |
-| `sections/s5_cause.sh [condition]` | RPS 5 / 20 (W=4), W=1 (RPS 10) as `rps5_w4`, `rps20_w4`, `rps10_w1`. `DUR` seconds each, default 60 (s3 is always 60s). With a condition name, runs only that condition | `results/s5/<condition>/`. Without an argument it also prints the table from `sections/table.sh s5` |
-| `sections/s6_mechanism.sh` | Runs nothing. Reads `results/s3` | Length of one throttle, number of threads using CPU at the same time, number of throttles crossed by requests at or above p99 |
-| `sections/s9_verify.sh [condition]` | CPU limit 0.75 / 1.0 / 1.5 / 2.0 with W=4, Poisson RPS 10 as `cpus0.75_w4`, `cpus1.0_w4`, `cpus1.5_w4`, `cpus2.0_w4`. `DUR` seconds each, default 60 (0.5 is s3). With a condition name, runs only that condition | `results/s9/<condition>/`. Without an argument it also prints the table from `sections/table.sh s9` |
-| `sections/s10_env.sh` | No load. Starts an idle `--cpus 0.5` Docker container, a transient systemd service and scope with `CPUQuota=50%`, and (unless `SKIP_K3S=1`) installs k3s, runs a Pod with `resources.limits.cpu: 500m`, then uninstalls k3s | `results/s10/env.jsonl` and a table of cgroup path, `cpu.max` and `cpu.stat` read on the host and inside the container / Pod |
-
-| `sections/table.sh <s5\|s9>` | Runs nothing. Reads `results/s3` and `results/<section>/<condition>/` that exist | Comparison table with s3 as the first row. Missing runs are skipped with a note on stderr |
-
-s4 and s6 stop if `results/s3` does not exist. The condition lists for s5 and s9 are in `sections/common.sh`.
-
-## Switching the execution environment
+```
+DUR=10 ./run-all.sh s3
+./run-all.sh s5:rps10_w1 s9:cpus1.0_w4
+K3S=1 ./run-all.sh s10
+```
 
 | Environment variable | Default | Meaning |
 |---|---|---|
-| `EXEC` | `limactl shell cpu-quota-throttling-p99 --` | Prefix for running commands on the host under test. If empty (`EXEC=`), commands run directly on the current host |
-| `SAME_HOST` | `0` | `1` means the load tool and the container under test are on the same host. Clock synchronization (`clocksrv.py`) is not used and the offset is taken as 0 |
-| `SEED` / `BURST` / `CPU_MS` | `1` / `1` / `20` | Random seed for arrivals, number of requests per burst, CPU time per request |
-| `DUR` | `60` | Length in seconds of each condition in s5 and s9 (s3 always runs 60s) |
-| `SKIP_K3S` | `0` | `1` skips the k3s part of s10 |
+| `DUR` | `60` | Seconds of load per condition |
+| `K3S` | `0` | `1` installs k3s in s10, checks one Pod with `resources.limits.cpu: 500m`, then uninstalls k3s |
+| `RESULTS` | `results` | Output directory |
+| `SEED` / `BURST` / `CPU_MS` | `1` / `1` / `20` | Random seed for arrivals, requests per burst, CPU time per request |
 
-Lima (default):
+Each run first calls `scripts/preflight.sh`, which stops the run unless Linux, cgroup v2, Docker on cgroup v2, `python3`, `nsenter`, `ss` and passwordless `sudo` are available, and writes `results/environment/<host>_<targets>.txt`. At the end, `scripts/report.py summary results` writes `results/summary.md` from every result found under `results/`, so results from several runs (or several machines) can be merged into one directory and summarized again.
 
-```
-limactl start --name cpu-quota-throttling-p99 lima.yaml
-sections/s3_repro.sh
-```
+### bpftrace is optional
 
-The load comes from the macOS side through Lima's port forwarding (127.0.0.1:18080).
+If `bpftrace` is installed, BTF is present and kprobes attach to `throttle_cfs_rq` / `unthrottle_cfs_rq`, the run records when the container is throttled and unthrottled on each CPU. Otherwise preflight prints a warning and the run continues: the kprobe-based figures (length of one throttle, throttles crossed per request) show `skipped (bpftrace unavailable)`, and the other figures come from `cpu.stat`, `cpu.pressure` and the listen socket. Section 4 then takes throttle intervals from 10ms `cpu.stat` samples instead of kprobes.
 
-Directly on the host under test (CI, etc.):
+## Linux
 
-```
-EXEC= SAME_HOST=1 sections/s3_repro.sh
-```
+Requirements on the host:
 
-## Requirements on the host under test
-
-- Linux, cgroup v2 (`stat -fc %T /sys/fs/cgroup` prints `cgroup2fs`)
-- Docker. The cgroup path is taken from `/proc/<pid>/cgroup`, so either the systemd or the cgroupfs driver works
-- `bpftrace` (kernel with BTF, `/sys/kernel/btf/vmlinux` exists) and permission to attach kprobes
-- `iproute2` (`ss`, used to wait for startup), `util-linux` (`nsenter`), `python3`
-- Passwordless `sudo` (used for bpftrace, nsenter and reading `/proc/<pid>/net`)
-- Go on the side that runs the load tool (`run.sh` builds `loadgen/loadgen` if it is missing)
+- cgroup v2 (`stat -fc %T /sys/fs/cgroup` prints `cgroup2fs`)
+- Docker on cgroup v2 (either the systemd or the cgroupfs driver)
+- `python3`, `iproute2` (`ss`), `util-linux` (`nsenter`), passwordless `sudo`
+- Optional: `bpftrace` with a BTF kernel (`/sys/kernel/btf/vmlinux`)
+- Go is optional: if `go` is not on `PATH`, `scripts/build.sh` builds the load generator in a `golang:1.25` container
 
 On Ubuntu:
 
 ```
-sudo apt-get install -y docker.io bpftrace iproute2 python3
+sudo apt-get install -y docker.io python3 iproute2 bpftrace
+sudo usermod -aG docker "$USER"
 ```
 
-If the `cqt-server` image is missing, `run.sh` builds it from `server/`.
+Then log in again and run `./run-all.sh`.
 
-## k3s for section 10
+## macOS (Lima)
 
-`sections/s10_env.sh` installs k3s on the host under test, checks one Pod, and removes k3s again, so the host goes back to Docker only. Set `SKIP_K3S=1` to skip this part.
+macOS has no cgroups, so run the same command inside a Linux VM. `lima.yaml` is one way to get one (Apple Silicon, `vz`, 4 vCPUs, Ubuntu 24.04 with Docker, python3, iproute2 and bpftrace). Mount this directory into the VM, writable, at the same path:
 
-What `scripts/env_probe.sh` does on the host:
+```
+cd cpu-quota-throttling-p99
+limactl start --name cpu-quota-throttling-p99 --mount "$PWD:w" lima.yaml
+limactl shell cpu-quota-throttling-p99 -- bash -c "cd '$PWD' && ./run-all.sh"
+```
+
+Results appear in `results/` on the macOS side through the mount. For an existing VM, add the mount with `limactl stop`, `limactl edit <vm> --mount "$PWD:w"` and `limactl start`.
+
+## CI
+
+`.github/workflows/cpu-quota-throttling-p99.yml` (at the repository root) calls `run-all.sh` with `DUR=60` on `ubuntu-24.04`. All jobs except `report` start at the same time, each on its own runner:
+
+| Job | Command | Artifact |
+|---|---|---|
+| `s3` | `./run-all.sh s3 s4 s6` | `cpu-quota-throttling-p99-s3` |
+| `s5` (matrix) | `./run-all.sh s5:<condition>` | `cpu-quota-throttling-p99-s5-<condition>` |
+| `s9` (matrix) | `./run-all.sh s9:<condition>` | `cpu-quota-throttling-p99-s9-<condition>` |
+| `s10` | `K3S=1 ./run-all.sh s10` | `cpu-quota-throttling-p99-s10` |
+| `report` (`if: always()`) | Downloads every artifact into `results/`, runs `scripts/report.py summary results` and appends `summary.md` to the job summary | `cpu-quota-throttling-p99-summary` |
+
+`.github/actions/cpu-quota-throttling-p99-setup` only installs Go, bpftrace, iproute2 and python3; the checks are in `scripts/preflight.sh`. Matrix jobs use `fail-fast: false`. Because s3 and each condition run on different runners, the comparison tables show the host name and CPU model of every row.
+
+## Layout
+
+| Path | Role |
+|---|---|
+| `run-all.sh` | Entry point |
+| `conditions.tsv` | Conditions for s3, s5 and s9 (section, name, cpus, workers, rps) |
+| `server/` | Server under test. W workers accept a connection, use `CPU_MS` of CPU time, return an empty 200 and close. It records nothing |
+| `loadgen/` | Load generator. Send times are fixed in advance and requests are sent without waiting for responses, one connection per request. It records send time, receive time, monotonic latency and errors |
+| `scripts/preflight.sh` | Checks the host and records its environment; reports whether bpftrace can be used |
+| `scripts/build.sh` | Builds the `cqt-server` image and the load generator (`loadgen/bin/`) if they are missing |
+| `scripts/run.sh` | Runs one condition: starts the container with `--cpus`, the collectors and the load generator |
+| `scripts/collector.py` | Reads the cgroup's `cpu.stat` / `cpu.pressure` and `/proc/pressure/cpu` every 10ms and 1s |
+| `scripts/recvq.py` | Reads rx_queue (the same value as `ss -lnt` Recv-Q) from the LISTEN line of `/proc/<pid>/net/tcp` and `tcp6` of the container, every 10ms in one process |
+| `scripts/throttle.bt` | bpftrace: records per CPU when the container's cgroup is throttled and unthrottled, via kprobes on `throttle_cfs_rq` / `unthrottle_cfs_rq` |
+| `scripts/env_probe.sh` | Section 10: checks where the CPU limit appears in Docker, systemd and k3s, installs and uninstalls k3s, and records host state before and after |
+| `scripts/analyze.py` | Aggregates one condition into `summary.json` |
+| `scripts/report.py` | Builds `summary.md` (`summary <results_dir>`) and comparison tables (`table <run_dir>...`) |
+| `lima.yaml` | One way to get a Linux VM on macOS |
+
+## k3s in section 10
+
+With `K3S=1`, `scripts/env_probe.sh` installs k3s on the host, checks one Pod, and removes k3s again, so the host goes back to Docker only. Without it, s10 checks only Docker and systemd.
 
 1. Install: `curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik --disable servicelb --disable metrics-server" sh -`, then wait until the node is `Ready` and the `default` service account exists
 2. Apply a Pod `cqt-env` (`alpine:3.19`, `sleep 600`, `resources.limits.cpu: 500m`) with `k3s kubectl`, wait for `Ready`
@@ -89,17 +123,3 @@ What `scripts/env_probe.sh` does on the host:
 5. Record the host state after uninstall: `docker ps -a`, whether Docker is active, remaining k3s processes, systemd units and unit files, binaries in `/usr/local/bin`, `kubepods` cgroups and slice units, CNI / flannel / veth links, iptables rules mentioning kube / cni / flannel, and `/var/lib/rancher` / `/etc/rancher`
 
 The host needs outbound HTTPS to get.k3s.io and the image registries.
-
-## CI
-
-`.github/workflows/cpu-quota-throttling-p99.yml` (at the repository root) runs on `ubuntu-24.04` with `EXEC=`, `SAME_HOST=1` and `DUR=60`. All jobs except `report` start at the same time, each on its own runner:
-
-| Job | What it does | Artifact |
-|---|---|---|
-| `s3` | Runs section 3, then sections 4 and 6 on that result | `cpu-quota-throttling-p99-s3` |
-| `s5` (matrix: `rps5_w4`, `rps20_w4`, `rps10_w1`) | `sections/s5_cause.sh <condition>` | `cpu-quota-throttling-p99-s5-<condition>` |
-| `s9` (matrix: `cpus0.75_w4`, `cpus1.0_w4`, `cpus1.5_w4`, `cpus2.0_w4`) | `sections/s9_verify.sh <condition>` | `cpu-quota-throttling-p99-s9-<condition>` |
-| `s10` | Installs and removes k3s on its own runner | `cpu-quota-throttling-p99-s10` |
-| `report` (needs all above, `if: always()`) | Downloads every artifact and runs `sections/table.sh s5` and `s9` on what arrived; writes the tables to the job summary | `cpu-quota-throttling-p99-report` |
-
-The `s3` job writes the section 3, 4 and 6 key figures and the `s10` job writes the environment table to the job summary with `scripts/report.py md`; `report` writes the s5 and s9 comparison tables. Matrix jobs use `fail-fast: false`. Every measuring job first runs `.github/actions/cpu-quota-throttling-p99-preflight`, which fails the job unless cgroup v2, Docker on cgroup v2, bpftrace with BTF and kprobes on `throttle_cfs_rq` / `unthrottle_cfs_rq` are available, and writes `results/runner_<job>.txt` with the host name, CPU model, CPU count, kernel and cgroup driver. Because s3 and each condition run on different runners, the comparison tables show the host name and CPU model of every row.
