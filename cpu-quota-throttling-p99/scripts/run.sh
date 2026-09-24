@@ -14,9 +14,10 @@ mkdir -p "$out"
 lg=$("$here/scripts/build.sh")
 
 docker rm -f cqt >/dev/null 2>&1 || true
-id=$(docker run -d --name cqt --cpus "$cpus" -e W="$w" -e CPU_MS="$cpu_ms" -p 127.0.0.1:18080:8080 cqt-server)
+id=$(docker run -d --name cqt --cpus "$cpus" -e W="$w" -e CPU_MS="$cpu_ms" cqt-server)
 trap 'docker rm -f cqt >/dev/null 2>&1 || true' EXIT
 pid=$(docker inspect cqt --format '{{.State.Pid}}')
+ip=$(docker inspect cqt --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 cg=/sys/fs/cgroup$(sed -n 's/^0:://p' "/proc/$pid/cgroup")
 cgid=$(stat -c %i "$cg")
 until sudo -n nsenter -t "$pid" -n ss -lntH 'sport = :8080' | grep -q LISTEN; do sleep 0.2; done
@@ -27,6 +28,7 @@ until sudo -n nsenter -t "$pid" -n ss -lntH 'sport = :8080' | grep -q LISTEN; do
   echo "cgroup=$cg"
   echo "cgroup_id=$cgid"
   echo "pid=$pid"
+  echo "addr=$ip:8080"
   echo "cpu.max=$(cat "$cg/cpu.max")"
   echo "kernel=$(uname -r)"
   echo "nproc=$(nproc)"
@@ -49,5 +51,5 @@ pids+=($!)
 sudo -n python3 "$here/scripts/recvq.py" "$pid" 0.01 "$tail" 8080 > "$out/recvq_10ms.csv" &
 pids+=($!)
 sleep 1
-"$lg" -rps "$rps" -dur "${dur}s" -mode "$mode" -seed "$seed" -burst "$burst" -out "$out/requests.csv" 2>> "$out/meta.txt"
+"$lg" -addr "$ip:8080" -rps "$rps" -dur "${dur}s" -mode "$mode" -seed "$seed" -burst "$burst" -out "$out/requests.csv" 2>> "$out/meta.txt"
 wait "${pids[@]}"

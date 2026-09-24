@@ -63,21 +63,10 @@ tracepoint:sched:sched_migrate_task
 }
 
 kretprobe:inet_csk_accept
-/retval != 0/
+/cgroup == $1 && retval != 0/
 {
   $s = (struct sock *)retval;
-  if (cgroup == $1) {
-    printf("A,%llu,%d,%d,%d\n", nsecs, tid, cpu, $s->__sk_common.skc_dport);
-  } else if (comm == "docker-proxy") {
-    printf("PA,%llu,%d,%d,%d\n", nsecs, tid, $s->__sk_common.skc_num, $s->__sk_common.skc_dport);
-  }
-}
-
-kprobe:tcp_connect
-/comm == "docker-proxy"/
-{
-  $s = (struct sock *)arg0;
-  printf("PC,%llu,%d,%d,%d\n", nsecs, tid, $s->__sk_common.skc_num, $s->__sk_common.skc_dport);
+  printf("A,%llu,%d,%d,%d\n", nsecs, tid, cpu, $s->__sk_common.skc_dport);
 }
 
 kprobe:tcp_sendmsg

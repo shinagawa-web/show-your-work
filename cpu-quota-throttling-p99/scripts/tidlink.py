@@ -1,9 +1,6 @@
 import bisect
 from collections import defaultdict
 
-PROXY_PORT, SERVER_PORT = 18080, 8080
-
-
 def swap16(v):
     v = int(v) & 0xFFFF
     return ((v & 0xFF) << 8) | (v >> 8)
@@ -26,8 +23,6 @@ def parse(path):
             elif k == "P" and len(f) == 6:
                 ev[k].append((int(f[1]), int(f[2]), int(f[3]), int(f[4]), int(f[5])))
             elif k in ("A", "X") and len(f) == 5:
-                ev[k].append((int(f[1]), int(f[2]), int(f[3]), swap16(f[4])))
-            elif k in ("PA", "PC") and len(f) == 5:
                 ev[k].append((int(f[1]), int(f[2]), int(f[3]), swap16(f[4])))
         except ValueError:
             pass
@@ -71,23 +66,6 @@ def timelines(ev):
 
 
 def link_requests(ok, ev):
-    pa = defaultdict(list)
-    for t, tid, num, cport in ev["PA"]:
-        if num == PROXY_PORT:
-            pa[cport].append(t)
-    pcs = [x for x in ev["PC"] if x[3] == SERVER_PORT]
-    pa_all = sorted(t for v in pa.values() for t in v)
-    pa_to_pc, ambiguous, used = {}, set(), set()
-    j = 0
-    pending = []
-    for t, _, num, _ in pcs:
-        while j < len(pa_all) and pa_all[j] <= t:
-            pending.append(pa_all[j])
-            j += 1
-        if pending:
-            if len(pending) > 1:
-                ambiguous.add(pending[0])
-            pa_to_pc[pending.pop(0)] = (t, num)
     acc = defaultdict(list)
     for t, tid, cpu, port in ev["A"]:
         acc[port].append((t, tid))
@@ -97,20 +75,14 @@ def link_requests(ok, ev):
     out = {}
     for r in ok:
         port = int(r.get("src_port") or 0)
-        cand = [t for t in pa.get(port, []) if t >= r["s"] - 1_000_000 and t <= r["e"]]
-        if not cand or cand[0] not in pa_to_pc:
-            continue
-        pat = cand[0]
-        pct, sport = pa_to_pc[pat]
-        a = [(t, tid) for t, tid in acc.get(sport, []) if t >= pct and t <= r["e"] and (t, tid) not in used]
+        a = [(t, tid) for t, tid in acc.get(port, []) if r["s"] - 1_000_000 <= t <= r["e"]]
         if not a:
             continue
         at, tid = a[0]
-        used.add(a[0])
-        x = [t for t in snd.get((tid, sport), []) if t >= at]
+        x = [t for t in snd.get((tid, port), []) if at <= t <= r["e"]]
         if not x:
             continue
-        out[r["i"]] = {"tid": tid, "proxy_accept": pat, "proxy_connect": pct, "accept": at, "send": x[0], "ambiguous": pat in ambiguous}
+        out[r["i"]] = {"tid": tid, "accept": at, "send": x[0], "ambiguous": len(a) > 1 or len(x) > 1}
     return out
 
 
@@ -176,8 +148,13 @@ def analyze_links(ok, ev, per_cpu, union, crossings):
                 h = affect(tid, ui, s, e)
                 stopped = sorted({ci[0] for _, _, _, ci in members[ui] if ci and ci[1]})
                 th.append({"ui": ui, "start": u[0], "end": u[1], "hits": h, "stopped_tids": stopped})
-        pre = [ui for ui, u in enumerate(union) if u[0] < s and u[1] > r["s"]]
-        return th, [x for x in th if x["hits"]], pre
+        hit = {x["ui"]: x["hits"][0][1] for x in th if x["hits"]}
+        pre = [ui for ui, u in enumerate(union) if u[0] < s and u[1] > r["s"] and ui not in hit]
+        stages = []
+        for ui, u in enumerate(union):
+            if u[0] < r["e"] and u[1] > r["s"]:
+                stages.append(hit.get(ui) or ("before_accept" if u[0] < s else "after_send" if u[0] >= e else "not_runnable"))
+        return th, [x for x in th if x["hits"]], pre, stages
 
     def segments(L, linked):
         tid, s, e = L["tid"], L["accept"], L["send"]
@@ -207,12 +184,15 @@ def analyze_links(ok, ev, per_cpu, union, crossings):
     thr = [cg_oncpu(period_start(u[0]), u[0]) / 1e6 for u in union if period_start(u[0]) is not None]
     thr.sort()
     at_thr = {"n": len(thr), "min": round(thr[0], 2), "p50": round(thr[len(thr) // 2], 2), "max": round(thr[-1], 2)} if thr else None
+    stage_counts = defaultdict(int)
     rows, n_link, n_pre, diff, diff_pre, diff_kinds, amb = {}, 0, 0, 0, 0, defaultdict(int), 0
     for r in ok:
         L = links.get(r["i"])
         if not L:
             continue
-        th, linked, pre_u = per_request(r, L)
+        th, linked, pre_u, stages = per_request(r, L)
+        for st in stages:
+            stage_counts[st] += 1
         old = crossings(r["s"], r["e"])
         pre = len(pre_u)
         new = len(linked)
@@ -224,17 +204,18 @@ def analyze_links(ok, ev, per_cpu, union, crossings):
         if len(set(pre_u) | {x["ui"] for x in linked}) != old:
             diff_pre += 1
         amb += L["ambiguous"]
-        rows[r["i"]] = (L, th, linked, old, pre)
+        rows[r["i"]] = (L, th, linked, old, pre, stages)
 
     def fmt(r):
         if r["i"] not in rows:
             return {"lat_ms": round(r["lat"], 1), "linked": False}
-        L, th, linked, old, pre = rows[r["i"]]
+        L, th, linked, old, pre, stages = rows[r["i"]]
         return {
             "lat_ms": round(r["lat"], 1), "linked": True, "tid": L["tid"], "link_ambiguous": L["ambiguous"],
             "client_to_accept_ms": round((L["accept"] - r["s"]) / 1e6, 2),
             "server_span_ms": round((L["send"] - L["accept"]) / 1e6, 2),
             "send_to_client_recv_ms": round((r["e"] - L["send"]) / 1e6, 2),
+            "throttle_stages": stages,
             "throttles_before_accept": pre,
             "throttles_overlapping_server_span": len(th),
             "throttles_stopping_tid": len(linked), "throttles_time_overlap_old": old,
@@ -254,4 +235,5 @@ def analyze_links(ok, ev, per_cpu, union, crossings):
         "cg_oncpu_period_start_to_throttle_ms": at_thr,
         "cg_threads_seen": len(seg), "switch_out_without_switch_in": unknown,
         "periods_seen": len(periods),
+        "throttle_stages_all_requests": dict(sorted(stage_counts.items())),
     }, fmt

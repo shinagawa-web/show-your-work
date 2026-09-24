@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", "127.0.0.1:18080", "")
+	addr := flag.String("addr", "127.0.0.1:8080", "")
 	rps := flag.Float64("rps", 10, "")
 	dur := flag.Duration("dur", 60*time.Second, "")
 	mode := flag.String("mode", "poisson", "poisson|uniform")
