@@ -95,6 +95,32 @@ def md_s6(d):
     ])
     s += "\n" + md_rows("Requests at or above p99", [(r["lat_ms"], r["kprobe_crossings"], r["nr_throttled_delta_10ms"], r["recvq_at_send"]) for r in o["slow_ge_p99"]],
                         head=("latency (ms)", "throttles crossed (kprobe)", "nr_throttled increase (10ms cpu.stat)", "Recv-Q at send"))
+    tl = o.get("tid_link")
+    if isinstance(tl, dict):
+        q = tl["cg_oncpu_period_start_to_throttle_ms"] or {}
+        s += "\n" + md_rows("Throttles linked to the handling thread (bpftrace)", [
+            ("requests linked to a server thread (ambiguous proxy pairing)", f"{tl['n_requests_linked']} of {tl['n']} ({tl['n_link_ambiguous']})"),
+            ("requests with at least one throttle stopping the handling thread", f"{tl['n_ge1_stopping_tid']} of {tl['n']}"),
+            ("requests with a throttle while waiting before accept", f"{tl['n_ge1_before_accept']} of {tl['n']}"),
+            ("requests whose count differs from the time-overlap count", f"{tl['n_differs_from_time_overlap']} {tl['differs_by']}"),
+            ("same, counting throttles before accept too", tl["n_differs_counting_before_accept_union"]),
+            ("quota per period (ms)", tl["quota_ms"]),
+            ("cgroup on-CPU from period start to throttle, min / median / max (ms)", f"{q.get('min')} / {q.get('p50')} / {q.get('max')} ({q.get('n')} throttles)"),
+            ("quota usage source", tl["quota_usage_source"]),
+        ])
+
+        def segs(r):
+            return "; ".join(f"+{g['begin_rel_period_start_ms']} ms into period, cgroup used {g['cg_oncpu_since_period_start_ms']} ms, "
+                             f"on-CPU {g['req_oncpu_ms']} of {g['len_ms']} ms, {g['cg_threads_active']} threads, then {g['ends_with']}" for g in r["segments"])
+
+        def thr(r):
+            return "; ".join(f"{t['tid_state']}{' (tid was running)' if t['req_tid_was_running'] else ''}, {t['len_ms']} ms" for t in r["throttles"])
+
+        rows = [(r["lat_ms"], r["tid"], r["client_to_accept_ms"], r["throttles_before_accept"], f"{r['throttles_stopping_tid']} / {r['throttles_overlapping_server_span']}",
+                 r["throttles_time_overlap_old"], thr(r), segs(r)) for r in o["slow_ge_p99_tid_link"] if r.get("linked")]
+        s += "\n" + md_rows("Requests at or above p99, linked by thread", rows,
+                            head=("latency (ms)", "tid", "send to accept (ms)", "throttles before accept", "throttles stopping tid / in server span",
+                                  "throttles (time overlap)", "tid state at each throttle", "segments between throttles"))
     s += "\n" + md_rows("Latency histogram (10ms bins)", [(f"{b}-{int(b) + 10}", v) for b, v in o["hist_latency_10ms"].items()], head=("latency (ms)", "requests"))
     return s
 

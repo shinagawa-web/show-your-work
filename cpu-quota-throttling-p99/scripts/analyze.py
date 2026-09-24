@@ -1,4 +1,5 @@
 import bisect, csv, json, os, statistics, sys
+import tidlink
 
 SKIP = "skipped (bpftrace unavailable)"
 
@@ -133,6 +134,7 @@ def analyze(d):
 
     lat = [r["lat"] for r in ok]
     p99 = pct(lat, 99)
+    tl = tidlink.analyze_links(ok, tidlink.parse(f"{d}/throttle_raw.txt"), per_cpu, union, crossings) if bpf else None
     slow = sorted([r for r in ok if r["lat"] >= p99], key=lambda r: -r["lat"])
     hist = {}
     for v in lat:
@@ -177,6 +179,8 @@ def analyze(d):
                                        "n_ge1_nr_throttled_10ms": sum(nr_thr(r["s"], r["e"]) >= 1 for r in ok), "n": len(ok)},
         "slow_ge_p99": [{"lat_ms": round(r["lat"], 1), "kprobe_crossings": crossings(r["s"], r["e"]) if bpf else SKIP, "nr_throttled_delta_10ms": nr_thr(r["s"], r["e"]),
                          "recvq_at_send": rq_at(r["s"]), "cpus_in_use_at_send": conc_at(r["s"])} for r in slow],
+        "tid_link": tl[0] if tl else SKIP,
+        "slow_ge_p99_tid_link": [tl[1](r) for r in slow] if tl else SKIP,
         "hist_latency_10ms": dict(sorted(hist.items())),
         "util_1s_series_pct": [round(u, 1) for u in util1],
     }

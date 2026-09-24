@@ -51,7 +51,9 @@ func main() {
 			sendMono := monoNow()
 			send := time.Now()
 			c, err := net.Dial("tcp", *addr)
+			port := 0
 			if err == nil {
+				port = c.LocalAddr().(*net.TCPAddr).Port
 				if _, err = c.Write(req); err == nil {
 					var b []byte
 					if b, err = io.ReadAll(c); err == nil && len(b) == 0 {
@@ -65,14 +67,14 @@ func main() {
 			if err != nil {
 				errs = err.Error()
 			}
-			rows[i] = []string{strconv.Itoa(i), strconv.FormatInt(int64(s), 10), strconv.FormatInt(send.UnixNano(), 10), strconv.FormatInt(sendMono, 10), strconv.FormatInt(recv.UnixNano(), 10), strconv.FormatInt(recv.Sub(send).Nanoseconds(), 10), errs}
+			rows[i] = []string{strconv.Itoa(i), strconv.FormatInt(int64(s), 10), strconv.FormatInt(send.UnixNano(), 10), strconv.FormatInt(sendMono, 10), strconv.FormatInt(recv.UnixNano(), 10), strconv.FormatInt(recv.Sub(send).Nanoseconds(), 10), errs, strconv.Itoa(port)}
 		}(i, s)
 	}
 	wg.Wait()
 
 	f, _ := os.Create(*out)
 	w := csv.NewWriter(f)
-	w.Write([]string{"i", "sched_ns", "send_unix_ns", "send_mono_ns", "recv_unix_ns", "latency_ns", "err"})
+	w.Write([]string{"i", "sched_ns", "send_unix_ns", "send_mono_ns", "recv_unix_ns", "latency_ns", "err", "src_port"})
 	w.WriteAll(rows)
 	w.Flush()
 	f.Close()
