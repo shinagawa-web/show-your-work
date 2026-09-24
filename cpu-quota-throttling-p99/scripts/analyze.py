@@ -22,49 +22,16 @@ def merge(iv):
     return out
 
 
-def wall_segments(s10):
-    segs = []
-    for r in s10:
-        off = int(r["t_unix_ns"]) - int(r["t_mono_ns"])
-        if not segs or abs(off - segs[-1][1]) > 1_000_000:
-            segs.append((int(r["t_mono_ns"]), off))
-    return segs
-
-
-def wall_to_mono(w, segs):
-    for k in range(len(segs) - 1, -1, -1):
-        m = w - segs[k][1]
-        if m >= segs[k][0] and (k == len(segs) - 1 or m < segs[k + 1][0]):
-            return m
-    return w - segs[0][1]
-
-
-def send_mono_from_schedule(r, t0_wall, segs):
-    base = segs[0][1]
-    t0_mono = wall_to_mono(t0_wall, segs)
-    late = int(r["send_unix_ns"]) - t0_wall - int(r["sched_ns"])
-    fixes = [late - (off - base) for _, off in segs]
-    ok = [f for f in fixes if -5_000_000 <= f <= 50_000_000]
-    return t0_mono + int(r["sched_ns"]) + (min(ok, key=abs) if ok else 0)
-
-
-def recvq_mono(rq_rows, segs):
-    if rq_rows and rq_rows[0].get("t_mono_ns"):
-        return [(int(r["t_mono_ns"]), int(r["recv_q"])) for r in rq_rows]
-    out, k, prev = [], 0, None
-    for r in rq_rows:
-        w = int(r["t_unix_ns"])
-        if prev is not None and w - prev < -1_000_000 and k + 1 < len(segs):
-            k += 1
-        prev = w
-        out.append((w - segs[k][1], int(r["recv_q"])))
-    return out
+def require(path, rows_, cols):
+    missing = [c for c in cols if not rows_ or c not in rows_[0]]
+    if missing:
+        sys.exit(f"{path}: missing column(s) {', '.join(missing)}; re-run this condition with the current run-all.sh")
 
 
 def analyze(d):
     meta = {}
     for l in open(f"{d}/meta.txt"):
-        for kv in l.split() if l.startswith(("label=", "sent=")) else [l.strip()]:
+        for kv in l.split() if l.startswith("label=") else [l.strip()]:
             if "=" in kv:
                 k, v = kv.split("=", 1)
                 meta[k] = v
@@ -74,12 +41,14 @@ def analyze(d):
     s10, s1 = rows(f"{d}/cpustat_10ms.csv"), rows(f"{d}/cpustat_1s.csv")
     for r in s10 + s1:
         r["t"] = int(r["t_mono_ns"])
-    segs = wall_segments(s10)
+    require(f"{d}/cpustat_10ms.csv", s10, ["t_mono_ns"])
+    require(f"{d}/cpustat_1s.csv", s1, ["t_mono_ns"])
 
     reqs = rows(f"{d}/requests.csv")
+    require(f"{d}/requests.csv", reqs, ["send_mono_ns", "latency_ns"])
     ok = [r for r in reqs if not r["err"]]
     for r in ok:
-        r["s"] = int(r["send_mono_ns"]) if int(r.get("send_mono_ns") or 0) > 0 else send_mono_from_schedule(r, int(meta["t0"]), segs)
+        r["s"] = int(r["send_mono_ns"])
         r["e"] = r["s"] + int(r["latency_ns"])
         r["lat"] = (r["e"] - r["s"]) / 1e6
     t0 = min(r["s"] for r in ok)
@@ -136,7 +105,9 @@ def analyze(d):
         thr_cls[k][1] += int(y["cg_some_total"]) - int(x["cg_some_total"])
         thr_cls[k][2] += int(y["cg_full_total"]) - int(x["cg_full_total"])
 
-    rq = recvq_mono(rows(f"{d}/recvq_10ms.csv"), segs)
+    rq_rows = rows(f"{d}/recvq_10ms.csv")
+    require(f"{d}/recvq_10ms.csv", rq_rows, ["t_mono_ns"])
+    rq = [(int(r["t_mono_ns"]), int(r["recv_q"])) for r in rq_rows]
     rqT = [x for x, _ in rq]
     rq_w = [v for t, v in rq if t0 <= t < t1]
     rq_gaps = [(y - x) / 1e6 for x, y in zip(rqT, rqT[1:])]
