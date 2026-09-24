@@ -80,11 +80,13 @@ def analyze(d):
 
     a, b = nearest(s1, t0), nearest(s1, t1)
     ia, ib = s1.index(a), s1.index(b)
-    dd = {k: int(b[k]) - int(a[k]) for k in ["usage_usec", "nr_periods", "nr_throttled", "throttled_usec"]}
-    win = (b["t"] - a["t"]) / 1e9
+    T10 = [r["t"] for r in s10]
+    wa = s10[max(0, bisect.bisect_right(T10, t0) - 1)]
+    wb = s10[min(len(s10) - 1, bisect.bisect_left(T10, t1))]
+    dd = {k: int(wb[k]) - int(wa[k]) for k in ["usage_usec", "nr_periods", "nr_throttled", "throttled_usec"]}
+    win = (wb["t"] - wa["t"]) / 1e9
     util1 = [util_between(x, y) / cpus * 100 for x, y in zip(s1[ia:ib], s1[ia + 1:ib + 1])]
 
-    T10 = [r["t"] for r in s10]
     NT10 = [int(r["nr_throttled"]) for r in s10]
     c10 = []
     for x, y in zip(s10, s10[1:]):
