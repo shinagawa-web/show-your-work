@@ -25,6 +25,7 @@ k fd "ls -l /proc/$P/fd"
 k fd_readlink "readlink /proc/$P/fd/0"
 k maps "head -n 5 /proc/$P/maps"
 k wchan "cat /proc/$P/wchan; echo"
+k own_config 'cat /config/app.json'
 k root_ls "ls /proc/$P/root/"
 k root_config "cat /proc/$P/root/config/app.json"
 k root_resolv "cat /proc/$P/root/etc/resolv.conf"
