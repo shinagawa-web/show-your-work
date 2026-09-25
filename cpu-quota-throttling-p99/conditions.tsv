@@ -1,0 +1,9 @@
+section	name	cpus	workers	rps
+s3	s3	0.5	4	10
+s5	rps5_w4	0.5	4	5
+s5	rps20_w4	0.5	4	20
+s5	rps10_w1	0.5	1	10
+s9	cpus0.75_w4	0.75	4	10
+s9	cpus1.0_w4	1.0	4	10
+s9	cpus1.5_w4	1.5	4	10
+s9	cpus2.0_w4	2.0	4	10
