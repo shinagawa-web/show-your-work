@@ -9,6 +9,9 @@ k() {
 echo "### A: no response"
 k a_curl_hang 'curl -sv -m 3 localhost:3000/hang'
 k a_curl_health 'curl -sv -m 3 localhost:3000/health'
+k a_svc_hang 'curl -sv -m 3 app.default.svc.cluster.local:3000/hang'
+k a_svc_health 'curl -sv -m 3 app.default.svc.cluster.local:3000/health'
+k a_misrouted_health 'curl -sv -m 3 app-misrouted.default.svc.cluster.local:3000/health'
 echo "=== a_fill"
 echo '$ for i in $(seq 10); do curl -s -m 15 localhost:3001 >/dev/null 2>&1 & done'
 for i in $(seq 10); do curl -s -m 15 localhost:3001 >/dev/null 2>&1 & done

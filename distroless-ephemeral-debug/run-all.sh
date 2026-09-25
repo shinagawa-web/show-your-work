@@ -89,6 +89,9 @@ kubectl wait --for=condition=Ready pod/app --timeout=120s >/dev/null || exit 1
   echo "## literal interactive form from the issue"
   tty_session "kubectl debug -it app --image=$IMG --target=app -c dbg-it -- bash" 'ps auxf; exit'
   echo "state: $(wait_eph app dbg-it)"
+  echo "## reattach after the session ended"
+  rs "timeout 20 kubectl attach app -c dbg-it -i </dev/null"
+  rs "timeout 20 script -qec 'kubectl attach app -c dbg-it -it' /dev/null | tr -d '\\r'"
 } > "$results/02-target.txt"
 
 for p in $PROFILES; do
