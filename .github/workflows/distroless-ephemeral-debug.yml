@@ -1,0 +1,28 @@
+name: distroless-ephemeral-debug
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "distroless-ephemeral-debug/**"
+      - ".github/workflows/distroless-ephemeral-debug.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: distroless-ephemeral-debug
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: distroless-ephemeral-debug-results
+          path: distroless-ephemeral-debug/results/
