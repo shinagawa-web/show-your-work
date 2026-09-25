@@ -8,7 +8,22 @@ spec:
       image: distroless-app:dev
       imagePullPolicy: Never
       args: ["-exit"]
+      env:
+        - name: APP_MODE
+          value: production
+        - name: APP_UPSTREAM
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: app.json
       resources:
         limits:
           cpu: 200m
           memory: 32Mi
+      volumeMounts:
+        - name: config
+          mountPath: /config
+  volumes:
+    - name: config
+      configMap:
+        name: app-config

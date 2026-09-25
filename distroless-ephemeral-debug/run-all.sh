@@ -196,6 +196,16 @@ fi
   kubectl wait --for=condition=Ready pod/crash-copy2 --timeout=60s >/dev/null
   r kubectl get pod crash-copy2 -o jsonpath='{range .spec.containers[*]}{.name} {.image} {.command} {.args}{"\n"}{end}'
   r kubectl get pod crash-copy2
+  echo "## config and env inside the copy"
+  r kubectl exec crash-copy2 -c app -- cat /config/app.json
+  r kubectl exec crash-copy2 -c app -- printenv APP_MODE APP_UPSTREAM
+  echo "## app container spec: original vs copy"
+  for p in crash crash-copy2; do
+    rs "kubectl get pod $p -o json | jq -c '.spec.containers[] | select(.name == \"app\") | {image, command, args, env, volumeMounts}'"
+    rs "kubectl get pod $p -o json | jq -c '.spec.volumes'"
+  done
+  echo "## logs of the crashing original"
+  r kubectl logs crash -c app --previous
 } > "$results/05-constraints.txt"
 
 {
