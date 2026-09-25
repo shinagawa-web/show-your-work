@@ -7,9 +7,10 @@ boundary at time t uses the sample nearest to t.
 
   aligned   boundaries on the CFS period grid (sched_cfs_period_timer, P);
             usage from the samples nearest to each boundary; nr_throttled
-            delta from the first samples at or after each boundary (the
+            delta from the first samples at or after boundary + 2ms (the
             kernel adds to nr_throttled in the period timer at the end of
-            the throttled period)
+            the throttled period, and a sample stamped just after the
+            boundary may have read cpu.stat before the timer ran)
   naive     every 10 samples from the collector's first sample
   offset X  samples nearest to the period grid shifted by +X ms; usage and
             nr_throttled from the same samples
@@ -24,6 +25,8 @@ import bisect, csv, sys
 from collections import Counter
 import tidlink
 from period_arrivals import grid, timer_fires, PERIOD
+
+NR_THROTTLED_MARGIN = 2_000_000
 
 
 def compute(d, near=45.0, ev=None):
@@ -55,7 +58,7 @@ def compute(d, near=45.0, ev=None):
             if x < lo or y > hi:
                 continue
             i, j = nearest(x), nearest(y)
-            ti, tj = (bisect.bisect_left(st, x), bisect.bisect_left(st, y)) if split else (i, j)
+            ti, tj = (bisect.bisect_left(st, x + NR_THROTTLED_MARGIN), bisect.bisect_left(st, y + NR_THROTTLED_MARGIN)) if split else (i, j)
             if j >= len(st) or tj >= len(st) or i >= j:
                 continue
             k0 = bisect.bisect_left(thr_t, x)

@@ -56,6 +56,8 @@ With bpftrace, `scripts/analyze.py` also cuts the run into CFS periods on the co
 - `period_arrivals`: per period, requests sent by the load generator, carry-over from earlier periods and whether the container was throttled
 - `period_usage`: `usage_usec` from the 10ms `cpu.stat` samples summed into 100ms windows, aligned to the period boundaries and at other phases, against the `nr_throttled` increase
 
+In `period_usage`, the `aligned` windows take usage from the samples nearest to each period boundary and the `nr_throttled` increase from the first samples at or after boundary + 2ms. The kernel adds to `nr_throttled` in the period timer at the end of the throttled period. The collector stamps each sample after reading `cpu.stat`, so a sample stamped a fraction of a millisecond after the boundary can hold a value read before the timer ran and put the increase in the next window. The other window sets (`naive`, `offset_sweep`) read both counters from the same samples.
+
 `results/summary.md` shows these for `s3` and `s5/rps10_w1`. The same numbers, with per-period detail and a CSV next to the results, come from:
 
 ```
