@@ -48,6 +48,21 @@ Each run first calls `scripts/preflight.sh`, which stops the run unless Linux, c
 
 If `bpftrace` is installed, BTF is present and kprobes attach to `throttle_cfs_rq` / `unthrottle_cfs_rq`, the run records when the container is throttled and unthrottled on each CPU. Otherwise preflight prints a warning and the run continues: the kprobe-based figures (length of one throttle, throttles crossed per request) show `skipped (bpftrace unavailable)`, and the other figures come from `cpu.stat`, `cpu.pressure` and the listen socket. Section 4 then takes throttle intervals from 10ms `cpu.stat` samples instead of kprobes.
 
+### Per-period analysis
+
+With bpftrace, `scripts/analyze.py` also cuts the run into CFS periods on the container's `sched_cfs_period_timer` firings and adds to `summary.json`:
+
+- `kprobe`: throttle length per CPU and for the union of CPUs (median, mean, max, sum), the `throttled_usec` increase over the run, and whether each throttle ended by the next period timer firing
+- `period_arrivals`: per period, requests sent by the load generator, carry-over from earlier periods and whether the container was throttled
+- `period_usage`: `usage_usec` from the 10ms `cpu.stat` samples summed into 100ms windows, aligned to the period boundaries and at other phases, against the `nr_throttled` increase
+
+`results/summary.md` shows these for `s3` and `s5/rps10_w1`. The same numbers, with per-period detail and a CSV next to the results, come from:
+
+```
+python3 scripts/period_arrivals.py results/s3 [carry_threshold_ms]
+python3 scripts/period_usage.py results/s3 [near_ms]
+```
+
 ## Linux
 
 Requirements on the host:

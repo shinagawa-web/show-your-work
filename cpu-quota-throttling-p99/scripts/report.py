@@ -79,16 +79,8 @@ def md_s4(d):
 def md_s6(d):
     o = load(d)
     k, c = o["kprobe"], o["requests_crossing_throttle"]
-    if isinstance(k, dict):
-        u, pc = k["union_len_ms"] or {}, k["per_cpu_len_ms"] or {}
-        union = f"{u.get('p50')} / {u.get('max')} ({k['throttle_windows_in_window_union']} throttles)"
-        per_cpu = f"{pc.get('p50')} / {pc.get('max')} ({k['throttle_events_in_window_per_cpu']} events)"
-    else:
-        union = per_cpu = k
     kc = c["n_ge1"]
-    s = md_rows("Section 6 (mechanism)", [
-        ("throttle length (kprobe), union of CPUs, median / max (ms)", union),
-        ("throttle length (kprobe), per CPU, median / max (ms)", per_cpu),
+    s = md_rows("Section 6 (mechanism)", throttle_rows(o) + [
         ("throttled_usec / nr_throttled (us)", o["throttled_usec_per_nr_throttled"]),
         ("requests crossing at least one throttle (kprobe)", f"{kc} of {c['n']}" if isinstance(kc, int) else kc),
         ("requests with nr_throttled increasing while in flight (10ms cpu.stat)", f"{c['n_ge1_nr_throttled_10ms']} of {c['n']}"),
@@ -124,6 +116,67 @@ def md_s6(d):
                                   "throttles (time overlap)", "tid state at each throttle", "segments between throttles"))
     s += "\n" + md_rows("Latency histogram (10ms bins)", [(f"{b}-{int(b) + 10}", v) for b, v in o["hist_latency_10ms"].items()], head=("latency (ms)", "requests"))
     return s
+
+
+def throttle_rows(o):
+    k = o["kprobe"]
+    if not isinstance(k, dict):
+        return [("throttle length (kprobe)", k)]
+    u, pc = k["union_len_ms"] or {}, k["per_cpu_len_ms"] or {}
+
+    def ends(e):
+        if not e:
+            return None
+        m = e["unthrottle_minus_next_timer_ms"] or {}
+        return (f"{e['n_ended_by_next_timer_plus_1ms']} of {e['n']} (ended before the timer: {e['n_ended_before_next_timer']}; "
+                f"unthrottle minus timer min / median / max {m.get('min')} / {m.get('p50')} / {m.get('max')} ms)")
+
+    return [
+        ("throttle length (kprobe), union of CPUs, median / mean / max (ms)", f"{u.get('p50')} / {u.get('mean')} / {u.get('max')} ({k['throttle_windows_in_window_union']} throttles)"),
+        ("throttle length (kprobe), per CPU, median / mean / max (ms)", f"{pc.get('p50')} / {pc.get('mean')} / {pc.get('max')} ({k['throttle_events_in_window_per_cpu']} events)"),
+        ("sum of throttle lengths, per CPU / union (ms)", f"{pc.get('sum')} / {u.get('sum')}"),
+        ("throttled_usec increase over the run (ms)", k.get("throttled_usec_delta_ms")),
+        ("windows used for the two sums", k.get("len_sum_window")),
+        ("throttles ended by the next period timer (+1ms), per CPU", ends(k.get("ends_by_next_period_timer_per_cpu"))),
+        ("throttles ended by the next period timer (+1ms), union", ends(k.get("ends_by_next_period_timer_union"))),
+    ]
+
+
+PERIOD_RUNS = ["s3", "s5/rps10_w1"]
+
+
+def md_periods(d, title):
+    o = load(d)
+    pa, pu = o.get("period_arrivals"), o.get("period_usage")
+    if not isinstance(pa, dict) or not isinstance(pu, dict):
+        return None
+    parts = [] if os.path.basename(d.rstrip("/")) == "s3" else [md_rows(f"{title}: throttle", throttle_rows(o))]
+    parts.append(md_rows(f"{title}: periods", [
+        ("periods (start at a real timer firing)", f"{pa['periods']} ({pa['periods_real_timer']})"),
+        ("throttle calls / throttled periods", f"{pa['throttle_calls']} / {pa['throttled_periods']}"),
+        ("requests / linked to a thread", f"{pa['requests']} / {pa['requests_linked']}"),
+        ("carry-over threshold (ms)", pa["carry_threshold_ms"]),
+    ]))
+    head = ("bin", "periods", "throttled", "fraction")
+    for key, t in (("by_arrivals_all", "all periods, by arrivals (send time)"),
+                   ("by_arrivals_no_carry", "no carry-over, by arrivals"),
+                   ("by_arrivals_carry", "carry-over, by arrivals"),
+                   ("by_demand_in_period_ms", "in-period demand (ms): sum(min(20, time left)) + carry"),
+                   ("by_cgroup_oncpu_ms", "cgroup on-CPU in the period (ms, sched_switch)")):
+        parts.append(md_rows(f"{title}: {t}", [(r["bin"], r["periods"], r["throttled"], r["fraction"]) for r in pa[key]], head=head))
+    parts.append(md_rows(f"{title}: arrivals in throttled periods", [(r["arrivals"], r["all"], r["no_carry"], r["carry"]) for r in pa["arrivals_in_throttled_periods"]],
+                         head=("arrivals", "all", "no carry-over", "carry-over")))
+    parts.append(md_rows(f"{title}: 3+ arrivals, no carry-over, not throttled", [(r["k"], r["arrivals"], r["offsets_ms"], r["cg_ms"], r["next_period_throttled"]) for r in pa["ge3_arrivals_no_carry_not_throttled"]],
+                         head=("period", "arrivals", "send offsets in period (ms)", "cgroup on-CPU (ms)", "next period throttled")))
+    keys = ["windows", "usage_ge_near", "dthr_gt0", "both", "p_usage_ge_near_given_dthr", "p_dthr_given_usage_ge_near", "max_usage_ms",
+            "usage_sample_minus_boundary_ms_median", "nr_throttled_sample_minus_boundary_ms_median"]
+    rows = [("aligned",) + tuple(pu["aligned"][x] for x in keys), (f"naive (+{pu['naive_phase_ms']} ms)",) + tuple(pu["naive"][x] for x in keys)]
+    rows += [(f"offset +{x['offset_ms']} ms",) + tuple(x[y] for y in keys) for x in pu["offset_sweep"]]
+    parts.append(md_rows(f"{title}: cpu.stat usage in 100ms windows vs nr_throttled (near = {pu['near_ms']} ms)", rows, head=("window set",) + tuple(keys)))
+    for name in ("aligned", "naive"):
+        parts.append(md_rows(f"{title}: {name} windows by usage", [(r["bin"], r["windows"], r["dthr_gt0"], r["bpf_throttle"]) for r in pu[name]["by_usage_ms"]],
+                             head=("usage (ms)", "windows", "nr_throttled increased", "bpftrace throttle")))
+    return "\n".join(parts)
 
 
 def md_s10(path):
@@ -165,6 +218,10 @@ def summary(results):
     if os.path.exists(os.path.join(s3, "summary.json")):
         parts += [md_s3(s3), md_s4(s3), md_s6(s3)]
     parts.append(md_table(results, "s5", "Section 5 (cause)" + (", s3 as the first row" if os.path.exists(os.path.join(s3, "summary.json")) else "")))
+    for rel in PERIOD_RUNS:
+        d = os.path.join(results, rel)
+        if os.path.exists(os.path.join(d, "summary.json")):
+            parts.append(md_periods(d, f"Per-period analysis, {os.path.basename(d)}"))
     parts.append(md_table(results, "s9", "Section 9 (verification)" + (", s3 as the first row" if os.path.exists(os.path.join(s3, "summary.json")) else "")))
     env = os.path.join(results, "s10", "env.jsonl")
     if os.path.exists(env):

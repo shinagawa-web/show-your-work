@@ -1,5 +1,5 @@
 import bisect, csv, json, os, statistics, sys
-import tidlink
+import tidlink, period_arrivals, period_usage
 
 SKIP = "skipped (bpftrace unavailable)"
 
@@ -134,7 +134,24 @@ def analyze(d):
 
     lat = [r["lat"] for r in ok]
     p99 = pct(lat, 99)
-    tl = tidlink.analyze_links(ok, tidlink.parse(f"{d}/throttle_raw.txt"), per_cpu, union, crossings) if bpf else None
+    tev = tidlink.parse(f"{d}/throttle_raw.txt") if bpf else None
+    tl = tidlink.analyze_links(ok, tev, per_cpu, union, crossings) if bpf else None
+    pts = period_arrivals.timer_fires(tev) if bpf else None
+
+    def ends_by_next_timer(iv):
+        # Throttle end (unthrottle) minus the first period timer firing after the throttle start.
+        if not pts or not iv:
+            return None
+        late = []
+        for a_, b_ in iv:
+            i = bisect.bisect_right(pts, a_)
+            if i >= len(pts):
+                continue
+            late.append((b_ - pts[i]) / 1e6)
+        return {"n": len(late), "n_ended_by_next_timer_plus_1ms": sum(x <= 1.0 for x in late),
+                "n_ended_before_next_timer": sum(x < 0 for x in late),
+                "unthrottle_minus_next_timer_ms": {"min": round(min(late), 4), "p50": round(pct(late, 50), 4), "max": round(max(late), 4)} if late else None,
+                "throttle_len_over_time_left_in_period": {"max": round(max((b_ - a_) / (pts[bisect.bisect_right(pts, a_)] - a_) for a_, b_ in iv if bisect.bisect_right(pts, a_) < len(pts)), 4)}}
     slow = sorted([r for r in ok if r["lat"] >= p99], key=lambda r: -r["lat"])
     hist = {}
     for v in lat:
@@ -159,9 +176,15 @@ def analyze(d):
         "kprobe": SKIP if not bpf else {
             "throttle_events_in_window_per_cpu": len(per_cpu_w),
             "throttle_windows_in_window_union": len(union_w),
-            "union_len_ms": {"p50": round(pct(ulen, 50), 2), "max": round(max(ulen), 2), "min": round(min(ulen), 2)} if ulen else None,
-            "per_cpu_len_ms": {"p50": round(pct(clen, 50), 2), "max": round(max(clen), 2), "sum": round(sum(clen), 1)} if clen else None,
+            "union_len_ms": {"p50": round(pct(ulen, 50), 2), "mean": round(statistics.mean(ulen), 2), "max": round(max(ulen), 2), "min": round(min(ulen), 2),
+                             "sum": round(sum(ulen), 1)} if ulen else None,
+            "per_cpu_len_ms": {"p50": round(pct(clen, 50), 2), "mean": round(statistics.mean(clen), 2), "max": round(max(clen), 2), "min": round(min(clen), 2),
+                               "sum": round(sum(clen), 1)} if clen else None,
+            "throttled_usec_delta_ms": round(dd["throttled_usec"] / 1e3, 1),
+            "len_sum_window": "kprobe: throttles starting in [first send, first send + dur); throttled_usec: 10ms cpu.stat samples just outside that range",
             "unmatched_T": len(open_t),
+            "ends_by_next_period_timer_per_cpu": ends_by_next_timer([(a_, b_) for a_, b_, _ in per_cpu_w]),
+            "ends_by_next_period_timer_union": ends_by_next_timer([(u[0], u[1]) for u in union_w]),
         },
         "cpus_in_use_10ms": {"mean": round(statistics.mean(u for _, _, u, _, _ in c10), 3), "max": round(max(u for _, _, u, _, _ in c10), 2),
                               "p99": round(pct([u for _, _, u, _, _ in c10], 99), 2)},
@@ -180,6 +203,8 @@ def analyze(d):
         "slow_ge_p99": [{"lat_ms": round(r["lat"], 1), "kprobe_crossings": crossings(r["s"], r["e"]) if bpf else SKIP, "nr_throttled_delta_10ms": nr_thr(r["s"], r["e"]),
                          "recvq_at_send": rq_at(r["s"]), "cpus_in_use_at_send": conc_at(r["s"])} for r in slow],
         "tid_link": tl[0] if tl else SKIP,
+        "period_arrivals": (lambda r: r[1] if r else "skipped (no throttle records)")(period_arrivals.compute(d, ev=tev)) if bpf else SKIP,
+        "period_usage": (lambda r: r[0] if r else "skipped (no throttle records)")(period_usage.compute(d, near=0.9 * cpus * 100, ev=tev)) if bpf else SKIP,
         "slow_ge_p99_tid_link": [tl[1](r) for r in slow] if tl else SKIP,
         "hist_latency_10ms": dict(sorted(hist.items())),
         "util_1s_series_pct": [round(u, 1) for u in util1],
