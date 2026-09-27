@@ -146,17 +146,6 @@ done
 } > "$results/03-namespaces.txt"
 
 {
-  echo "## A/B/C in dbg-default"
-  timeout 300 kubectl exec -i app -c dbg-default -- bash -s < "$here/scripts/scenarios.sh" 2>&1
-} > "$results/06-scenarios-default.txt"
-if kubectl get pod app -o json | jq -e '.status.ephemeralContainerStatuses[] | select(.name == "dbg-sysadmin") | .state.running' >/dev/null; then
-  {
-    echo "## A/B/C in dbg-sysadmin"
-    timeout 300 kubectl exec -i app -c dbg-sysadmin -- bash -s < "$here/scripts/scenarios.sh" 2>&1
-  } > "$results/06-scenarios-sysadmin.txt"
-fi
-
-{
   echo "## ephemeral containers cannot be removed"
   r kubectl get pod app -o jsonpath='{range .spec.ephemeralContainers[*]}{.name}{"\n"}{end}'
   rs "kubectl get pod app -o json | jq '.spec.ephemeralContainers = []' | kubectl replace --subresource=ephemeralcontainers -f -"

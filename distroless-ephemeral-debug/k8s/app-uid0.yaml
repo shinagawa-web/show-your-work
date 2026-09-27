@@ -9,7 +9,7 @@ spec:
     - name: app
       image: distroless-app:dev
       imagePullPolicy: Never
-      args: ["-http=:3000", "-stuck=3001"]
+      args: ["-http=:3000"]
       env:
         - name: APP_MODE
           value: production
@@ -45,7 +45,7 @@ spec:
     - name: sidecar
       image: distroless-app:dev
       imagePullPolicy: Never
-      args: ["-http=:4000", "-stuck=0"]
+      args: ["-http=:4000"]
       resources:
         requests:
           cpu: 100m
@@ -77,7 +77,7 @@ spec:
     - name: app
       image: distroless-app:dev
       imagePullPolicy: Never
-      args: ["-http=:3000", "-stuck=3001"]
+      args: ["-http=:3000"]
       env:
         - name: APP_MODE
           value: production
@@ -113,7 +113,7 @@ spec:
     - name: sidecar
       image: distroless-app:dev
       imagePullPolicy: Never
-      args: ["-http=:4000", "-stuck=0"]
+      args: ["-http=:4000"]
       resources:
         requests:
           cpu: 100m
