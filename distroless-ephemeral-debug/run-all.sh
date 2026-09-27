@@ -199,11 +199,12 @@ done
 
 {
   echo "## node debug, literal form from the issue"
-  sb=$(node crictl pods --name '^app$' --namespace default -q | head -n1)
-  aid=$(node crictl ps --pod "$sb" --name '^app$' -q)
-  cg=$(node cat /proc/$(pid_of "$aid")/cgroup | cut -d: -f3)
   kubectl delete pod -l app.kubernetes.io/managed-by=kubectl-debug --ignore-not-found >/dev/null 2>&1
-  tty_session "kubectl debug node/$NODE -it --profile=sysadmin --image=$IMG -- bash" "id; ls --color=never /host; cat /host/proc/1/cgroup; cat /sys/fs/cgroup$cg/cpu.max; cat /host/sys/fs/cgroup$cg/cpu.max; cat /host/sys/fs/cgroup$cg/cpu.stat; exit"
+  node_input=$(cat <<'EOF'
+id; ls --color=never /host; ps -eo pid,user,args | grep '[/]server -http='; P=$(pgrep -u 65532 -f '/server -http=:3000'); echo "P=$P"; cat /proc/$P/cgroup; cat /host/proc/$P/cgroup; CG=$(cut -d: -f3 /proc/$P/cgroup); echo "CG=$CG"; cat /host/sys/fs/cgroup$CG/cpu.max; cat /host/sys/fs/cgroup$CG/cpu.stat; exit
+EOF
+)
+  tty_session "kubectl debug node/$NODE -it --profile=sysadmin --image=$IMG -- bash" "$node_input"
   r kubectl get pods -o wide --field-selector spec.nodeName="$NODE"
   np=$(kubectl get pods -o name | grep node-debugger | head -n1)
   [ -z "$np" ] || rs "kubectl get $np -o json | jq '{hostPID: .spec.hostPID, hostNetwork: .spec.hostNetwork, hostIPC: .spec.hostIPC, sc: .spec.containers[0].securityContext, mounts: .spec.containers[0].volumeMounts, volumes: .spec.volumes}'"
