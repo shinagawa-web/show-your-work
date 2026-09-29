@@ -23,7 +23,7 @@ ls = [s for s in d["loadSamples"] if s["cpuUtil"] is not None]
 if ls:
     print(f"- loadavg1 max {max(s['loadavg1'] for s in ls):.2f}, cpu util mean {statistics.mean(s['cpuUtil'] for s in ls):.2f} max {max(s['cpuUtil'] for s in ls):.2f}")
 if d.get("stoppedAfterCalibration"):
-    print("- STOPPED after calibration (mismatch)")
+    print("- STOPPED after calibration (a calibration user booted a version that contradicts its measured r/A)")
 print()
 
 STATUS = re.compile(r'"(?:GET|HEAD) (\S+) HTTP/[\d.]+" (\d{3}) (\d+)')
@@ -120,8 +120,14 @@ for (s, a, meth, dep), us in sorted(bnd.items()):
 print()
 
 if d.get("calibration"):
-    print("## Calibration (real wait vs Age header)\n")
-    for r in d["calibration"]["rows"]:
-        w = ", ".join(f"{x['version']}@{x['r_over_A']:.4f}" for x in r["realWait"])
-        a = ", ".join(f"{x['version']}@{x['r_over_A']:.4f}" for x in r["ageHeader"])
-        print(f"- {r['point']}: real-wait [{w}] / age-header [{a}] -> {'match' if r['match'] else 'MISMATCH'}")
+    c = d["calibration"]
+    print("## Calibration (judged by measured r/A)\n")
+    print(f"- rule: {c['rule']}")
+    print(f"- result: {'pass' if c['pass'] else 'FAIL'}\n")
+    print("| user | method | A s | r s | r/A | expected | booted | result |")
+    print("|---|---|---|---|---|---|---|---|")
+    for r in c["rows"]:
+        a = f"{r['A_sec']:.0f}" if r["A_sec"] is not None else "-"
+        rs = f"{r['r_sec']:.1f}" if r["r_sec"] is not None else "-"
+        ra = f"{r['r_over_A']:.4f}" if r["r_over_A"] is not None else "-"
+        print(f"| {r['user']} | {r['method']} | {a} | {rs} | {ra} | {r['expected'] or '-'} | {r['booted'] or '-'} | {'pass' if r['pass'] else 'FAIL'} |")

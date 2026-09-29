@@ -44,7 +44,7 @@ In `nocache304` groups without a deploy, the v1 container also serves the revisi
 
 The real-wait sets (`cal-wait`, `cal-age`, `deploytime`) run first, all groups at once. The other sets follow, `--parallel` groups at a time.
 
-If both calibration sets run and the booted versions differ at any point, the run stops after calibration (exit 2).
+If both calibration sets run, each calibration user is judged by its measured r/A, not by its point label: v1 is expected when r/A < 0.1 and v2 when r/A >= 0.1, in either method. If any user booted a version that contradicts its measured r/A, the run stops after calibration (exit 2). `results.json` `calibration.rows` and the Calibration section of `summary.md` list, per user, the method, measured r/A, expected and booted version, and pass/fail.
 
 ## Run
 

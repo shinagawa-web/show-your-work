@@ -352,20 +352,32 @@ async function runGroups(groups, portOf, slot = groupSlot) {
   return { record, groupRecords };
 }
 
-// A calibration point matches if real-wait and Age-header users booted the same versions.
+// Calibration gate. Each cal-wait / cal-age user is judged by its measured
+// r/A (not by its point label): v1 is expected when r/A < CAL_BOUNDARY, v2
+// when r/A >= CAL_BOUNDARY. A user fails when the booted version differs
+// from the expected one, or when r/A or the booted version is missing.
+const CAL_BOUNDARY = 0.1;
 function calibrationCheck(record) {
-  const points = {};
-  for (const r of record) {
-    if (!['cal-wait', 'cal-age'].includes(r.set)) continue;
-    points[r.point] ??= { 'cal-wait': [], 'cal-age': [] };
-    points[r.point][r.set].push({ version: r.bootedVersion, r_over_A: r.measured.r_over_A });
-  }
-  const rows = Object.entries(points).map(([point, v]) => {
-    const w = v['cal-wait'].map((x) => x.version).sort().join(',');
-    const a = v['cal-age'].map((x) => x.version).sort().join(',');
-    return { point, realWait: v['cal-wait'], ageHeader: v['cal-age'], match: w === a };
-  });
-  return { rows, allMatch: rows.every((r) => r.match) };
+  const rows = record
+    .filter((r) => ['cal-wait', 'cal-age'].includes(r.set))
+    .map((r) => {
+      const rOverA = r.measured.r_over_A;
+      const expected = rOverA == null ? null : (rOverA < CAL_BOUNDARY ? 'v1' : 'v2');
+      return {
+        user: r.user,
+        set: r.set,
+        method: r.rSource,
+        point: r.point,
+        A_sec: r.measured.A_sec,
+        r_sec: r.measured.r_sec,
+        r_over_A: rOverA,
+        expected,
+        booted: r.bootedVersion,
+        pass: expected != null && r.bootedVersion === expected,
+      };
+    })
+    .sort((a, b) => a.method.localeCompare(b.method) || a.r_over_A - b.r_over_A);
+  return { rule: `expected v1 if measured r/A < ${CAL_BOUNDARY}, else v2`, boundary: CAL_BOUNDARY, rows, pass: rows.every((r) => r.pass) };
 }
 
 // ---------- main ----------
@@ -414,11 +426,14 @@ async function main() {
     timings.calibrationEnd = Date.now();
     if (sets.includes('cal-wait') && sets.includes('cal-age')) {
       calibration = calibrationCheck(res.record);
-      console.error(`calibration: ${calibration.allMatch ? 'match' : 'MISMATCH'}`);
+      for (const r of calibration.rows) {
+        console.error(`calibration ${r.user} ${r.method} r/A=${r.r_over_A?.toFixed(4)} expected=${r.expected} booted=${r.booted} ${r.pass ? 'pass' : 'FAIL'}`);
+      }
+      console.error(`calibration: ${calibration.pass ? 'pass' : 'FAIL'}`);
     }
   }
   let stopped = false;
-  if (calibration && !calibration.allMatch && !args['no-calibration-gate']) {
+  if (calibration && !calibration.pass && !args['no-calibration-gate']) {
     stopped = true;
   } else if (mainGroups.length) {
     timings.mainStart = Date.now();
