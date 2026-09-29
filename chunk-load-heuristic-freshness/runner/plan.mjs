@@ -17,6 +17,9 @@ export const MAX_AGE_POINTS = [300, 540, 660, 840, 960, 1200];
 // max-age at other A: only the two points around MAX_AGE_SEC.
 export const MAX_AGE_OTHER_AGES = ['10m', '1000m'];
 export const MAX_AGE_OTHER_POINTS = [840, 960];
+// max-age=300 (maxage300 set): revisit points (s) per A.
+export const MAX_AGE_300_SEC = 300;
+export const MAX_AGE_300_POINTS = { '100m': [240, 360, 540, 660], '1000m': [240, 360] };
 // Deploy timing (real waiting, A=10m): where the deploy sits between fetch and revisit.
 //   early: right after the fetch
 //   mid:   at half of r
@@ -120,6 +123,23 @@ export function buildPlan() {
         v1: { image: 'v1', env: cc },
         v2: { image: 'v2', env: cc },
         users: users(`maxage-${ageName}-s${s}-newtab`, REPEATS, { method: 'newtab', point: `s${s}` }),
+      });
+    }
+  }
+
+  // max-age=300 at A=100m and A=1000m.
+  for (const [ageName, points] of Object.entries(MAX_AGE_300_POINTS)) {
+    for (const s of points) {
+      const cc = { INDEX_CACHE_CONTROL: `max-age=${MAX_AGE_300_SEC}` };
+      groups.push({
+        id: `maxage300-${ageName}-s${s}`,
+        set: 'maxage300',
+        ageName,
+        ageSec: AGES[ageName],
+        ageHeader: s,
+        v1: { image: 'v1', env: cc },
+        v2: { image: 'v2', env: cc },
+        users: users(`maxage300-${ageName}-s${s}-newtab`, REPEATS, { method: 'newtab', point: `s${s}` }),
       });
     }
   }

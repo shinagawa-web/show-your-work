@@ -1,6 +1,6 @@
 // Runs the plan: start containers, fetch v1, deploy v2, revisit, record.
 //
-//   node run.mjs [--sets cal-wait,cal-age,deploytime,grid,keep,spa,nocache,nocache304,maxage,reloadfail,pressfirst]
+//   node run.mjs [--sets cal-wait,cal-age,deploytime,grid,keep,spa,nocache,nocache304,maxage,maxage300,reloadfail,pressfirst]
 //                [--ages 10m,100m,1000m,6d] [--parallel 4] [--max-browsers 16]
 //                [--out ../results/<run-id>] [--no-calibration-gate]
 //
@@ -27,7 +27,7 @@ const args = Object.fromEntries(
     return acc;
   }, []),
 );
-const ALL_SETS = ['cal-wait', 'cal-age', 'deploytime', 'grid', 'keep', 'spa', 'nocache', 'nocache304', 'maxage', 'reloadfail', 'pressfirst'];
+const ALL_SETS = ['cal-wait', 'cal-age', 'deploytime', 'grid', 'keep', 'spa', 'nocache', 'nocache304', 'maxage', 'maxage300', 'reloadfail', 'pressfirst'];
 // Sets that wait in real time. They run first, all at once (they mostly sleep).
 // A set is real-wait per group: a group with realWaitSec users (e.g. the
 // pressfirst-wait group) runs in this phase too.

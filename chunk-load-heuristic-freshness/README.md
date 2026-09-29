@@ -32,6 +32,7 @@ A Vite app (entry JS plus one chunk loaded when a button is pressed) is served b
 | spa | 100m | 5/9/11/20% | SPA fallback on v1 and v2 |
 | nocache | 100m | 5/9/11/20% | `Cache-Control: no-cache` on `index.html` |
 | maxage | 100m; also 10m and 1000m | 300/540/660/840/960/1200 s at 100m; 840/960 s at 10m and 1000m | `Cache-Control: max-age=900` on `index.html` |
+| maxage300 | 100m; 1000m | 240/360/540/660 s at 100m; 240/360 s at 1000m | `Cache-Control: max-age=300` on `index.html` |
 | deploytime | 10m | 5/9/11/20% by real waiting; deploy early / mid / late | stock |
 | nocache304 | 100m | 5/9/11/20% by `Age`; with and without a deploy | `Cache-Control: no-cache` on `index.html`; access log adds `inm="$http_if_none_match" ims="$http_if_modified_since"` |
 | reloadfail | 100m | 5/9/11/20% | app reloads once on `vite:preloadError` |
@@ -58,6 +59,7 @@ cd chunk-load-heuristic-freshness
 scripts/run.sh                                  # everything
 scripts/run.sh --sets grid --ages 100m          # one set / one A
 scripts/run.sh --sets pressfirst                # press the button on the first visit
+scripts/run.sh --sets maxage300                 # max-age=300 on index.html
 scripts/run.sh --sets cal-wait,cal-age          # calibration only
 ```
 
