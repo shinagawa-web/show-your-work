@@ -164,6 +164,39 @@ export function buildPlan() {
     }
   }
 
+  // Press first: same as the baseline, except every user also presses the
+  // button on the first visit, so the v1 chunk is fetched (and cached)
+  // before the deploy. Real waiting at A=10m (like cal-wait) and the Age
+  // header at A=100m (like grid).
+  groups.push({
+    id: 'pressfirst-wait-10m',
+    set: 'pressfirst',
+    ageName: '10m',
+    ageSec: AGES['10m'],
+    pressFirst: true,
+    v1: { image: 'v1' },
+    v2: { image: 'v2' },
+    users: [0.05, 0.09, 0.11].flatMap((f) =>
+      users(`pressfirst-wait-10m-${pct(f)}-newtab`, REPEATS, {
+        method: 'newtab',
+        point: pct(f),
+        realWaitSec: Math.round(f * AGES['10m']),
+      })),
+  });
+  for (const f of FRACTIONS) {
+    groups.push({
+      id: `pressfirst-100m-${pct(f)}`,
+      set: 'pressfirst',
+      ageName: '100m',
+      ageSec: a,
+      ageHeader: Math.round(f * a),
+      pressFirst: true,
+      v1: { image: 'v1' },
+      v2: { image: 'v2' },
+      users: users(`pressfirst-100m-${pct(f)}-newtab`, REPEATS, { method: 'newtab', point: pct(f) }),
+    });
+  }
+
   return groups;
 }
 

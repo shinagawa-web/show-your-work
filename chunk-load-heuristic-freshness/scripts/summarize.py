@@ -73,6 +73,21 @@ def deploy_col(u):
     return s
 
 
+def res_summary(rs):
+    return "; ".join(f"{r['name'].rsplit('/', 1)[-1]} {r['transferSize']}/{r['responseStatus']}" for r in rs) or "-"
+
+
+def first_visit(u):
+    fv = u.get("firstVisitChunk")
+    if not fv:
+        return "-"
+    parts = []
+    for a in fv["result"] or []:
+        r = a.get("result") or {}
+        parts.append(f"ok({r['loaded']})" if r.get("loaded") else ("ERR " + r["errors"][0] if r.get("errors") else "none"))
+    return f"{' / '.join(parts)} [{res_summary(fv['resources'])}]"
+
+
 def row(u):
     m = u["measured"]
     rv = u["revisit"]
@@ -88,7 +103,7 @@ def row(u):
         f"| {u['user']} | {m['A_sec']:.0f} | {fh.get('age') or '-'} | {m['elapsedSec']:.1f} | {m['r_sec']:.1f} | "
         f"{m['r_over_A']:.4f} | {deploy_col(u)} | {booted} | {ts} | "
         f"{chunk_summary(u)} | {log_summary(u['accessLog']['v1'])} | {log_summary(u['accessLog']['v2'])} |"
-    )
+    ) + (f" {first_visit(u)} | {res_summary(u.get('revisitChunkResources') or [])} |" if u["set"] == "pressfirst" else "")
 
 
 users = d["users"]
@@ -98,8 +113,10 @@ for u in users:
 
 for s, us in groups.items():
     print(f"## {s}\n")
-    print("| user | A s | Age hdr | elapsed s | r s | r/A | deploy (before revisit, timing, start-done as fraction of fetch->revisit) | booted | nav transferSize | chunk | v1 log (fetch) | v2 log (revisit) |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|---|")
+    extra = s == "pressfirst"
+    print("| user | A s | Age hdr | elapsed s | r s | r/A | deploy (before revisit, timing, start-done as fraction of fetch->revisit) | booted | nav transferSize | chunk | v1 log (fetch) | v2 log (revisit) |"
+          + (" first-visit chunk [file transferSize/status] | revisit chunk file transferSize/status |" if extra else ""))
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|" + ("---|---|" if extra else ""))
     for u in sorted(us, key=lambda u: (u["target"]["ageSec"], u["measured"]["r_over_A"])):
         print(row(u))
     print()

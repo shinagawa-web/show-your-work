@@ -1,6 +1,6 @@
 // Runs the plan: start containers, fetch v1, deploy v2, revisit, record.
 //
-//   node run.mjs [--sets cal-wait,cal-age,deploytime,grid,keep,spa,nocache,nocache304,maxage,reloadfail]
+//   node run.mjs [--sets cal-wait,cal-age,deploytime,grid,keep,spa,nocache,nocache304,maxage,reloadfail,pressfirst]
 //                [--ages 10m,100m,1000m,6d] [--parallel 4] [--max-browsers 16]
 //                [--out ../results/<run-id>] [--no-calibration-gate]
 //
@@ -27,9 +27,12 @@ const args = Object.fromEntries(
     return acc;
   }, []),
 );
-const ALL_SETS = ['cal-wait', 'cal-age', 'deploytime', 'grid', 'keep', 'spa', 'nocache', 'nocache304', 'maxage', 'reloadfail'];
+const ALL_SETS = ['cal-wait', 'cal-age', 'deploytime', 'grid', 'keep', 'spa', 'nocache', 'nocache304', 'maxage', 'reloadfail', 'pressfirst'];
 // Sets that wait in real time. They run first, all at once (they mostly sleep).
+// A set is real-wait per group: a group with realWaitSec users (e.g. the
+// pressfirst-wait group) runs in this phase too.
 const REAL_WAIT_SETS = ['cal-wait', 'cal-age', 'deploytime'];
+const isRealWait = (g) => REAL_WAIT_SETS.includes(g.set) || g.users.some((u) => u.realWaitSec != null);
 const sets = args.sets ? String(args.sets).split(',') : ALL_SETS;
 const ages = args.ages ? String(args.ages).split(',') : null;
 const PARALLEL = Number(args.parallel || 4);
@@ -224,8 +227,16 @@ async function runGroup(g, port, record) {
     const resp = await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load' });
     await sleep(100);
     const st = await pageState(page);
+    // pressFirst: press the button on the first visit too, and wait for the
+    // chunk to load before the browser is closed.
+    let click = null;
+    let afterClick = null;
+    if (g.pressFirst) {
+      click = await clickAndObserve(page);
+      afterClick = await pageState(page);
+    }
     await page.close();
-    return { user: u, fetch: { startedAt, response: headersOf(resp), state: st, ...o, load: loadNow() } };
+    return { user: u, fetch: { startedAt, response: headersOf(resp), state: st, click, afterClick, ...o, load: loadNow() } };
   })));
   gr.timeline.fetchesDone = Date.now();
 
@@ -330,6 +341,12 @@ async function runGroup(g, port, record) {
       bootedVersion: r.revisit.state.app?.version ?? null,
       navTransferSize: r.revisit.state.nav?.transferSize ?? null,
       chunk: r.revisit.click,
+      // Resource Timing entries of the chunk (feature-*.js). transferSize 0 = served from cache.
+      firstVisitChunk: g.pressFirst ? {
+        result: r.fetch.click,
+        resources: chunkResources(r.fetch.afterClick),
+      } : null,
+      revisitChunkResources: chunkResources(r.revisit.finalState),
       fetch: r.fetch,
       revisit: r.revisit,
       accessLog: { v1: pick(gr.v1.logs.accessLog), v2: pick(gr.v2.logs.accessLog) },
@@ -338,6 +355,8 @@ async function runGroup(g, port, record) {
   }
   return gr;
 }
+
+const chunkResources = (st) => (st?.resources || []).filter((x) => /\/assets\/feature-[^/]*\.js$/.test(x.name));
 
 async function runGroups(groups, portOf, slot = groupSlot) {
   const record = [];
@@ -385,7 +404,7 @@ async function main() {
   await fs.mkdir(OUT, { recursive: true });
   const timings = { start: Date.now() };
   let groups = buildPlan().filter((g) => sets.includes(g.set));
-  if (ages) groups = groups.filter((g) => g.set !== 'grid' || ages.includes(g.ageName));
+  if (ages) groups = groups.filter((g) => !['grid', 'pressfirst'].includes(g.set) || ages.includes(g.ageName));
   const ports = new Map(groups.map((g, i) => [g.id, BASE_PORT + i]));
   const portOf = (g) => ports.get(g.id);
 
@@ -416,8 +435,8 @@ async function main() {
   const groupRecords = [];
   let calibration = null;
 
-  const calGroups = groups.filter((g) => REAL_WAIT_SETS.includes(g.set));
-  const mainGroups = groups.filter((g) => !REAL_WAIT_SETS.includes(g.set));
+  const calGroups = groups.filter(isRealWait);
+  const mainGroups = groups.filter((g) => !isRealWait(g));
   if (calGroups.length) {
     timings.calibrationStart = Date.now();
     const res = await runGroups(calGroups, portOf, (fn) => fn());
