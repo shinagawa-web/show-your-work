@@ -1,0 +1,33 @@
+name: chunk-load-heuristic-freshness
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "chunk-load-heuristic-freshness/**"
+      - ".github/workflows/chunk-load-heuristic-freshness.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: chunk-load-heuristic-freshness
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.3
+      - run: scripts/run.sh
+      - run: cat results/*/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - run: cat results/*/durations.txt >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: chunk-load-heuristic-freshness-results
+          path: chunk-load-heuristic-freshness/results/
