@@ -1,0 +1,15 @@
+name: cpu-quota-throttling-p99 setup
+description: Install the tools run-all.sh uses (Go for the load generator, bpftrace, iproute2, python3). The checks themselves are in scripts/preflight.sh.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v7
+      with:
+        go-version-file: cpu-quota-throttling-p99/loadgen/go.mod
+        cache: false
+
+    - name: Install tools
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bpftrace iproute2 python3

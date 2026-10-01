@@ -1,0 +1,99 @@
+name: cpu-quota-throttling-p99
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "cpu-quota-throttling-p99/**"
+      - ".github/workflows/cpu-quota-throttling-p99.yml"
+      - ".github/actions/cpu-quota-throttling-p99-setup/**"
+
+env:
+  DUR: "60"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: cpu-quota-throttling-p99
+
+jobs:
+  s3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/cpu-quota-throttling-p99-setup
+      - run: ./run-all.sh s3 s4 s6
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cpu-quota-throttling-p99-s3
+          path: cpu-quota-throttling-p99/results/
+
+  s5:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [rps5_w4, rps20_w4, rps10_w1]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/cpu-quota-throttling-p99-setup
+      - run: ./run-all.sh "s5:${{ matrix.cond }}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cpu-quota-throttling-p99-s5-${{ matrix.cond }}
+          path: cpu-quota-throttling-p99/results/
+
+  s9:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [cpus0.75_w4, cpus1.0_w4, cpus1.5_w4, cpus2.0_w4]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/cpu-quota-throttling-p99-setup
+      - run: ./run-all.sh "s9:${{ matrix.cond }}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cpu-quota-throttling-p99-s9-${{ matrix.cond }}
+          path: cpu-quota-throttling-p99/results/
+
+  s10:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/cpu-quota-throttling-p99-setup
+      - run: K3S=1 ./run-all.sh s10
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cpu-quota-throttling-p99-s10
+          path: cpu-quota-throttling-p99/results/
+
+  report:
+    needs: [s3, s5, s9, s10]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: cpu-quota-throttling-p99-s*
+          merge-multiple: true
+          path: cpu-quota-throttling-p99/results/
+      - run: |
+          python3 scripts/report.py summary results > results/summary.md
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cpu-quota-throttling-p99-summary
+          path: cpu-quota-throttling-p99/results/summary.md

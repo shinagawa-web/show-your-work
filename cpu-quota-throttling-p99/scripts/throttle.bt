@@ -1,0 +1,84 @@
+kprobe:throttle_cfs_rq
+{
+  $c = (struct cfs_rq *)arg0;
+  if ($c->tg->css.cgroup->kn->id == $1) {
+    @arg[tid] = 1;
+    @rr[tid] = $c->runtime_remaining;
+    @pool[tid] = $c->tg->cfs_bandwidth.runtime;
+    @timer[tid] = (uint64)$c->tg + offsetof(struct task_group, cfs_bandwidth) + offsetof(struct cfs_bandwidth, period_timer);
+  }
+}
+
+kretprobe:throttle_cfs_rq
+/@arg[tid]/
+{
+  $t = nsecs;
+  printf("T,%llu,%d,%d\n", $t, cpu, retval);
+  printf("C,%llu,%d,%d,%d,%d,%lld,%llu,%llu\n", $t, cpu, retval, tid, cgroup == $1, @rr[tid], @pool[tid], @timer[tid]);
+  delete(@arg[tid]);
+  delete(@rr[tid]);
+  delete(@pool[tid]);
+  delete(@timer[tid]);
+}
+
+kprobe:unthrottle_cfs_rq
+{
+  $c = (struct cfs_rq *)arg0;
+  if ($c->tg->css.cgroup->kn->id == $1) {
+    printf("U,%llu,%d\n", nsecs, cpu);
+  }
+}
+
+kprobe:sched_cfs_period_timer
+{
+  $b = (struct cfs_bandwidth *)(arg0 - offsetof(struct cfs_bandwidth, period_timer));
+  if ((int64)$b->quota != -1) {
+    printf("P,%llu,%d,%llu,%llu,%llu\n", nsecs, cpu, arg0, $b->quota, $b->runtime);
+  }
+}
+
+tracepoint:sched:sched_switch
+{
+  if (cgroup == $1) {
+    @ours[args.prev_pid] = 1;
+  }
+  if (@ours[args.prev_pid]) {
+    printf("R,%llu,%llu,%d,%d,%lld\n", @inpid[cpu] == args.prev_pid ? @in[cpu] : 0, nsecs, cpu, args.prev_pid, args.prev_state);
+  }
+  @in[cpu] = nsecs;
+  @inpid[cpu] = args.next_pid;
+}
+
+tracepoint:sched:sched_wakeup,
+tracepoint:sched:sched_wakeup_new
+/@ours[args.pid]/
+{
+  printf("W,%llu,%d,%d\n", nsecs, args.pid, args.target_cpu);
+}
+
+tracepoint:sched:sched_migrate_task
+/@ours[args.pid]/
+{
+  printf("M,%llu,%d,%d,%d\n", nsecs, args.pid, args.orig_cpu, args.dest_cpu);
+}
+
+kretprobe:inet_csk_accept
+/cgroup == $1 && retval != 0/
+{
+  $s = (struct sock *)retval;
+  printf("A,%llu,%d,%d,%d\n", nsecs, tid, cpu, $s->__sk_common.skc_dport);
+}
+
+kprobe:tcp_sendmsg
+/cgroup == $1/
+{
+  $s = (struct sock *)arg0;
+  printf("X,%llu,%d,%d,%d\n", nsecs, tid, cpu, $s->__sk_common.skc_dport);
+}
+
+END
+{
+  clear(@ours);
+  clear(@in);
+  clear(@inpid);
+}
