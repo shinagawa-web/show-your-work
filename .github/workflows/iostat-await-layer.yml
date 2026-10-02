@@ -1,0 +1,36 @@
+name: iostat-await-layer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [iostat-await-layer]
+    paths:
+      - "iostat-await-layer/**"
+      - ".github/workflows/iostat-await-layer.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: iostat-await-layer
+
+jobs:
+  feasibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          sudo apt-get update -q
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q fio sysstat
+          fio --version; iostat -V
+      - run: sudo ./run-all.sh
+      - if: always()
+        run: |
+          sudo chown -R "$(id -u)" results || true
+          cat results/probe.log || true
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: iostat-await-layer-results
+          path: iostat-await-layer/results/
