@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Step 2: fio 4 KiB O_DIRECT random reads under three kinds of limit,
 # with iostat -x sampled on the same devices during the run.
-#   a        no limit                         (DEV_BASE)
-#   b        cgroup v2 io.max riops=1000      (DEV_BASE, MAJ:MIN of DEV_BASE)
-#   c_compl  null_blk completion_nsec=1ms     (DEV_COMPL)
-#   c_mbps   null_blk mbps=4                  (DEV_MBPS)
-#   c_dm     dm-delay 1 ms on a null_blk      (DEV_DMDELAY, lower DEV_DMLOW)
+#   a        no limit                              (DEV_BASE: loop on tmpfs)
+#   b        cgroup v2 io.max riops=1000           (DEV_BASE, MAJ:MIN of DEV_BASE)
+#   c_dm     dm-delay 1 ms on a loop               (DEV_DMDELAY, lower DEV_DMLOW)
+#   c_sd     scsi_debug ndelay=1 ms                (DEV_SDEBUG)
+#   c_sdq1   scsi_debug ndelay=1 ms, device queue_depth=1  (DEV_SDEBUG)
 # fio always runs inside /sys/fs/cgroup/iotest; io.max is set only for b.
 # Must run as root, after probe.sh.
 set -u
@@ -48,8 +48,14 @@ for qd in $DEPTHS; do
     one b "$qd" "$DEV_BASE" "$DEV_BASE"
     echo "$(mm "$DEV_BASE") riops=max" > $CG/io.max
   fi
-  [ -n "${DEV_COMPL:-}" ] && one c_compl "$qd" "$DEV_COMPL" "$DEV_COMPL"
-  [ -n "${DEV_MBPS:-}" ] && one c_mbps "$qd" "$DEV_MBPS" "$DEV_MBPS"
   [ -n "${DEV_DMDELAY:-}" ] && one c_dm "$qd" "$DEV_DMDELAY" "$DEV_DMDELAY" "$DEV_DMLOW"
+  if [ -n "${DEV_SDEBUG:-}" ]; then
+    qdf=/sys/block/$(basename "$DEV_SDEBUG")/device/queue_depth
+    one c_sd "$qd" "$DEV_SDEBUG" "$DEV_SDEBUG"
+    orig=$(cat "$qdf")
+    echo 1 > "$qdf"; echo "queue_depth set: $(cat "$qdf")"
+    one c_sdq1 "$qd" "$DEV_SDEBUG" "$DEV_SDEBUG"
+    echo "$orig" > "$qdf"
+  fi
 done
 true

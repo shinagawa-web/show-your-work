@@ -11,7 +11,7 @@ import os
 import sys
 
 d = sys.argv[1]
-ORDER = ["a", "b", "c_compl", "c_mbps", "c_dm"]
+ORDER = ["a", "b", "c_dm", "c_sd", "c_sdq1"]
 
 
 def pct(job, kind, p):

@@ -54,60 +54,56 @@ run 'grep -E "BLK_DEV_THROTTLING|BLK_CGROUP=|BLK_DEV_NULL_BLK|DM_DELAY|BLK_DEV_L
 note "null_blk: modprobe before installing anything"
 if ! run 'modprobe null_blk nr_devices=0'; then
   note "null_blk: install linux-modules-extra-\$(uname -r) and retry"
-  run 'DEBIAN_FRONTEND=noninteractive apt-get install -y -q linux-modules-extra-$(uname -r) 2>&1 | tail -n 5'
+  run 'DEBIAN_FRONTEND=noninteractive apt-get install -y -q linux-modules-extra-$(uname -r) 2>&1 | grep -vE "^(Reading|Building|Get:|Fetched|Selecting|Preparing|Unpacking|Scanning|No (containers|user|VM)|Running kernel|Restarting)" | head -n 20'
+  run 'dpkg -l "linux-modules-extra-$(uname -r)" | tail -n 1'
+  run 'find /lib/modules/$(uname -r) -name "null_blk*" -o -name "scsi_debug*" -o -name "dm-delay*" | sort'
   run 'modprobe null_blk nr_devices=0'
 fi
 run 'modinfo null_blk | grep -E "^(filename|vermagic|parm:\s+(mbps|memory_backed|completion_nsec|irqmode|nr_devices))"'
 run 'mountpoint /sys/kernel/config || mount -t configfs none /sys/kernel/config'
-run "cat $NB/features"
+run "ls $NB/ && cat $NB/features"
 
-note "null_blk: module-parameter route (separate load, then unload)"
-run 'modprobe -r null_blk'
+note "null_blk: module-parameter route"
 run 'modprobe null_blk nr_devices=1 memory_backed=1 mbps=4 irqmode=2 completion_nsec=1000000'
-run 'ls -l /dev/nullb*; grep . /sys/module/null_blk/parameters/{mbps,memory_backed,irqmode,completion_nsec} 2>&1'
-run 'modprobe -r null_blk'
-run 'modprobe null_blk nr_devices=0'
-
-note "null_blk: configfs devices"
-# base: no delay, no limit (used for unlimited and io.max runs, and under dm-delay)
-if d=$(make_nullb base size=1024 blocksize=4096 memory_backed=1 | tail -n 1) && [ -b "$d" ]; then
-  echo "DEV_BASE=$d" >> "$ENV"
-fi
-# completion: every request completes after 1 ms (timer completion)
-if d=$(make_nullb compl size=1024 blocksize=4096 memory_backed=1 irqmode=2 completion_nsec=1000000 | tail -n 1) && [ -b "$d" ]; then
-  echo "DEV_COMPL=$d" >> "$ENV"
-fi
-# mbps: device-side bandwidth cap of 4 MiB/s (= 1024 x 4 KiB/s)
-if d=$(make_nullb mbps size=1024 blocksize=4096 memory_backed=1 mbps=4 | tail -n 1) && [ -b "$d" ]; then
-  echo "DEV_MBPS=$d" >> "$ENV"
-fi
 run 'ls -l /dev/nullb*'
-run 'for d in /sys/block/nullb*; do echo "$d sched=$(cat $d/queue/scheduler) nr_requests=$(cat $d/queue/nr_requests)"; done'
+
+note "null_blk: configfs route"
+make_nullb probe size=256 blocksize=4096 memory_backed=1 irqmode=2 completion_nsec=1000000 mbps=4
+run 'ls -l /dev/nullb*'
+
+note "base device for a/b: loop on a tmpfs file"
+run 'grep -E "SCSI_DEBUG|BLK_DEV_UBLK" /boot/config-$(uname -r)'
+run 'dd if=/dev/urandom of=/dev/shm/base.img bs=1M count=256 status=none && losetup -f --show --direct-io=on /dev/shm/base.img'
+L=$(losetup -j /dev/shm/base.img | cut -d: -f1 | head -n 1)
+[ -b "$L" ] && echo "DEV_BASE=$L" >> "$ENV"
+run "losetup -l $L"
 
 note "dm-delay: modprobe"
-if ! run 'modprobe dm-delay'; then
-  run 'DEBIAN_FRONTEND=noninteractive apt-get install -y -q linux-modules-extra-$(uname -r) 2>&1 | tail -n 5'
-  run 'modprobe dm-delay'
-fi
+run 'modprobe dm-delay'
 run 'dmsetup targets'
 
-note "dm-delay: on top of a null_blk device (its own lower device, not shared)"
-if d=$(make_nullb dmlow size=1024 blocksize=4096 memory_backed=1 | tail -n 1) && [ -b "$d" ]; then
-  echo "DEV_DMLOW=$d" >> "$ENV"
-  if run "dmsetup create delay1ms --table \"0 \$(blockdev --getsz $d) delay $d 0 1\""; then
-    run 'dmsetup table delay1ms; ls -l /dev/mapper/delay1ms; readlink -f /dev/mapper/delay1ms'
+note "dm-delay 1 ms (read and write) on its own loop device"
+run 'dd if=/dev/urandom of=/dev/shm/dmlow.img bs=1M count=256 status=none && losetup -f --show --direct-io=on /dev/shm/dmlow.img'
+L2=$(losetup -j /dev/shm/dmlow.img | cut -d: -f1 | head -n 1)
+if [ -b "$L2" ]; then
+  echo "DEV_DMLOW=$L2" >> "$ENV"
+  if run "dmsetup create delay1ms --table \"0 \$(blockdev --getsz $L2) delay $L2 0 1\""; then
+    run 'dmsetup table delay1ms; readlink -f /dev/mapper/delay1ms'
     echo "DEV_DMDELAY=$(readlink -f /dev/mapper/delay1ms)" >> "$ENV"
   fi
 fi
 
-note "dm-delay: on top of a loop device (alternative if null_blk is missing)"
-run 'truncate -s 256M /tmp/loopback.img && losetup -f --show --direct-io=on /tmp/loopback.img'
-LOOP=$(losetup -j /tmp/loopback.img | cut -d: -f1 | head -n 1)
-if [ -n "$LOOP" ]; then
-  run "dmsetup create delayloop --table \"0 \$(blockdev --getsz $LOOP) delay $LOOP 0 1\" && dmsetup table delayloop"
-  run 'dmsetup remove delayloop'
-  run "losetup -d $LOOP"
+note "scsi_debug: ndelay=1 ms per command (device-side delay below the block layer)"
+if run 'modprobe scsi_debug dev_size_mb=256 sector_size=4096 ndelay=1000000 max_luns=1 num_tgts=1'; then
+  run 'sleep 2; ls /sys/bus/pseudo/drivers/scsi_debug/adapter0/host*/target*/*/block/'
+  SD=$(ls /sys/bus/pseudo/drivers/scsi_debug/adapter0/host*/target*/*/block/ 2>/dev/null | head -n 1)
+  if [ -n "$SD" ] && [ -b "/dev/$SD" ]; then
+    echo "DEV_SDEBUG=/dev/$SD" >> "$ENV"
+    run "grep . /sys/bus/pseudo/drivers/scsi_debug/{ndelay,delay,max_queue}; cat /sys/block/$SD/device/queue_depth"
+  fi
 fi
+
+run 'for d in /sys/block/{loop,dm-,sd,nullb}*; do [ -e $d/queue/scheduler ] && echo "$d sched=$(cat $d/queue/scheduler) nr_requests=$(cat $d/queue/nr_requests)"; done; true'
 
 note "cgroup v2 io controller and io.max"
 run 'grep -qw io /sys/fs/cgroup/cgroup.subtree_control || echo +io > /sys/fs/cgroup/cgroup.subtree_control; cat /sys/fs/cgroup/cgroup.subtree_control'
