@@ -43,11 +43,11 @@ Each scenario runs 25 s and changes one condition at 8 s. The first 8 s is the r
 | 04c-d-retry-default-maxfails0 | d-retry-default-maxfails0.conf (as 04b, with `max_fails=0` on each server) | same as 04 |
 | 04d-d-retry-within-capacity | d-retry-short.conf (d-retry.conf with `proxy_read_timeout 60ms`) | `/api/light` 30 ms -> 80 ms. One attempt per request needs 200 x 0.08 = 16 of 20; three need 48 |
 | 04e-d-no-retry-within-capacity | d-noretry-short.conf (d-retry-short.conf with `proxy_next_upstream off`) | same as 04d |
-| 05-e-tenant-aggregation | e-tenant.conf (per `$http_x_tenant`, 50 r/s, burst 10) | tenants t0-t2 -> t0-t9, 40 r/s each on average, tenant picked at random; `/api/light` 60 ms |
+| 05-e-tenant-aggregation | e-tenant.conf (per `$http_x_tenant`, 50 r/s, burst 10) | tenants t0-t2 (90 r/s) -> t0-t13 (420 r/s), 30 r/s each on average, tenant picked at random; `/api/light` 60 ms (capacity 20 / 0.06 s = 333 r/s) |
 | 06-lever-a-endpoint-limit | f-endpoint.conf (extra 20 r/s zone on `/api/heavy`, burst 10) | same as 01 (`/api/heavy` 300 ms) |
 | 07a-lever-b-maxconns-only | g-maxconns.conf (`max_conns=20`, `proxy_read_timeout` 1 s as in base) | same as 02 |
 | 07b-lever-b-timeout-only | g-timeout.conf (`proxy_read_timeout 500ms`, no `max_conns`) | same as 02 |
-| 08-lever-e-global-limit (3 runs) | h-global.conf (per tenant 50 r/s + fixed key 300 r/s, burst 20) | same as 05 (tenant at random, evenly spaced arrivals) |
+| 08-lever-e-global-limit (3 runs) | h-global.conf (per tenant 50 r/s + fixed key 300 r/s, burst 20) | same as 05 (420 r/s against the 300 r/s zone; tenant at random, evenly spaced arrivals) |
 | 08a-lever-e-global-limit-roundrobin (3 runs) | h-global.conf | same as 05, tenant = `iterationInTest % N` |
 | 08b-lever-e-global-limit-random-arrival (3 runs) | h-global.conf | same as 05, tenant at random, `ARRIVAL=bernoulli` (`THIN=10`) |
 
