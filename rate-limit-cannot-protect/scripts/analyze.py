@@ -69,7 +69,8 @@ class Run:
         for l in open(f'{d}/k6-stdout.txt'):
             p = l.strip().split(' ', 1)
             if len(p) == 2 and p[0] == 'T0_MS':
-                self.t0 = int(p[1]) / 1000
+                self.t0_ms = int(p[1])
+                self.t0 = self.t0_ms / 1000
             elif len(p) == 2 and p[0].startswith('ADMIN_'):
                 self.admin[p[0]] = json.loads(p[1])
         t0 = self.t0
@@ -94,8 +95,10 @@ class Run:
             if not m:
                 continue
             msec, rt, st, uri, tn, ua, us, uct, uht, urt, rid = m.groups()
-            end = float(msec) - t0
-            self.ngx.append(dict(start=end - float(rt), end=end, status=st, uri=uri, tenant=tn, ua=ua, us=us,
+            # $msec, $request_time and T0 all have ms resolution: subtract in integer ms so that a
+            # request starting exactly at the switch is not put just before it by float rounding
+            end_ms = round(float(msec) * 1000) - self.t0_ms
+            self.ngx.append(dict(start=(end_ms - round(float(rt) * 1000)) / 1000, end=end_ms / 1000, status=st, uri=uri, tenant=tn, ua=ua, us=us,
                                  sent=bool(ADDR.match(ua)), header=num(uht), rid=rid))
             self.ngx_lines.append(line.rstrip('\n'))
         self.by_rid = {x['rid']: x for x in self.ngx}
