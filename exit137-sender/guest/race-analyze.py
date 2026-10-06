@@ -15,8 +15,8 @@ for c in ("C1", "C2"):
             if l.startswith("clock "):
                 pairs.append(tuple(map(int, l.split()[1:3])))
 offs = [a - b for a, b in pairs]
-OFF = int(statistics.median(offs))
-print(f"realtime-boottime offset: median {OFF} ns, spread {max(offs) - min(offs)} ns over {len(offs)} pairs\n")
+OFF = int(statistics.median(offs)) if offs else 0
+if offs: print(f"realtime-boottime offset: median {OFF} ns, spread {max(offs) - min(offs)} ns over {len(offs)} pairs\n")
 
 ft = []
 rx = re.compile(r"^\s*(.+?)-(\d+)\s+\(\s*(\d+)\)\s+\[\d+\]\s+\S+\s+([\d.]+):\s+(\S+):\s*(.*)$")
@@ -52,7 +52,7 @@ for c in ("C1", "C2"):
         d_die = [e["timeNano"] for e in ev if e["Action"] == "die"]
         c_oom = [ns for ns, topic, body in ctr if topic == "/tasks/oom" and cid in body]
         c_exit = [ns for ns, topic, body in ctr if topic == "/tasks/exit" and cid in body]
-        judge.append((c, r, pre["trace"], bool(d_oom), en["State"]["OOMKilled"], bool(c_oom) if ctr else "n/a"))
+        judge.append((c, r, pre.get("trace", "-"), bool(d_oom), en["State"]["OOMKilled"], bool(c_oom) if ctr else "n/a"))
         k = open(os.path.join(d, "kernel.txt")).read()
         killed = re.findall(r"Killed process (\d+) \(([^)]*)\)", k)
         cons = re.findall(r"constraint=(\w+)", k)
@@ -60,10 +60,10 @@ for c in ("C1", "C2"):
         alloc = re.search(r"holding (\d+) MiB|allocated (\d+) MiB", open(os.path.join(d, "container.log")).read())
         sizing = open(os.path.join(d, "sizing.txt")).read().split("\n")[0] if os.path.exists(os.path.join(d, "sizing.txt")) else ""
         last_alloc = re.findall(r"(?:allocated|holding) (\d+) MiB", open(os.path.join(d, "container.log")).read())
-        cond_rows.append((c, r, pre["trace"], pre["containers"], pre["docker_scopes"], mem + "kB",
+        cond_rows.append((c, r, pre.get("trace", "-"), pre["containers"], pre["docker_scopes"], mem + "kB",
                           ",".join(f"{p}({n}){'=PID1' if int(p) == pid1 else ''}" for p, n in killed) or "-",
                           ",".join(cons) or "-", ",".join(bound) or "-", (last_alloc[-1] + "MiB last logged") if last_alloc else "-", sizing))
-        if pre["trace"] != "on":
+        if pre.get("trace", "-") != "on":
             continue
         mv = [e for e in ft if e["ev"] == "mark_victim" and f"pid={pid1} " in e["f"]]
         if not mv:

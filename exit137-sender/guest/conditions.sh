@@ -221,8 +221,16 @@ for c in $conds; do
   n=${!v:-${RUNS_DEFAULT[$c]:-1}}
   for r in $(seq "$n"); do
     begin "$c" "$r"
+    {
+      echo "containers=$(docker ps -aq | wc -l)"
+      echo "docker_scopes=$(ls -d /sys/fs/cgroup/system.slice/docker-*.scope 2>/dev/null | wc -l)"
+      grep MemAvailable /proc/meminfo
+    } > "$dir/pre.txt"
     "$c"
     echo "$c run $r seconds=$(el "$t_start")" | tee -a "$results/timing.txt"
   done
   echo "$c total seconds=$(el "$tc") runs=$n" | tee -a "$results/timing.txt"
 done
+for f in buffer_size_kb tracing_on kprobe_events set_event; do
+  echo "== $f"; cat /sys/kernel/tracing/$f
+done > "$results/ftrace-state.txt" 2>&1
