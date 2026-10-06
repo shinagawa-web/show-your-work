@@ -1,0 +1,35 @@
+name: exit137-sender
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - exit137-sender
+    paths:
+      - "exit137-sender/**"
+      - ".github/workflows/exit137-sender.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: exit137-sender
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./kvm-preflight.sh
+      - run: |
+          {
+            echo '```'
+            cat results/preflight/log.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: exit137-sender-preflight
+          path: exit137-sender/results/
