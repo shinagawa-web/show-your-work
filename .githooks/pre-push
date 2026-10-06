@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Pushing to this public repository publishes the branch, so the check has to
-# run before the push, not in CI. Enable with: git config core.hooksPath .githooks
 set -euo pipefail
 zero=0000000000000000000000000000000000000000
 while read -r _ local_sha _ remote_sha; do

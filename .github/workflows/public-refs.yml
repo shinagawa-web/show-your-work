@@ -1,7 +1,5 @@
 name: public-refs
 
-# Backstop for the pre-push hook: by the time this runs the branch is already
-# public, so it only catches pushes made without the hook.
 on:
   pull_request:
   push:
