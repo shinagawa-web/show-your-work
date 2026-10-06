@@ -4,6 +4,7 @@
 #   RACE_ON      start recording kernel events into one ftrace buffer
 #   RACE_OFF     stop recording
 #   PLAIN        (first step only) do not run `ctr events`
+#   BUFFER       only enlarge the ftrace buffer (buffer_size_kb=16384), no events
 # Always: `ctr -n moby events` in the background (containerd's own record of
 # /tasks/oom), and per-run conditions (leftover containers and scopes,
 # MemAvailable) in pre.txt. The ftrace buffer uses trace_clock=boot; clock.txt
@@ -69,6 +70,7 @@ for step in "$@"; do
   case $step in
     RACE_ON) race_on; mode=on; continue ;;
     RACE_OFF) race_off; mode=off; continue ;;
+    BUFFER) echo 16384 > $t/buffer_size_kb; continue ;;
   esac
   seen[$step]=$(( ${seen[$step]:-0} + 1 ))
   begin "$step" "${seen[$step]}"
@@ -85,4 +87,6 @@ for step in "$@"; do
 done
 [ "$mode" = on ] && race_off
 [ -n "$ctr_pid" ] && { sleep 0.5; kill "$ctr_pid"; }
-[ "$mode" = off ] && grep -q . /sys/kernel/tracing/trace_clock && cat /sys/kernel/tracing/buffer_size_kb /sys/kernel/tracing/tracing_on /sys/kernel/tracing/kprobe_events > "$results/ftrace-state.txt" 2>&1
+for f in buffer_size_kb tracing_on kprobe_events set_event; do
+  echo "== $f"; cat $t/$f
+done > "$results/ftrace-state.txt" 2>&1
