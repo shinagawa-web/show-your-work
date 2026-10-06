@@ -1,15 +1,22 @@
 // Downstream service. The concurrency limit lives in the listener: at most N
 // connections are accepted and not yet closed at any time. Connections over the
 // limit are not accepted and wait in the kernel accept queue (listen backlog).
-// The service keeps no queue and no metrics of its own.
+// The service keeps no queue of its own.
 //
-// Each request sleeps for the endpoint's processing time, answers 200 and the
-// connection is closed at once (hijacked from net/http, see app).
-// The sleep is not cancelled when the client goes away.
+// Each request sleeps for the endpoint's processing time, answers 200 with
+// "Connection: close" and the connection is closed at once (hijacked from net/http,
+// see app). The sleep is not cancelled when the client goes away.
+//
+// Access log (ACCESS_LOG, one line per request, written after the response):
+//
+//	<start, unix seconds with microseconds> <processing time ms> <path> <X-Request-Id> <X-Tenant> <request proto> <Connection header or ->
+//
+// start is when the handler got the request (after accept and reading the request);
+// processing time runs from start to the end of the response write.
 //
 // App port: APP_PORT (default 8081). One listener only: the Accept loop takes a slot
 // before it blocks in accept(), so a second listener would hold a slot of its own
-// while idle. Scenario D lists this one port several times in the nginx upstream.
+// while idle.
 // Admin (separate listener, not limited): ADMIN_PORT (default 9001)
 //
 //	GET /admin                         current settings
@@ -19,6 +26,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -50,6 +58,29 @@ var (
 	cur settings
 	g   = func() *gate { x := &gate{}; x.cond = sync.NewCond(&x.mu); return x }()
 )
+
+var (
+	lmu  sync.Mutex
+	alog *bufio.Writer
+)
+
+func accessLog(start time.Time, d time.Duration, r *http.Request) {
+	if alog == nil {
+		return
+	}
+	dash := func(v string) string {
+		if v == "" {
+			return "-"
+		}
+		return v
+	}
+	line := fmt.Sprintf("%d.%06d %.3f %s %s %s %s %s\n", start.Unix(), start.Nanosecond()/1000,
+		float64(d.Microseconds())/1000, r.URL.Path, dash(r.Header.Get("X-Request-Id")),
+		dash(r.Header.Get("X-Tenant")), r.Proto, dash(r.Header.Get("Connection")))
+	lmu.Lock()
+	alog.WriteString(line)
+	lmu.Unlock()
+}
 
 func get() settings { smu.Lock(); defer smu.Unlock(); return cur }
 
@@ -111,10 +142,11 @@ func envNum(k string, def float64) float64 {
 }
 
 func defaults() settings {
-	return settings{Limit: int(envNum("LIMIT", 20)), DelayLight: envNum("DELAY_LIGHT", 50), DelayHeavy: envNum("DELAY_HEAVY", 500)}
+	return settings{Limit: int(envNum("LIMIT", 20)), DelayLight: envNum("DELAY_LIGHT", 50), DelayHeavy: envNum("DELAY_HEAVY", 300)}
 }
 
 func app(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	s := get()
 	d := s.DelayLight
 	if strings.HasPrefix(r.URL.Path, "/api/heavy") {
@@ -131,9 +163,10 @@ func app(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	defer conn.Close()
 	time.Sleep(time.Duration(d * float64(time.Millisecond))) // not cancelled on client close
-	fmt.Fprint(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 3\r\nConnection: close\r\n\r\nok\n")
+	fmt.Fprint(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 3\r\nConnection: close\r\n\r\nok\n")
+	accessLog(start, time.Since(start), r)
+	conn.Close()
 }
 
 func admin(w http.ResponseWriter, r *http.Request) {
@@ -173,6 +206,20 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("")
 	cur = defaults()
+	if p := os.Getenv("ACCESS_LOG"); p != "" {
+		f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		alog = bufio.NewWriterSize(f, 1<<20)
+		go func() {
+			for range time.Tick(100 * time.Millisecond) {
+				lmu.Lock()
+				alog.Flush()
+				lmu.Unlock()
+			}
+		}()
+	}
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8081"

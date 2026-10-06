@@ -1,5 +1,6 @@
-# One stack for all scenarios. Between scenarios run-all.sh drains and resets the downstream
-# through /admin and swaps the nginx config with nginx -s reload; k6 is exec'd per scenario.
+# One stack for all scenarios. After each scenario run-all.sh waits until the downstream has
+# accepted and answered everything left in its accept queue, swaps the nginx config with
+# nginx -s reload and resets the downstream through /admin; k6 is exec'd per scenario.
 services:
   downstream:
     build: {context: ., target: app}
@@ -11,12 +12,22 @@ services:
     environment:
       LIMIT: "20"
       DELAY_LIGHT: "50"
-      DELAY_HEAVY: "500"
+      DELAY_HEAVY: "300"
       APP_PORT: "8081"
       ADMIN_PORT: "9001"
+      ACCESS_LOG: /results/downstream_access.log
+    volumes:
+      - ./results/raw:/results
   nginx:
     image: nginx:1.30.5
     command: ["sh", "-c", "cp /confs/base.conf /etc/nginx/nginx.conf && exec nginx -g 'daemon off;'"]
+    # nginx closes the upstream connection first when it gives up (504/499), so those local
+    # ports stay in TIME_WAIT; a wider range keeps connect() from running out of ports.
+    sysctls:
+      net.ipv4.ip_local_port_range: "1024 65000"
+    # open file limit for worker_connections 8192
+    ulimits:
+      nofile: 65536
     volumes:
       - ./nginx:/confs:ro
       - ./results/raw:/results
