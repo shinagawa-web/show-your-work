@@ -3,6 +3,7 @@
 # 2.2.1-0ubuntu1~24.04.3 (arm64, stripped). Addresses come from .gopclntab and
 # objdump of cgroups v3.1.2 (*Manager).EventChan.func1 (0x2894a0) and
 # task.(*service).oomEvent (0x34f5a0). File offset = address - 0x10000.
+# scripts/find-shim-uprobes.py derives the same addresses from the binary.
 set -euo pipefail
 bin=/usr/bin/containerd-shim-runc-v2
 want=2.2.1-0ubuntu1~24.04.3
