@@ -21,8 +21,12 @@ RESTART() {
   systemctl is-active containerd docker | tee "$dir/status.txt"
 }
 
+if [ "${TRACE_SHIM:-0}" = 1 ]; then
+  "$(dirname "$0")/shim-uprobes.sh" > "$results/shim-uprobes.txt" 2>&1 || { cat "$results/shim-uprobes.txt"; exit 1; }
+fi
 if [ "${TRACE:-0}" = 1 ]; then
-  ( echo -1000 > /proc/self/oom_score_adj; BPFTRACE_MAX_STRLEN=128 exec bpftrace "$(dirname "$0")/trace.bt" ) > "$results/trace.txt" 2>&1 &
+  ( echo -1000 > /proc/self/oom_score_adj
+    BPFTRACE_MAX_STRLEN=128 exec bpftrace "$(dirname "$0")/trace.bt" ) > "$results/trace.txt" 2>&1 &
   trace_pid=$!
   for _ in $(seq 100); do grep -q Attaching "$results/trace.txt" && break; sleep 0.2; done
   sleep 1
@@ -47,6 +51,10 @@ for step in "$@"; do
   echo "$step run ${seen[$step]} seconds=$(el "$t_start")" | tee -a "$results/timing.txt"
 done
 [ -n "${trace_pid:-}" ] && { sleep 1; kill -INT "$trace_pid"; wait "$trace_pid"; }
+if [ "${TRACE_SHIM:-0}" = 1 ]; then
+  echo 0 > /sys/kernel/tracing/tracing_on
+  cat /sys/kernel/tracing/trace > "$results/ftrace.txt"
+fi
 [ -f "$results/vmtouch.pid" ] && kill "$(cat "$results/vmtouch.pid")"
 python3 "$(dirname "$0")/summarize.py" "$results" >/dev/null 2>&1
 grep -E '^\| C' "$results/summary.md" | cut -d'|' -f2-9

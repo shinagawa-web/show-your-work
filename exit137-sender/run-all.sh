@@ -23,7 +23,7 @@ tar -C "$here" -c guest | "$here/scripts/vm-ssh.sh" 'rm -rf ~/w && mkdir -p ~/w 
 "$here/scripts/vm-ssh.sh" "sudo DEBUG=${DEBUG:-0} TRACE=${TRACE:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/setup.sh" > "$results/setup.txt" 2>&1 || { tail -30 "$results/setup.txt"; exit 1; }
 grep seconds "$results/setup.txt"
 echo "[$(el)s] test VM set up"
-"$here/scripts/vm-ssh.sh" "sudo PROBE=${PROBE:-0} TRACE=${TRACE:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/${GUEST_SCRIPT:-conditions.sh} $*" > "$results/conditions.txt" 2>&1
+"$here/scripts/vm-ssh.sh" "sudo PROBE=${PROBE:-0} TRACE=${TRACE:-0} TRACE_SHIM=${TRACE_SHIM:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/${GUEST_SCRIPT:-conditions.sh} $*" > "$results/conditions.txt" 2>&1
 grep -E "seconds|^==" "$results/conditions.txt"
 "$here/scripts/vm-ssh.sh" 'sudo python3 ~/w/guest/summarize.py /root/results' > /dev/null
 "$here/scripts/vm-ssh.sh" 'sudo tar -C /root/results -c .' | tar -C "$results" -x
