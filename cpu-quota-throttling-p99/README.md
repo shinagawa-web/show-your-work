@@ -1,6 +1,6 @@
 # cpu-quota-throttling-p99
 
-Verification code for [shinagawa-web/sre-consulting-plan#364](https://github.com/shinagawa-web/sre-consulting-plan/issues/364). It reproduces, in a container with a CPU limit (CFS quota), the symptom where only p99 jumps while the 60s-average utilization stays low, and measures it from outside the server.
+This reproduces, in a container with a CPU limit (CFS quota), the symptom where only p99 jumps while the 60s-average utilization stays low, and measures it from outside the server.
 
 ## Quick start
 
