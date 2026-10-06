@@ -8,7 +8,7 @@ import json, os, re, statistics, sys
 from datetime import datetime, timezone
 
 root = sys.argv[1]
-pairs = [tuple(map(int, l.split()[1:3])) for l in open(os.path.join(root, "clock.txt"))]
+pairs = [tuple(map(int, l.split()[1:3])) for l in open(os.path.join(root, "clock.txt"))] if os.path.exists(os.path.join(root, "clock.txt")) else []
 for c in ("C1", "C2"):
     for r in os.listdir(os.path.join(root, c)) if os.path.isdir(os.path.join(root, c)) else []:
         for l in open(os.path.join(root, c, r, "pre.txt")):
@@ -28,7 +28,7 @@ if os.path.exists(os.path.join(root, "ftrace.txt")):
                            ts=int(round(float(m.group(4)) * 1e9)), ev=m.group(5), f=m.group(6)))
 
 ctr = []
-for l in open(os.path.join(root, "ctr-events.txt")):
+for l in (open(os.path.join(root, "ctr-events.txt")) if os.path.exists(os.path.join(root, "ctr-events.txt")) else []):
     m = re.match(r"(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\.(\d+) \+0000 UTC moby (\S+) (.*)", l)
     if m:
         sec = datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).timestamp()
@@ -52,7 +52,7 @@ for c in ("C1", "C2"):
         d_die = [e["timeNano"] for e in ev if e["Action"] == "die"]
         c_oom = [ns for ns, topic, body in ctr if topic == "/tasks/oom" and cid in body]
         c_exit = [ns for ns, topic, body in ctr if topic == "/tasks/exit" and cid in body]
-        judge.append((c, r, pre["trace"], bool(d_oom), en["State"]["OOMKilled"], bool(c_oom)))
+        judge.append((c, r, pre["trace"], bool(d_oom), en["State"]["OOMKilled"], bool(c_oom) if ctr else "n/a"))
         k = open(os.path.join(d, "kernel.txt")).read()
         killed = re.findall(r"Killed process (\d+) \(([^)]*)\)", k)
         cons = re.findall(r"constraint=(\w+)", k)
@@ -96,7 +96,7 @@ for c in ("C1", "C2"):
 
 print("## 1 judgement: cond run trace | docker_events_oom OOMKilled ctr_tasks_oom | agree")
 for j in judge:
-    print(" ".join(map(str, j[:3])), "|", j[3], j[4], j[5], "|", "agree" if j[3] == j[4] == j[5] else "DISAGREE")
+    print(" ".join(map(str, j[:3])), "|", j[3], j[4], j[5], "|", "agree" if j[3] == j[4] and j[5] in (j[3], "n/a") else "DISAGREE")
 print("\n## 2 conditions: cond run trace | containers_before docker_scopes_before MemAvailable | killed constraint boundary | subject alloc | sizing")
 for x in cond_rows:
     print(" | ".join(map(str, x)))
