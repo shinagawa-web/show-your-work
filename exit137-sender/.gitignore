@@ -1,3 +1,5 @@
 .vm/
 .cache/
 results/
+guest/subject
+guest/busybox

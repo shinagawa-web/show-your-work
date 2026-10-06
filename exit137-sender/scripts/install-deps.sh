@@ -9,7 +9,7 @@ case "$arch" in
 esac
 sudo apt-get update -q
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
-  $pkgs cloud-image-utils openssh-client curl python3
+  $pkgs cloud-image-utils openssh-client curl python3 gcc libc6-dev busybox-static
 # Let the current user open /dev/kvm (the CI runner ships it as root:kvm 0660).
 if [ -e /dev/kvm ]; then
   echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
