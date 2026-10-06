@@ -20,8 +20,7 @@ jobs:
       fail-fast: false
       # One job per group. Each job starts its own stack and runs scripts/run-all.sh with the
       # group's scenarios. All runs of a RUNS>1 scenario stay in one group (runs.py compares them).
-      # Each scenario run takes about 26 s (25 s of load plus the drain), so 6 runs per group
-      # keep the scenario loop near 160 s, under the 300 s budget.
+      # 6 runs per group; the job fails if its scenario loop exceeds 300 s.
       matrix:
         include:
           - group: g1
