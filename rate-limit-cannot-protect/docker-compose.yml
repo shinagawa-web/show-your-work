@@ -1,0 +1,58 @@
+# One stack for all scenarios. Between scenarios run-all.sh drains and resets the downstream
+# through /admin and swaps the nginx config with nginx -s reload; k6 is exec'd per scenario.
+services:
+  downstream:
+    build: {context: ., target: app}
+    image: rate-limit-cannot-protect-app:local
+    command: ["/downstream"]
+    sysctls:
+      net.core.somaxconn: "65535"
+      net.ipv4.tcp_max_syn_backlog: "65535"
+    environment:
+      LIMIT: "20"
+      DELAY_LIGHT: "50"
+      DELAY_HEAVY: "500"
+      APP_PORT: "8081"
+      ADMIN_PORT: "9001"
+  nginx:
+    image: nginx:1.30.5
+    command: ["sh", "-c", "cp /confs/base.conf /etc/nginx/nginx.conf && exec nginx -g 'daemon off;'"]
+    volumes:
+      - ./nginx:/confs:ro
+      - ./results/raw:/results
+    depends_on: [downstream]
+  # ss / nstat inside the downstream's network and PID namespaces (PID: so that ss -p can
+  # tell accepted sockets, which have an owning fd, from sockets still in the accept queue)
+  kernel:
+    build: {context: ., target: probe}
+    image: rate-limit-cannot-protect-probe:local
+    command: ["/sampler"]
+    network_mode: "service:downstream"
+    pid: "service:downstream"
+    environment:
+      OUT: /results/kernel_100ms.csv
+      SAMPLE_MS: "100"
+    volumes:
+      - ./results/raw:/results
+    depends_on: [downstream]
+  # bpftrace (host kernel): accept wait and accept-to-close time of port 8081 connections
+  bpf:
+    image: rate-limit-cannot-protect-probe:local
+    privileged: true
+    command: ["sh", "-c", "exec bpftrace -B line /bpf/accept.bt > /results/bpf.log"]
+    environment:
+      BPFTRACE_MAX_MAP_KEYS: "65536"
+    volumes:
+      - ./bpf:/bpf:ro
+      - ./results/raw:/results
+      - /sys/kernel/debug:/sys/kernel/debug
+      - /sys/kernel/tracing:/sys/kernel/tracing
+    depends_on: [kernel]
+  k6:
+    image: grafana/k6:2.3.0
+    entrypoint: ["sleep", "infinity"]
+    volumes:
+      - ./k6:/scripts:ro
+      - ./results:/results
+    environment:
+      K6_CSV_TIME_FORMAT: unix_milli

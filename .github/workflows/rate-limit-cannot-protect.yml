@@ -1,0 +1,61 @@
+name: rate-limit-cannot-protect
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "rate-limit-cannot-protect/**"
+      - ".github/workflows/rate-limit-cannot-protect.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: rate-limit-cannot-protect
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      # One job per group. Each job starts its own stack and runs scripts/run-all.sh with the
+      # group's scenarios. All runs of a RUNS>1 scenario stay in one group (runs.py compares them).
+      # Each scenario run takes about 26 s (25 s of load plus the drain), so 6 runs per group
+      # keep the scenario loop near 160 s, under the 300 s budget.
+      matrix:
+        include:
+          - group: g1
+            scenarios: 01-a-cost-skew 02-b-latency-inflation 03-c-capacity-drop 06-lever-a-endpoint-limit
+          - group: g2
+            scenarios: 04-d-retry-amplification 04a-d-no-retry-control 04b-d-retry-nginx-default 04c-d-retry-default-maxfails0 04d-d-retry-within-capacity 04e-d-no-retry-within-capacity
+          - group: g3
+            scenarios: 05-e-tenant-aggregation 07a-lever-b-maxconns-only 07b-lever-b-timeout-only 08-lever-e-global-limit
+          - group: g4
+            scenarios: 08a-lever-e-global-limit-roundrobin 08b-lever-e-global-limit-random-arrival
+    name: run (${{ matrix.group }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/run-all.sh ${{ matrix.scenarios }}
+      - name: summary
+        if: always()
+        run: |
+          {
+            echo "## ${{ matrix.group }}"
+            for f in results/timing.txt results/00-environment.txt $(find results -name runs.txt -o -name summary.txt | sort); do
+              [ -f "$f" ] || continue
+              echo "### $f"
+              echo '```'
+              cat "$f"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: scenario loop within 300 s
+        run: |
+          s=$(sed -n 's/^wall time of the scenario loop.*: \([0-9]*\) s$/\1/p' results/timing.txt)
+          echo "scenario loop: ${s} s"
+          [ -n "$s" ] && [ "$s" -le 300 ]
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: rate-limit-cannot-protect-results-${{ matrix.group }}
+          path: rate-limit-cannot-protect/results/

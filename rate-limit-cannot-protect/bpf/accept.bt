@@ -1,0 +1,46 @@
+// Accept wait and in-service time of downstream app-port connections (port 8081).
+//   E: passive child socket SYN_RECV -> ESTABLISHED (tracepoint sock:inet_sock_set_state)
+//      = the connection is complete and sits in the accept queue
+//   A: kretprobe:inet_csk_accept returns that socket = accept()
+//   C: kprobe:tcp_close on that socket = the service closed it after answering
+// Output lines (wall clock from strftime, microseconds):
+//   A <wall> <accept_wait_us> <local_port>
+//   C <wall> <accept_to_close_us> <local_port> <established_to_close_us>
+// Counters every second: E <wall> <established_count>
+tracepoint:sock:inet_sock_set_state
+/ args->protocol == 6 && args->oldstate == 3 && args->newstate == 1 && args->sport == 8081 /
+{
+  @est[(uint64)args->skaddr] = nsecs;
+  @port[(uint64)args->skaddr] = args->sport;
+  @n_est++;
+}
+
+kretprobe:inet_csk_accept
+/ @est[(uint64)retval] /
+{
+  $sk = (uint64)retval;
+  printf("A %s %llu %d\n", strftime("%s.%f", nsecs), (nsecs - @est[$sk]) / 1000, @port[$sk]);
+  @acc[$sk] = nsecs;
+  @estt[$sk] = @est[$sk];
+  delete(@est[$sk]);
+}
+
+kprobe:tcp_close
+/ @acc[(uint64)arg0] /
+{
+  $sk = (uint64)arg0;
+  printf("C %s %llu %d %llu\n", strftime("%s.%f", nsecs), (nsecs - @acc[$sk]) / 1000, @port[$sk], (nsecs - @estt[$sk]) / 1000);
+  delete(@acc[$sk]);
+  delete(@estt[$sk]);
+  delete(@port[$sk]);
+}
+
+interval:s:1
+{
+  printf("E %s %llu\n", strftime("%s.%f", nsecs), @n_est);
+}
+
+END
+{
+  clear(@est); clear(@acc); clear(@estt); clear(@port); clear(@n_est);
+}
