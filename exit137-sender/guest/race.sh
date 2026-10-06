@@ -4,6 +4,9 @@
 #   RACE_ON      start recording kernel events into one ftrace buffer
 #   RACE_OFF     stop recording
 #   PLAIN        (first step only) do not run `ctr events`
+#   TP_ON        record only the tracepoints mark_victim, sched_process_exit
+#                (subject), cgroup_notify_populated and cgroup_rmdir, with the
+#                default buffer size; the buffer is drained after every run
 #   BUFFER       only enlarge the ftrace buffer (buffer_size_kb=16384), no events
 # Always: `ctr -n moby events` in the background (containerd's own record of
 # /tasks/oom), and per-run conditions (leftover containers and scopes,
@@ -47,6 +50,18 @@ race_on() {
   echo "on $(clockpair)" >> "$results/clock.txt"
   echo 1 > $t/tracing_on
 }
+tp_on() {
+  echo 0 > $t/tracing_on
+  echo > $t/trace
+  echo boot > $t/trace_clock
+  echo 1 > $t/options/record-tgid
+  echo 'comm == "subject"' > $t/events/sched/sched_process_exit/filter
+  for e in oom/mark_victim sched/sched_process_exit cgroup/cgroup_notify_populated cgroup/cgroup_rmdir; do
+    echo 1 > $t/events/$e/enable
+  done
+  echo "on $(clockpair)" >> "$results/clock.txt"
+  echo 1 > $t/tracing_on
+}
 race_off() {
   echo 0 > $t/tracing_on
   echo "off $(clockpair)" >> "$results/clock.txt"
@@ -70,6 +85,7 @@ for step in "$@"; do
   case $step in
     RACE_ON) race_on; mode=on; continue ;;
     RACE_OFF) race_off; mode=off; continue ;;
+    TP_ON) tp_on; mode=tp; continue ;;
     BUFFER) echo 16384 > $t/buffer_size_kb; continue ;;
   esac
   seen[$step]=$(( ${seen[$step]:-0} + 1 ))
@@ -79,14 +95,26 @@ for step in "$@"; do
     echo "containers=$(docker ps -aq | wc -l)"
     echo "docker_scopes=$(ls -d /sys/fs/cgroup/system.slice/docker-*.scope 2>/dev/null | wc -l)"
     grep MemAvailable /proc/meminfo
-    echo "clock $(clockpair)"
+    [ "$mode" = tp ] || echo "clock $(clockpair)"
   } > "$dir/pre.txt"
   "$step"
-  echo "clock $(clockpair)" >> "$dir/pre.txt"
+  if [ "$mode" = tp ]; then
+    cat $t/trace >> "$results/ftrace.txt"; echo > $t/trace
+  else
+    echo "clock $(clockpair)" >> "$dir/pre.txt"
+  fi
   echo "$step run ${seen[$step]} trace=$mode seconds=$(el "$t_start")" | tee -a "$results/timing.txt"
 done
 [ "$mode" = on ] && race_off
+if [ "$mode" = tp ]; then
+  for f in buffer_size_kb tracing_on kprobe_events set_event; do echo "== $f"; cat $t/$f; done > "$results/ftrace-state.txt" 2>&1
+  echo 0 > $t/tracing_on
+  echo "off $(clockpair)" >> "$results/clock.txt"
+  cat $t/trace >> "$results/ftrace.txt"
+  echo 0 > $t/events/enable
+  mode=off
+fi
 [ -n "$ctr_pid" ] && { sleep 0.5; kill "$ctr_pid"; }
-for f in buffer_size_kb tracing_on kprobe_events set_event; do
+[ -f "$results/ftrace-state.txt" ] || for f in buffer_size_kb tracing_on kprobe_events set_event; do
   echo "== $f"; cat $t/$f
 done > "$results/ftrace-state.txt" 2>&1

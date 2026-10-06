@@ -63,7 +63,7 @@ for c in ("C1", "C2"):
         cond_rows.append((c, r, pre.get("trace", "-"), pre["containers"], pre["docker_scopes"], mem + "kB",
                           ",".join(f"{p}({n}){'=PID1' if int(p) == pid1 else ''}" for p, n in killed) or "-",
                           ",".join(cons) or "-", ",".join(bound) or "-", (last_alloc[-1] + "MiB last logged") if last_alloc else "-", sizing))
-        if pre.get("trace", "-") != "on":
+        if pre.get("trace", "-") not in ("on", "tp"):
             continue
         mv = [e for e in ft if e["ev"] == "mark_victim" and f"pid={pid1} " in e["f"]]
         if not mv:
