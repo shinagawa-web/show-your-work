@@ -17,6 +17,20 @@ echo "apt-get update seconds: $(el "$t0")"
 t0=$(date +%s.%N)
 apt-get "${apt_opts[@]}" install -y --no-install-recommends docker.io
 systemctl enable --now docker
+if [ "${TRACE:-0}" = 1 ]; then
+  apt-get "${apt_opts[@]}" install -y --no-install-recommends bpftrace
+fi
+if [ "${LOCKSHIM:-0}" = 1 ]; then
+  apt-get "${apt_opts[@]}" install -y --no-install-recommends vmtouch
+fi
+if [ "${DEBUG:-0}" = 1 ]; then
+  # debug logs for containerd (and its shims) and dockerd
+  mkdir -p /etc/systemd/system/containerd.service.d
+  printf '[Service]\nExecStart=\nExecStart=/usr/bin/containerd --log-level debug\n' > /etc/systemd/system/containerd.service.d/debug.conf
+  echo '{"debug": true}' > /etc/docker/daemon.json
+  systemctl daemon-reload
+  systemctl restart containerd docker
+fi
 echo "apt-get install docker.io seconds: $(el "$t0")"
 
 rootfs=$(mktemp -d)

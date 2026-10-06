@@ -43,6 +43,15 @@ at_start() {
   docker inspect "$name" > "$dir/inspect-start.json"
   pid1=$(docker inspect -f '{{.State.Pid}}' "$name")
   child=$(cat "/proc/$pid1/task/$pid1/children" 2>/dev/null | tr -d ' ')
+  if [ "${PROBE:-0}" = 1 ]; then
+    local cg=/sys/fs/cgroup/system.slice/docker-$(docker inspect -f '{{.Id}}' "$name").scope
+    ( echo -1000 > /proc/self/oom_score_adj; exec "$(dirname "$0")/cgprobe" "$cg" ) > "$dir/cgprobe.txt" 2>&1 &
+    probe_pid=$!
+  fi
+  if [ "${TRACE:-0}" = 1 ]; then
+    shim_pid=$(pgrep -f "containerd-shim-runc-v2 -namespace moby -id $(docker inspect -f '{{.Id}}' "$name")")
+    echo "shim pid=$shim_pid stat at start: $(cut -d' ' -f10-13 /proc/$shim_pid/stat) (minflt cminflt majflt cmajflt)" > "$dir/shim.txt"
+  fi
   {
     echo "State.Pid=$pid1 HostConfig.Init=$(docker inspect -f '{{.HostConfig.Init}}' "$name") children=$child"
     ps -o pid,ppid,comm,args --ppid "$pid1" -p "$pid1"
@@ -62,9 +71,16 @@ finish() {
   journalctl -u docker --after-cursor="$dc" -o short-iso-precise -q > "$dir/dockerd.txt"
   journalctl -u containerd --after-cursor="$cc" -o short-iso-precise -q > "$dir/containerd.txt"
   docker inspect "$name" > "$dir/inspect-end.json"
+  if [ -n "${shim_pid:-}" ]; then
+    echo "shim pid=$shim_pid stat at end: $(cut -d' ' -f10-13 /proc/$shim_pid/stat 2>&1) (minflt cminflt majflt cmajflt)" >> "$dir/shim.txt"
+    shim_pid=
+  fi
   docker logs "$name" > "$dir/container.log" 2>&1
   python3 "$(dirname "$0")/summarize.py" "$dir" | tee "$dir/summary.txt"
   docker rm -f "$name" "$name-filler" >/dev/null 2>&1
+  if [ -n "${probe_pid:-}" ]; then
+    sleep 0.2; kill "$probe_pid" 2>/dev/null; wait "$probe_pid" 2>/dev/null; probe_pid=
+  fi
 }
 
 # C1: container memory limit, subject (PID 1) allocates past it
@@ -194,6 +210,9 @@ C11() {
   echo "3s after docker kill: Running=$(docker inspect -f '{{.State.Running}}' "$name") RestartCount=$(docker inspect -f '{{.RestartCount}}' "$name")" | tee "$dir/action.txt"
   finish
 }
+
+# When sourced (by investigate.sh), only define the functions.
+[[ "${BASH_SOURCE[0]}" != "$0" ]] && return 0
 
 conds=${*:-C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11}
 for c in $conds; do
