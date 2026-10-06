@@ -19,6 +19,7 @@ VM_MEM=${VM_MEM:-512} "$here/scripts/vm-up.sh" | tee "$results/vm-up.txt"
 [ "${PIPESTATUS[0]}" -eq 0 ] || { cp "$here/.vm/serial.log" "$results/" 2>/dev/null; exit 1; }
 trap '"$here/scripts/vm-down.sh"' EXIT
 echo "[$(el)s] test VM up"
+cp "$here/.vm/qemu.txt" "$results/qemu.txt"
 tar -C "$here" -c guest | "$here/scripts/vm-ssh.sh" 'rm -rf ~/w && mkdir -p ~/w && tar -C ~/w -x'
 "$here/scripts/vm-ssh.sh" "sudo DEBUG=${DEBUG:-0} TRACE=${TRACE:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/setup.sh" > "$results/setup.txt" 2>&1 || { tail -30 "$results/setup.txt"; exit 1; }
 grep seconds "$results/setup.txt"

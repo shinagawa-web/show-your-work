@@ -48,6 +48,7 @@ UD
 printf 'instance-id: testvm\nlocal-hostname: testvm\n' > "$vmdir/meta-data"
 cloud-localds "$vmdir/seed.img" "$vmdir/user-data" "$vmdir/meta-data"
 
+{ "${qemu[0]}" --version | head -1; printf '%q ' "${qemu[@]}" -smp "$cpus" -m "$mem"; echo; } > "$vmdir/qemu.txt"
 t0=$(date +%s.%N)
 echo "$t0" > "$vmdir/t0"
 "${qemu[@]}" -smp "$cpus" -m "$mem" \
