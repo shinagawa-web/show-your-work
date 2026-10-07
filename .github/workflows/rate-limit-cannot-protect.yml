@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       # One job per group: control and cause scenarios (00-05) and measure scenarios (06-11). Each job starts
       # its own stack and runs scripts/run-all.sh with the group's scenarios. The job fails if its
-      # scenario loop exceeds 300 s.
+      # scenario loop exceeds 300 s, or if results/checks.txt has a failed check or an invalid run.
       matrix:
         include:
           - group: cause
@@ -49,6 +49,11 @@ jobs:
           s=$(sed -n 's/^scenario loop: \([0-9]*\) s$/\1/p' results/timing.txt)
           echo "scenario loop: ${s} s"
           [ -n "$s" ] && [ "$s" -le 300 ]
+      - name: no failed check and no invalid run in checks.txt
+        run: |
+          test -f results/checks.txt
+          grep -E '^## (totals|invalid runs)' results/checks.txt
+          ! grep -nE '\| fail$|RUN INVALID' results/checks.txt
       - uses: actions/upload-artifact@v7
         if: always()
         with:

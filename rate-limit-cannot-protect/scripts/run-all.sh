@@ -7,7 +7,7 @@
 #   2. app: /admin?reset=1 (LIMIT=20, DELAY_LIGHT=50, DELAY_HEAVY=300); check that the
 #      accept queue and the accepted sockets are 0
 #   3. k6 with the common schedule and the scenario's env (saved to k6-env.txt)
-#   4. wait until the app has accepted and answered everything nginx sent
+#   4. wait (60 s at most) until the app has accepted and answered everything nginx sent
 #      (accept queue 0, no :8081 socket open), with the scenario's settings still in place
 set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
@@ -34,7 +34,14 @@ rm -rf results; mkdir -p results/raw; chmod 777 results results/raw
 dc build > results/build.log 2>&1
 dc up -d >/dev/null 2>&1
 for i in $(seq 60); do admin "" >/dev/null 2>&1 && break; sleep 1; done
-for i in $(seq 60); do grep -q "^E " results/raw/bpf.log 2>/dev/null && break; sleep 1; done
+bpf_ready=
+for i in $(seq 60); do grep -q "^E " results/raw/bpf.log 2>/dev/null && bpf_ready=1 && break; sleep 1; done
+if [ -z "$bpf_ready" ]; then
+  echo "bpftrace did not start within 60 s: no 'E ' line in results/raw/bpf.log" >&2
+  dc logs --no-color bpf > results/raw/bpf-start.log 2>&1 || true
+  dc down -t 1 >/dev/null 2>&1 || true
+  exit 1
+fi
 t_ready=$(now_ms)
 
 {
@@ -113,23 +120,29 @@ run_one() {
       envargs+=(-e "$v=${!v}")
       echo "$v=${!v}" >> "$out/k6-env.txt"
     done
-    local t_start t_end t_drained st
+    local t_start t_end t_drained st drained
     t_start=$(now_ms)
     dc exec -T "${envargs[@]}" k6 k6 run --quiet --log-format raw --out "csv=/${out}/k6.csv" \
       --summary-export="/${out}/k6-summary.json" /scripts/load.js > "$out/k6-stdout.txt" 2>&1 \
       || echo "k6 exit $?" >> "$out/k6-stdout.txt"
     t_end=$(now_ms)
     # wait for the app to work off its accept queue with the scenario's settings
+    # (300 x 0.2 s = 60 s). On timeout: note it in init.txt and stderr and go on;
+    # analyze.py turns DRAINED=0 in meta.env into a failed check.
+    drained=0
     for i in $(seq 300); do
       st=$(kstate)
-      [ "$st" = "0 0 0" ] && break
+      [ "$st" = "0 0 0" ] && drained=1 && break
       sleep 0.2
     done
     t_drained=$(now_ms)
     echo "after k6 (recvq inuse est+close-wait): $st  ($(( t_drained - t_end )) ms after k6 exit)" >> "$out/init.txt"
+    if [ "$drained" = 0 ]; then
+      echo "DRAIN TIMEOUT: $sc app sockets still $st (recvq inuse est+close-wait) 60 s after k6 exit" | tee -a "$out/init.txt" >&2
+    fi
     sleep 0.3   # app access log flush (100 ms)
-    printf 'T_START_MS=%s\nT_END_MS=%s\nT_DRAINED_MS=%s\nSWITCH_AT=%s\nDURATION=%s\n' \
-      "$t_start" "$t_end" "$t_drained" "$SWITCH_AT" "${DURATION%s}" > "$out/meta.env"
+    printf 'T_START_MS=%s\nT_END_MS=%s\nT_DRAINED_MS=%s\nDRAINED=%s\nDRAIN_LAST=%s\nSWITCH_AT=%s\nDURATION=%s\n' \
+      "$t_start" "$t_end" "$t_drained" "$drained" "$st" "$SWITCH_AT" "${DURATION%s}" > "$out/meta.env"
   )
 }
 

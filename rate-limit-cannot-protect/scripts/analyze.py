@@ -518,6 +518,10 @@ def check_scenario(name, R, base_conf):
         ', '.join(f'{g:.0f}@{t:.2f}' for g, t in reversed(gaps)), ok(gaps[-1][0] <= 50))
     add('longest sampler rounds [0,25) (ms @ t), recorded only', '(not a pause check)',
         ', '.join(f'{g:.0f}@{t:.2f}' for g, t in reversed(sm)), 'info')
+    # run-all.sh waits up to 60 s after k6 exit for the app sockets to go back to 0 0 0
+    # (DRAINED in meta.env); a timeout means the drain window of this run is cut short.
+    add('app drained after k6: recvq inuse est+close-wait within 60 s of k6 exit (DRAINED)', '0 0 0',
+        f"{R.meta.get('DRAIN_LAST', '?')} at {R.drained:.1f} s", ok(R.meta.get('DRAINED') == '1'))
     return rows, paused
 
 

@@ -22,7 +22,7 @@
 //	GET /admin                         current settings
 //	GET /admin?limit=&delay_light=&delay_heavy=
 //	GET /admin?reset=1                 back to the startup defaults
-//	GET /admin?drain=1                 accept everything, answer at once (used between scenarios)
+//	GET /admin?drain=1                 accept everything, answer at once (not used by run-all.sh)
 package main
 
 import (
