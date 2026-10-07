@@ -6,7 +6,7 @@ Everything runs inside a small test VM started with QEMU+KVM, so that a host-wid
 
 ## Run
 
-On an Ubuntu 24.04 host with `/dev/kvm` (this is what CI does):
+On an Ubuntu 24.04 host with `/dev/kvm` (this is what CI does). `scripts/install-deps.sh` adds a udev rule on that host that makes `/dev/kvm` mode 0666.
 
 ```
 ./run-all.sh          # all conditions

@@ -19,7 +19,10 @@ t0=$(date +%s.%N)
 apt-get "${apt_opts[@]}" update
 echo "apt-get update seconds: $(el "$t0")"
 t0=$(date +%s.%N)
-apt-get "${apt_opts[@]}" install -y --no-install-recommends docker.io
+. "$here/versions.env"
+apt-get "${apt_opts[@]}" install -y --no-install-recommends \
+  docker.io="$DOCKER_IO_VERSION" containerd="$CONTAINERD_VERSION" runc="$RUNC_VERSION"
+apt-mark hold docker.io containerd runc
 systemctl enable --now docker
 if [ "${TRACE:-0}" = 1 ]; then
   apt-get "${apt_opts[@]}" install -y --no-install-recommends bpftrace

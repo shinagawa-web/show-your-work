@@ -19,13 +19,17 @@ OFF = int(statistics.median(offs)) if offs else 0
 if offs: print(f"realtime-boottime offset: median {OFF} ns, spread {max(offs) - min(offs)} ns over {len(offs)} pairs\n")
 
 ft = []
-rx = re.compile(r"^\s*(.+?)-(\d+)\s+\(\s*(\d+)\)\s+\[\d+\]\s+\S+\s+([\d.]+):\s+(\S+):\s*(.*)$")
+rx = re.compile(r"^\s*(.+?)-(\d+)\s+\(\s*([\d-]+)\)\s+\[\d+\]\s+\S+\s+([\d.]+):\s+(\S+):\s*(.*)$")
+unparsed = 0
 if os.path.exists(os.path.join(root, "ftrace.txt")):
     for l in open(os.path.join(root, "ftrace.txt")):
         m = rx.match(l)
         if m:
-            ft.append(dict(comm=m.group(1), tid=int(m.group(2)), tgid=int(m.group(3)),
+            ft.append(dict(comm=m.group(1), tid=int(m.group(2)), tgid=int(m.group(3)) if m.group(3).isdigit() else None,
                            ts=int(round(float(m.group(4)) * 1e9)), ev=m.group(5), f=m.group(6)))
+        elif l.strip() and not l.startswith("#"):
+            unparsed += 1
+    print(f"ftrace lines not parsed: {unparsed}")
 
 ctr = []
 for l in (open(os.path.join(root, "ctr-events.txt")) if os.path.exists(os.path.join(root, "ctr-events.txt")) else []):
@@ -65,15 +69,17 @@ for c in ("C1", "C2"):
                           ",".join(cons) or "-", ",".join(bound) or "-", (last_alloc[-1] + "MiB last logged") if last_alloc else "-", sizing))
         if pre.get("trace", "-") not in ("on", "tp"):
             continue
-        mv = [e for e in ft if e["ev"] == "mark_victim" and f"pid={pid1} " in e["f"]]
+        kp = re.search(r"Killed process (\d+) ", open(os.path.join(d, "kernel.txt")).read())
+        victim = int(kp.group(1)) if kp else pid1
+        mv = [e for e in ft if e["ev"] == "mark_victim" and f"pid={victim} " in e["f"]]
         if not mv:
-            rows.append((c, r, bool(d_oom), "no mark_victim for PID 1"))
+            rows.append((c, r, bool(d_oom), f"no mark_victim for pid {victim}"))
             continue
         t0 = mv[0]["ts"]
         ms = lambda ts: f"{(ts - t0) / 1e6:+.1f}" if ts is not None else "-"
         first = lambda pred: next((e["ts"] for e in ft if e["ts"] >= t0 - 10**7 and pred(e)), None)
         scope = f"docker-{cid}.scope"
-        exit_ = first(lambda e: e["ev"] == "sched_process_exit" and f"pid={pid1} " in e["f"])
+        exit_ = first(lambda e: e["ev"] == "sched_process_exit" and f"pid={victim} " in e["f"])
         empty = first(lambda e: e["ev"] == "cgroup_notify_populated" and scope in e["f"] and e["f"].endswith("val=0"))
         rmdir = first(lambda e: e["ev"] == "cgroup_rmdir" and scope in e["f"])
         works = [e["ts"] for e in ft if e["ev"] == "kn_workfn" and t0 <= e["ts"] <= (rmdir or t0) + 5 * 10**7]

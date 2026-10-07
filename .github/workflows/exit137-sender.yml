@@ -3,8 +3,6 @@ name: exit137-sender
 on:
   workflow_dispatch:
   push:
-    branches:
-      - exit137-sender
     paths:
       - "exit137-sender/**"
       - ".github/workflows/exit137-sender.yml"

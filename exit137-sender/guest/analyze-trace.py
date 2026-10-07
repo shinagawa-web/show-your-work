@@ -29,9 +29,11 @@ for cond in sorted((c for c in os.listdir(root) if re.fullmatch(r"C\d+", c)), ke
         ev = [json.loads(l) for l in open(os.path.join(d, "events.jsonl"))]
         has_oom = any(e["Action"] == "oom" for e in ev)
         scope = f"docker-{cid}.scope"
-        victim = next((l for l in trace if "mark_victim" in l and f"pid={pid1} " in l), None)
+        kp = re.search(r"Killed process (\d+) ", open(os.path.join(d, "kernel.txt")).read())
+        vpid = int(kp.group(1)) if kp else pid1  # with --init (C6) the victim is the child
+        victim = next((l for l in trace if "mark_victim" in l and f"pid={vpid} " in l), None)
         if not victim:
-            rows.append((cond, run, has_oom, "no mark_victim for PID 1"))
+            rows.append((cond, run, has_oom, f"no mark_victim for pid {vpid}"))
             continue
         t0 = t(victim)
         pop0 = next((l for l in trace if "populated=0" in l and scope in l), None)

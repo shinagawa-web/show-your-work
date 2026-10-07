@@ -11,10 +11,10 @@ tracepoint:cgroup:cgroup_notify_populated { printf("%s populated=%d %s comm=%s p
 tracepoint:cgroup:cgroup_rmdir { printf("%s rmdir %s comm=%s pid=%d\n", strftime("%H:%M:%S.%f", nsecs), str(args.path), comm, pid); }
 tracepoint:oom:mark_victim { printf("%s mark_victim pid=%d comm=%s\n", strftime("%H:%M:%S.%f", nsecs), args.pid, comm); }
 kprobe:kernfs_notify {
-  if (strncmp(str(((struct kernfs_node *)arg0)->name, 14), "memory.events", 13) == 0) {
+  if (str(((struct kernfs_node *)arg0)->name, 15) == "memory.events") {
     printf("%s kernfs_notify memory.events comm=%s pid=%d\n", strftime("%H:%M:%S.%f", nsecs), comm, pid);
   }
-  if (strncmp(str(((struct kernfs_node *)arg0)->name, 14), "cgroup.events", 13) == 0) {
+  if (str(((struct kernfs_node *)arg0)->name, 15) == "cgroup.events") {
     printf("%s kernfs_notify cgroup.events comm=%s pid=%d\n", strftime("%H:%M:%S.%f", nsecs), comm, pid);
   }
 }

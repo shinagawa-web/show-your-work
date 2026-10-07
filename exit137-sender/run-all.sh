@@ -15,9 +15,10 @@ gcc -O2 -static -Wall -o "$here/guest/subject" "$here/subject/subject.c" || exit
 gcc -O2 -static -Wall -o "$here/guest/cgprobe" "$here/subject/cgprobe.c" || exit 1
 install -m 0755 /bin/busybox "$here/guest/busybox"
 echo "[$(el)s] subject built"
+cp "$here/scripts/versions.env" "$here/guest/versions.env"
+trap '"$here/scripts/vm-down.sh"' EXIT
 VM_MEM=${VM_MEM:-512} "$here/scripts/vm-up.sh" | tee "$results/vm-up.txt"
 [ "${PIPESTATUS[0]}" -eq 0 ] || { cp "$here/.vm/serial.log" "$results/" 2>/dev/null; exit 1; }
-trap '"$here/scripts/vm-down.sh"' EXIT
 echo "[$(el)s] test VM up"
 cp "$here/.vm/qemu.txt" "$results/qemu.txt"
 tar -C "$here" -c guest | "$here/scripts/vm-ssh.sh" 'rm -rf ~/w && mkdir -p ~/w && tar -C ~/w -x'
