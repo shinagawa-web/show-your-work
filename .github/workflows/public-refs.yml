@@ -1,0 +1,16 @@
+name: public-refs
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: scripts/check-public-refs.sh "${{ github.event.pull_request.base.sha || github.event.before }}" HEAD

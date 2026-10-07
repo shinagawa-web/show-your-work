@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+zero=0000000000000000000000000000000000000000
+while read -r _ local_sha _ remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ]; then
+    base=$(git merge-base origin/main "$local_sha")
+  else
+    base=$remote_sha
+  fi
+  "$(git rev-parse --show-toplevel)/scripts/check-public-refs.sh" "$base" "$local_sha"
+done
