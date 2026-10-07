@@ -1,0 +1,61 @@
+name: rate-limit-cannot-protect
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "rate-limit-cannot-protect/**"
+      - ".github/workflows/rate-limit-cannot-protect.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: rate-limit-cannot-protect
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      # One job per group: control and cause scenarios (00-05) and measure scenarios (06-11). Each job starts
+      # its own stack and runs scripts/run-all.sh with the group's scenarios. The job fails if its
+      # scenario loop exceeds 300 s, or if results/checks.txt has a failed check or an invalid run.
+      matrix:
+        include:
+          - group: cause
+            scenarios: 00-control 01-a-heavy-share 02-b-latency 03-c-capacity 04-d-tenants 05-b-front-cuts
+          - group: measure
+            scenarios: 06-a-max-conns 07-b-max-conns 08-c-max-conns 09-d-max-conns 10-b-read-timeout-500ms 11-b-fixed-key-limit
+    name: run (${{ matrix.group }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/run-all.sh ${{ matrix.scenarios }}
+      - name: summary
+        if: always()
+        run: |
+          {
+            echo "## ${{ matrix.group }}"
+            for f in results/timing.txt results/checks.txt results/00-environment.txt; do
+              [ -f "$f" ] || continue
+              echo "### $f"
+              echo '```'
+              cat "$f"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: scenario loop within 300 s
+        run: |
+          s=$(sed -n 's/^scenario loop: \([0-9]*\) s$/\1/p' results/timing.txt)
+          echo "scenario loop: ${s} s"
+          [ -n "$s" ] && [ "$s" -le 300 ]
+      - name: no failed check and no invalid run in checks.txt
+        run: |
+          test -f results/checks.txt
+          grep -E '^## (totals|invalid runs)' results/checks.txt
+          ! grep -nE '\| fail$|RUN INVALID' results/checks.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: rate-limit-cannot-protect-results-${{ matrix.group }}
+          path: rate-limit-cannot-protect/results/
