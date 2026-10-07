@@ -430,6 +430,8 @@ def check_scenario(name, R, base_conf):
             hm = 100 * sum(1 for x in nm if x['uri'] == '/api/heavy') / max(len(nm), 1)
             add('A: /api/heavy share of nginx entries', '0% -> 40% (used: +-5)', f'pre={hp:.2f}% post={hm:.2f}%',
                 ok(hp == 0 and abs(hm - 40) <= 5))
+            add('A: app in service pinned at 20 [14,25) (app log)', '20 (used: mean >= 19, max 20)',
+                f'mean={cm:.2f} max={cx}', ok(cm >= 19 and cx == 20))
         if E['cause'] == 'B':
             pp = [x['proc'] for x in post]
             add('B: processing time rises [14,25) (app log)', '50 -> 120 ms (used: +-10%)',
@@ -454,6 +456,8 @@ def check_scenario(name, R, base_conf):
                 f' (pre mean={statistics.mean(c / sw for c in tp.values()):.1f})', ok(all(16 <= r <= 24 for r in rates)))
             add('D: total rate [14,25) (nginx entries)', '200 -> 600 r/s (used: +-5%)',
                 f'pre={len(pre_ngx) / sw:.1f} post={len(nm) / span:.1f}', ok(abs(len(nm) / span - 600) <= 30))
+            add('D: app in service pinned at 20 [14,25) (app log)', '20 (used: mean >= 19, max 20)',
+                f'mean={cm:.2f} max={cx}', ok(cm >= 19 and cx == 20))
 
     # 11. reader-side wait vs accept wait, per 1 s interval and per endpoint
     #   reader: median $upstream_header_time of nginx lines logged in the second ($msec) minus the
