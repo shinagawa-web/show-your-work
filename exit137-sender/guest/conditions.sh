@@ -127,6 +127,19 @@ C3() {
   finish
 }
 
+# C3R: C3 with --restart on-failure (not in the default list)
+C3R() {
+  docker run -d --restart on-failure --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
+  wait_log "$name" holding 10
+  at_start
+  local t0; t0=$(now)
+  docker stop -t 2 "$name" > /dev/null
+  echo "docker stop -t 2 seconds: $(el "$t0")" | tee "$dir/action.txt"
+  sleep 3
+  echo "3s after docker stop: Running=$(docker inspect -f '{{.State.Running}}' "$name") RestartCount=$(docker inspect -f '{{.RestartCount}}' "$name")" | tee -a "$dir/action.txt"
+  finish
+}
+
 # C4: docker kill
 C4() {
   docker run -d --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
