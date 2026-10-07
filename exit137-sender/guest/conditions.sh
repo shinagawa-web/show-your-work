@@ -2,12 +2,15 @@
 # Runs as root inside the test VM after setup.sh. For each condition and run,
 # records docker events, the kernel log (OOM killer records), docker inspect
 # and dockerd's journal under $results/<cond>/<run>/.
-#   conditions.sh [COND...]   (default: C1 ... C11)
+#   conditions.sh [COND...]   (default: C1 ... C11 and C3R)
+# Exits non-zero if any run failed (see check_run); writes $results/complete
+# when every condition has run.
 # Runs per condition: RUNS_<COND> (default from RUNS_DEFAULT below).
 set -uo pipefail
 results=${RESULTS:-/root/results}
 IMG=exit137/subject:local
 mkdir -p "$results"
+failed=0
 # More than one run only where the outcome may vary between runs: the order
 # of the oom and die events (C1, C2, C6) and which process the global OOM
 # killer picks and whether OOMKilled/oom show up (C2).
@@ -29,6 +32,9 @@ wait_log() { # name pattern timeout_s
   return 1
 }
 
+# Wait for the subject's first line, i.e. the container's first start.
+wait_started() { wait_log "$name" started 10; }
+
 begin() {
   cond=$1; run=$2; name="$(echo "$1" | tr A-Z a-z)-$2"
   dir=$results/$cond/$run
@@ -41,6 +47,8 @@ begin() {
 # and PID 1's children.
 at_start() {
   docker inspect "$name" > "$dir/inspect-start.json"
+  local rc; rc=$(docker inspect -f '{{.RestartCount}}' "$name")
+  [ "$rc" = 0 ] || echo "at_start: RestartCount=$rc, State.Pid is not the first start" | tee -a "$dir/notes.txt"
   pid1=$(docker inspect -f '{{.State.Pid}}' "$name")
   child=$(cat "/proc/$pid1/task/$pid1/children" 2>/dev/null | tr -d ' ')
   if [ "${PROBE:-0}" = 1 ]; then
@@ -57,9 +65,13 @@ at_start() {
     ps -o pid,ppid,comm,args --ppid "$pid1" -p "$pid1"
   } | tee "$dir/start.txt"
 }
+# docker events is read up to EVENTS_GRACE seconds after this point (the
+# command waits until then), so an oom event that arrives late is still
+# recorded; summary.txt shows how long after die it came.
+EVENTS_GRACE=${EVENTS_GRACE:-3}
 finish() {
-  sleep 0.5
-  local t_end; t_end=$(now)
+  local t_end; t_end=$(awk -v a="$(now)" -v g="$EVENTS_GRACE" 'BEGIN{printf "%.9f", a+g}')
+  echo "$EVENTS_GRACE" > "$dir/events-grace-seconds.txt"
   # filter by ID: the name filter also matches "$name-filler"
   docker events --since "$t_start" --until "$t_end" --filter "container=$(docker inspect -f '{{.Id}}' "$name")" --format '{{json .}}' > "$dir/events.jsonl"
   if docker inspect "$name-filler" >/dev/null 2>&1; then
@@ -86,6 +98,7 @@ finish() {
 # C1: container memory limit, subject (PID 1) allocates past it
 C1() {
   docker run -d --name "$name" --memory 128m "$IMG" alloc 256 16 0 300 >/dev/null
+  wait_started
   at_start
   timeout 30 docker wait "$name" > "$dir/wait.txt"
   finish
@@ -184,6 +197,7 @@ C7() {
 # C8: the subject returns 137 by itself
 C8() {
   docker run -d --name "$name" "$IMG" exit 137 300 >/dev/null
+  wait_started
   at_start
   timeout 10 docker wait "$name" > "$dir/wait.txt"
   finish
@@ -206,6 +220,7 @@ C9() {
 # C10: C1 with --restart on-failure; allocate only on the first start
 C10() {
   docker run -d --restart on-failure --name "$name" --memory 128m "$IMG" alloc 256 16 0 300 /marker >/dev/null
+  wait_started
   at_start
   wait_log "$name" exists 30
   sleep 0.3
@@ -227,7 +242,21 @@ C11() {
 # When sourced (by investigate.sh), only define the functions.
 [[ "${BASH_SOURCE[0]}" != "$0" ]] && return 0
 
-conds=${*:-C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11}
+# A run fails when a wait timed out, at_start saw a restarted container, or a
+# record is missing.
+check_run() {
+  local f
+  [ -s "$dir/notes.txt" ] && f="notes: $(tr '\n' ' ' < "$dir/notes.txt")"
+  for x in inspect-start.json inspect-end.json events.jsonl kernel.txt summary.txt; do
+    [ -s "$dir/$x" ] || f="${f:-} missing $x"
+  done
+  if [ -n "${f:-}" ]; then
+    echo "FAILED $cond run $run:$f" | tee -a "$results/failures.txt"
+    failed=$((failed + 1))
+  fi
+}
+
+conds=${*:-C1 C2 C3 C3R C4 C5 C6 C7 C8 C9 C10 C11}
 for c in $conds; do
   tc=$(now)
   v=RUNS_$c
@@ -240,6 +269,7 @@ for c in $conds; do
       grep MemAvailable /proc/meminfo
     } > "$dir/pre.txt"
     "$c"
+    check_run
     echo "$c run $r seconds=$(el "$t_start")" | tee -a "$results/timing.txt"
   done
   echo "$c total seconds=$(el "$tc") runs=$n" | tee -a "$results/timing.txt"
@@ -247,3 +277,5 @@ done
 for f in buffer_size_kb tracing_on kprobe_events set_event; do
   echo "== $f"; cat /sys/kernel/tracing/$f
 done > "$results/ftrace-state.txt" 2>&1
+[ "$failed" -eq 0 ] || { echo "$failed run(s) failed"; exit 1; }
+touch "$results/complete"

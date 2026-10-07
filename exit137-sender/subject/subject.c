@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 {
 	setvbuf(stdout, NULL, _IONBF, 0);
 	if (argc == 4 && strcmp(argv[1], "exit") == 0) {
+		printf("pid %d started\n", (int)getpid());
 		msleep(atol(argv[3]));
 		printf("returning %s\n", argv[2]);
 		return atoi(argv[2]);

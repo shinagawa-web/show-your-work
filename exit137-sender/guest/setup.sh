@@ -5,6 +5,10 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-/root/results}
 mkdir -p "$results"
+# Keep apt-daily, apt-daily-upgrade and unattended-upgrades from running
+# during the conditions (memory use in a 512 MiB VM, package changes).
+systemctl stop apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
+systemctl mask apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service >/dev/null 2>&1
 export DEBIAN_FRONTEND=noninteractive
 apt_opts=(-q -o DPkg::Lock::Timeout=300)
 export NEEDRESTART_SUSPEND=1
@@ -58,6 +62,10 @@ set +e
   docker info --format 'CgroupDriver={{.CgroupDriver}} CgroupVersion={{.CgroupVersion}} InitBinary={{.InitBinary}} InitCommit={{json .InitCommit}} ContainerdCommit={{json .ContainerdCommit}} RuncCommit={{json .RuncCommit}}'
   echo "\$ dpkg-query (docker.io containerd runc tini)"
   dpkg-query -W docker.io containerd runc tini 2>&1
+  echo "\$ systemctl is-active/is-enabled apt-daily* unattended-upgrades"
+  for u in apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service; do
+    echo "$u $(systemctl is-active $u) $(systemctl is-enabled $u)"
+  done
   echo "\$ systemctl show -p OOMScoreAdjust docker containerd systemd-journald ssh"
   for u in docker containerd systemd-journald ssh; do echo "$u $(systemctl show -p OOMScoreAdjust --value $u)"; done
 } > "$results/versions.txt" 2>&1

@@ -104,7 +104,10 @@ def main():
             "killed", "killed_pid_eq_State.Pid", "restarting_container_log"]
     out = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
     extras = []
-    conds = sorted((c for c in os.listdir(root) if re.fullmatch(r"C\d+", c)), key=lambda c: int(c[1:]))
+    def order(c):
+        m = re.fullmatch(r"C(\d+)([A-Z]*)", c)
+        return (int(m.group(1)), m.group(2))
+    conds = sorted((c for c in os.listdir(root) if re.fullmatch(r"C\d+[A-Z]*", c)), key=order)
     for c in conds:
         for r in sorted(os.listdir(os.path.join(root, c)), key=int):
             s = run_summary(os.path.join(root, c, r))

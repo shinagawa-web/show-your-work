@@ -24,9 +24,20 @@ tar -C "$here" -c guest | "$here/scripts/vm-ssh.sh" 'rm -rf ~/w && mkdir -p ~/w 
 "$here/scripts/vm-ssh.sh" "sudo DEBUG=${DEBUG:-0} TRACE=${TRACE:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/setup.sh" > "$results/setup.txt" 2>&1 || { tail -30 "$results/setup.txt"; exit 1; }
 grep seconds "$results/setup.txt"
 echo "[$(el)s] test VM set up"
-runs_env=$(env | grep -E '^RUNS_C[0-9]+=[0-9]+$' | tr '\n' ' ')
+runs_env=$(env | grep -E '^RUNS_C[0-9]+[A-Z]*=[0-9]+$' | tr '\n' ' ')
 "$here/scripts/vm-ssh.sh" "sudo $runs_env PROBE=${PROBE:-0} TRACE=${TRACE:-0} TRACE_SHIM=${TRACE_SHIM:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/${GUEST_SCRIPT:-conditions.sh} $*" > "$results/conditions.txt" 2>&1
-grep -E "seconds|^==" "$results/conditions.txt"
-"$here/scripts/vm-ssh.sh" 'sudo python3 ~/w/guest/summarize.py /root/results' > /dev/null
+cond_status=$?
+grep -E "seconds|^==|FAILED" "$results/conditions.txt"
+# Collect whatever was recorded even when the conditions failed; ssh exits
+# with 255 when the connection is lost (e.g. the test VM stops answering).
+"$here/scripts/vm-ssh.sh" 'sudo python3 ~/w/guest/summarize.py /root/results' > "$results/summarize.txt" 2>&1
+sum_status=$?
 "$here/scripts/vm-ssh.sh" 'sudo tar -C /root/results -c .' | tar -C "$results" -x
+tar_status=("${PIPESTATUS[@]}")
 echo "[$(el)s] done" | tee "$results/total.txt"
+status=0
+[ "$cond_status" -eq 0 ] || { echo "conditions failed (exit $cond_status)"; status=1; }
+[ "${GUEST_SCRIPT:-conditions.sh}" != conditions.sh ] || [ -f "$results/complete" ] || { echo "conditions did not complete"; status=1; }
+[ "$sum_status" -eq 0 ] || { echo "summarize failed (exit $sum_status)"; cat "$results/summarize.txt"; status=1; }
+[ "${tar_status[0]}" -eq 0 ] && [ "${tar_status[1]}" -eq 0 ] || { echo "copying results failed (${tar_status[*]})"; status=1; }
+exit "$status"
