@@ -16,7 +16,7 @@ Sources per scenario directory:
 
 Scenario kinds (scripts/expect.py): control (nothing changes at the switch), cause, measure.
 Each check prints: name | prediction | observed | pass / fail / info. A scenario whose run
-had a host pause (k6 schedule gap or sampler round over 50 ms) is marked RUN INVALID. Where a prediction has no
+had a host pause (a gap over 50 ms in the k6 schedule) is marked RUN INVALID. Where a prediction has no
 stated tolerance, the one used is written in the prediction column.
 """
 import bisect
@@ -503,16 +503,17 @@ def check_scenario(name, R, base_conf):
                      for s_, u, r, b, nh, nb, p in res), 'info')
 
     add('k6 dropped iterations / requests sent', '', f'{dropped(R)} / {len(R.k6)}', 'info')
-    # pauses of the whole host show up as gaps in the evenly spaced k6 schedule and as long
-    # sampler cycles (one ss / nstat / GET /admin round normally takes a few ms)
+    # pauses of the whole host show up as gaps in the evenly spaced k6 schedule. The sampler
+    # round (ss / nstat / GET /admin) is recorded only: it grows with the sockets ss has to read,
+    # so it follows the accept queue rather than host pauses.
     st = sorted(x['start'] for x in R.k6 if 0 <= x['start'] < X.DUR)
     gaps = sorted(((b - a) * 1000, a) for a, b in zip(st, st[1:]))[-3:]
     sm = sorted((r['sample_ms'], r['t']) for r in R.kern if 0 <= r['t'] < X.DUR)[-3:]
-    paused = gaps[-1][0] > 50 or sm[-1][0] > 50
+    paused = gaps[-1][0] > 50
     add('host pause: largest gaps between k6 request starts [0,25) (ms @ t)', '<= 50 ms',
         ', '.join(f'{g:.0f}@{t:.2f}' for g, t in reversed(gaps)), ok(gaps[-1][0] <= 50))
-    add('host pause: longest sampler rounds [0,25) (ms @ t)', '<= 50 ms',
-        ', '.join(f'{g:.0f}@{t:.2f}' for g, t in reversed(sm)), ok(sm[-1][0] <= 50))
+    add('longest sampler rounds [0,25) (ms @ t), recorded only', '(not a pause check)',
+        ', '.join(f'{g:.0f}@{t:.2f}' for g, t in reversed(sm)), 'info')
     return rows, paused
 
 
