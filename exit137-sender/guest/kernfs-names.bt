@@ -1,0 +1,9 @@
+// Count kernfs notifications by file name for names starting with
+// memory.events or cgroup.events (includes memory.events.local), to check
+// what trace.bt's exact match leaves out.
+kprobe:kernfs_notify {
+  $n = str(((struct kernfs_node *)arg0)->name, 24);
+  if (strncmp($n, "memory.events", 13) == 0 || strncmp($n, "cgroup.events", 13) == 0) {
+    @notify[$n] = count();
+  }
+}

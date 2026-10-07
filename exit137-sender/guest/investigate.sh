@@ -29,6 +29,11 @@ if [ "${TRACE:-0}" = 1 ]; then
     BPFTRACE_MAX_STRLEN=128 exec bpftrace "$(dirname "$0")/trace.bt" ) > "$results/trace.txt" 2>&1 &
   trace_pid=$!
   for _ in $(seq 100); do grep -q Attaching "$results/trace.txt" && break; sleep 0.2; done
+  if [ "${TRACE_NAMES:-0}" = 1 ]; then
+    BPFTRACE_MAX_STRLEN=32 bpftrace "$(dirname "$0")/kernfs-names.bt" > "$results/kernfs-names.txt" 2>&1 &
+    names_pid=$!
+    for _ in $(seq 100); do grep -q Attaching "$results/kernfs-names.txt" && break; sleep 0.2; done
+  fi
   sleep 1
   head -3 "$results/trace.txt"
   kill -0 "$trace_pid" || { echo "bpftrace failed"; exit 1; }
@@ -51,6 +56,7 @@ for step in "$@"; do
   echo "$step run ${seen[$step]} seconds=$(el "$t_start")" | tee -a "$results/timing.txt"
 done
 [ -n "${trace_pid:-}" ] && { sleep 1; kill -INT "$trace_pid"; wait "$trace_pid"; }
+[ -n "${names_pid:-}" ] && { kill -INT "$names_pid"; wait "$names_pid"; }
 if [ "${TRACE_SHIM:-0}" = 1 ]; then
   echo 0 > /sys/kernel/tracing/tracing_on
   cat /sys/kernel/tracing/trace > "$results/ftrace.txt"

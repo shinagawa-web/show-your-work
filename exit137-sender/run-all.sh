@@ -26,7 +26,7 @@ tar -C "$here" -c guest | "$here/scripts/vm-ssh.sh" 'rm -rf ~/w && mkdir -p ~/w 
 grep seconds "$results/setup.txt"
 echo "[$(el)s] test VM set up"
 runs_env=$(env | grep -E '^RUNS_C[0-9]+[A-Z]*=[0-9]+$' | tr '\n' ' ')
-"$here/scripts/vm-ssh.sh" "sudo $runs_env PROBE=${PROBE:-0} TRACE=${TRACE:-0} TRACE_SHIM=${TRACE_SHIM:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/${GUEST_SCRIPT:-conditions.sh} $*" > "$results/conditions.txt" 2>&1
+"$here/scripts/vm-ssh.sh" "sudo $runs_env PROBE=${PROBE:-0} TRACE=${TRACE:-0} TRACE_SHIM=${TRACE_SHIM:-0} TRACE_NAMES=${TRACE_NAMES:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/${GUEST_SCRIPT:-conditions.sh} $*" > "$results/conditions.txt" 2>&1
 cond_status=$?
 grep -E "seconds|^==|FAILED" "$results/conditions.txt"
 # Collect whatever was recorded even when the conditions failed; ssh exits

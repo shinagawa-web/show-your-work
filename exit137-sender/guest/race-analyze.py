@@ -29,7 +29,7 @@ if os.path.exists(os.path.join(root, "ftrace.txt")):
                            ts=int(round(float(m.group(4)) * 1e9)), ev=m.group(5), f=m.group(6)))
         elif l.strip() and not l.startswith("#"):
             unparsed += 1
-    print(f"ftrace lines not parsed: {unparsed}")
+    print(f"ftrace lines not parsed: {unparsed}, parsed without a tgid: {sum(1 for e in ft if e['tgid'] is None)}")
 
 ctr = []
 for l in (open(os.path.join(root, "ctr-events.txt")) if os.path.exists(os.path.join(root, "ctr-events.txt")) else []):
