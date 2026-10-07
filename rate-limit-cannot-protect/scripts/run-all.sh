@@ -58,8 +58,10 @@ t_ready=$(now_ms)
   dc exec -T nginx cat /proc/sys/net/ipv4/ip_local_port_range
 } > results/00-environment.txt 2>&1
 
-# nginx -T of the common starting point (base.conf); each scenario's nginx-T.txt is compared with it
-dc exec -T nginx nginx -T > results/00-base-nginx-T.txt 2>&1
+# nginx -T of the common starting point (base.conf); each scenario's nginx-T.txt is compared with it.
+# The dump (stdout) and nginx's own status lines (stderr) go to separate files: written to one file,
+# a stderr line can land in the middle of a dump line.
+dc exec -T nginx nginx -T > results/00-base-nginx-T.txt 2> results/00-base-nginx-T-stderr.txt
 
 # one request = one connection check with base.conf: a few requests through nginx, then the
 # app access log lines (request proto and Connection header as the app got them)
@@ -98,7 +100,7 @@ run_one() {
     cp "scenarios/$sc.env" "$out/scenario.env"
     dc exec -T nginx sh -c "cp /confs/$NGINX_CONF /etc/nginx/nginx.conf && nginx -t && nginx -s reload" > "$out/nginx-reload.txt" 2>&1
     sleep 1   # let the old workers exit
-    dc exec -T nginx nginx -T > "$out/nginx-T.txt" 2>&1
+    dc exec -T nginx nginx -T > "$out/nginx-T.txt" 2> "$out/nginx-T-stderr.txt"
     {
       echo "before reset (recvq inuse est+close-wait): $(kstate)"
       echo "\$ GET /admin?reset=1"; admin "reset=1"; echo
