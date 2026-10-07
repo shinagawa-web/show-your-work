@@ -1,0 +1,7 @@
+.vm/
+.cache/
+results/
+guest/subject
+guest/busybox
+guest/cgprobe
+guest/versions.env

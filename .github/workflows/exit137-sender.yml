@@ -1,0 +1,28 @@
+name: exit137-sender
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "exit137-sender/**"
+      - ".github/workflows/exit137-sender.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: exit137-sender
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: exit137-sender-results
+          path: exit137-sender/results/

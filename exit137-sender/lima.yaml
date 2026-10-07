@@ -1,0 +1,20 @@
+# Linux layer for local runs on Apple Silicon (M3 or later, macOS 15 or later).
+# nestedVirtualization exposes /dev/kvm inside this VM so that the test VM
+# can be started with QEMU+KVM by the same scripts used on the CI runner.
+vmType: vz
+nestedVirtualization: true
+os: Linux
+arch: aarch64
+cpus: 4
+memory: 6GiB
+disk: 30GiB
+
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img"
+    arch: aarch64
+
+mounts: []
+
+containerd:
+  system: false
+  user: false
