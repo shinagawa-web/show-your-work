@@ -9,8 +9,8 @@ Time axis: t = seconds since the k6 test start (T0_MS logged by k6/load.js).
 Sources per scenario directory:
   k6.csv                 http_req_duration of the "load" scenario; start = sample time - duration
   access.log             nginx; start = $msec - $request_time, end = $msec
-  downstream_access.log  downstream; start (handler got the request), processing time, $request_id
-  kernel_100ms.csv       ss / nstat in the downstream netns every 100 ms
+  app_access.log         app; start (handler got the request), processing time, $request_id
+  kernel_100ms.csv       ss / nstat in the app netns every 100 ms
   bpf.log                A = accept (accept wait), C = close (accept-to-close, established-to-close)
   error.log, error-info.log, nginx-T.txt, k6-env.txt, k6-stdout.txt (T0_MS, ADMIN_BEFORE, ADMIN_AFTER)
 
@@ -107,7 +107,7 @@ class Run:
         self._ne = sorted(x['end'] for x in self.ngx)
 
         self.ds = []
-        for line in open(f'{d}/downstream_access.log'):
+        for line in open(f'{d}/app_access.log'):
             p = line.split()
             if len(p) < 5:
                 continue
@@ -224,10 +224,10 @@ def per_second(R, path):
            'ds_conc', 'recvq', 'inuse', 'acc_n', 'wait_p50', 'wait_max', 'proc_p50']
     with open(path, 'w') as f:
         f.write(f'# {R.d}\n')
-        f.write('Bucketed by request start (k6, nginx), handler start (downstream proc_p50), accept time (bpf).\n')
-        f.write('ngx_infl = nginx requests in flight at the start of the second; ds_conc = mean downstream\n')
-        f.write('requests in service (downstream log, 10 ms instants); recvq / inuse = first 100 ms sample\n')
-        f.write('in the second; wait = bpf accept wait (ms); proc = downstream processing time (ms).\n')
+        f.write('Bucketed by request start (k6, nginx), handler start (app proc_p50), accept time (bpf).\n')
+        f.write('ngx_infl = nginx requests in flight at the start of the second; ds_conc = mean app\n')
+        f.write('requests in service (app log, 10 ms instants); recvq / inuse = first 100 ms sample\n')
+        f.write('in the second; wait = bpf accept wait (ms); proc = app processing time (ms).\n')
         f.write(' '.join(f'{h:>8}' for h in hdr) + '\n')
         for t in range(T):
             ks, ns = bk.get(t, []), bn.get(t, [])
@@ -271,13 +271,13 @@ def check_scenario(name, R, base_conf):
     inuse_pre = [r['inuse'] for r in R.kw(0, sw)]
     k6st, ngst = Counter(x['status'] for x in pre_k6), Counter(x['status'] for x in pre_ngx)
     v = 'info' if fixed else None
-    add('pre [0,8) downstream in service (downstream log, 10 ms instants)', '~10 (used: mean 9-11)',
+    add('pre [0,8) app in service (app log, 10 ms instants)', '~10 (used: mean 9-11)',
         f'mean={c_mean:.2f} max={c_max} (kernel inuse mean={statistics.mean(inuse_pre):.2f})', v or ok(9 <= c_mean <= 11))
     aw = [w for t, w in R.acc if 0 <= t < sw]
     add('pre [0,8) accept wait (bpf, by accept time)', 'p99 <= 5 ms', f'p50={pct(aw, 50):.3f} ms p99={pct(aw, 99):.3f} ms max={max(aw):.3f} ms',
         v or ok(pct(aw, 99) <= 5))
     add('pre [0,8) accept queue (ss Recv-Q, 100 ms)', '(cross-check)', f'max={max(q_pre):.0f} samples={len(q_pre)}', 'info')
-    add('pre [0,8) downstream processing time', '50 ms (used: median 45-55)',
+    add('pre [0,8) app processing time', '50 ms (used: median 45-55)',
         f'median={med(proc_pre):.2f} ms p99={pct(proc_pre, 99):.2f} ms n={len(proc_pre)}', v or ok(45 <= med(proc_pre) <= 55))
     add('pre [0,8) all 200', 'k6 and nginx: 200 only',
         f'k6 {dict(sorted(k6st.items()))} nginx {dict(sorted(ngst.items()))}',
@@ -327,7 +327,7 @@ def check_scenario(name, R, base_conf):
     # 7. 1 request = 1 connection
     sent = sum(1 for x in R.ngx if x['sent'])
     add('bpf accepts vs nginx upstream sends (whole run incl. drain)', 'equal',
-        f'accepts={len(R.acc)} sends={sent} downstream_log_lines={len(R.ds)}', ok(len(R.acc) == sent))
+        f'accepts={len(R.acc)} sends={sent} app_log_lines={len(R.ds)}', ok(len(R.acc) == sent))
 
     # 8. control: nothing changed at the switch, so the whole run looks like the common point
     if E['kind'] == 'control':
@@ -348,7 +348,7 @@ def check_scenario(name, R, base_conf):
         add('control: p99 of 200 responses [14,25) and [0,8) (k6)', '(not predicted)',
             f'[14,25) {p99:.1f} ms (n={len(ok200)}); [0,8) {pct(pre200, 99):.1f} ms (n={len(pre200)})', 'info')
         conc_a = R.ds_conc_series(0, X.DUR)
-        add('control: [0,25) downstream in service (downstream log, 10 ms instants)', '~10 (used: mean 9-11)',
+        add('control: [0,25) app in service (app log, 10 ms instants)', '~10 (used: mean 9-11)',
             f'mean={statistics.mean(conc_a):.2f} max={max(conc_a)}', ok(9 <= statistics.mean(conc_a) <= 11))
         aw_a = [w for t, w in R.acc if 0 <= t < X.DUR]
         add('control: [0,25) accept wait (bpf, by accept time)', 'p99 <= 5 ms',
@@ -387,7 +387,7 @@ def check_scenario(name, R, base_conf):
         n502 = sum(1 for x in R.ngx if x['status'] == '502' and not x['sent'])
         add('502 without an upstream attempt (max_conns) over the run', '(not predicted)', f'{n502}', 'info')
 
-    # 9. work the downstream finished after nginx had already given up
+    # 9. work the app finished after nginx had already given up
     if E['kind'] == 'cause':
         g = str(E['gave_up'])
         firsts = [x['end'] for x in R.ngx if x['status'] == g]
@@ -398,7 +398,7 @@ def check_scenario(name, R, base_conf):
                     and R.by_rid[x['rid']]['end'] <= x['end']]
             nomatch = sum(1 for x in after if x['rid'] not in R.by_rid)
             frac = 100 * len(orph) / max(len(after), 1)
-            add(f'downstream finished after nginx had returned {g} ($request_id), from the first {g} (t={f0:.2f} s) to the end of the drain',
+            add(f'app finished after nginx had returned {g} ($request_id), from the first {g} (t={f0:.2f} s) to the end of the drain',
                 '~100% (used: >= 95%)', f'{frac:.2f}% ({len(orph)}/{len(after)}, unmatched ids={nomatch})', ok(frac >= 95))
             b = defaultdict(lambda: [0, 0])
             for x in R.ds:
@@ -408,9 +408,9 @@ def check_scenario(name, R, base_conf):
                 if n and n['status'] == g and n['end'] <= x['end']:
                     b[k][0] += 1
             ser = ' '.join(f'{k}:{100 * v[0] / v[1]:.0f}%' for k, v in sorted(b.items()) if k >= sw)
-            add('  same, per second of downstream finish (t:share)', '', ser, 'info')
+            add('  same, per second of app finish (t:share)', '', ser, 'info')
         else:
-            add(f'downstream finished after nginx had returned {g}', '~100%', f'no {g} in the run', 'fail')
+            add(f'app finished after nginx had returned {g}', '~100%', f'no {g} in the run', 'fail')
 
     # 10. telling the causes apart (cause scenarios A-D)
     if E['kind'] == 'cause' and name != '05-b-front-cuts':
@@ -422,9 +422,9 @@ def check_scenario(name, R, base_conf):
         if E['cause'] == 'A':
             post_l = [x['proc'] for x in post if x['uri'] == '/api/light']
             post_h = [x['proc'] for x in post if x['uri'] == '/api/heavy']
-            add('A: /api/light processing time unchanged [14,25) (downstream log)', 'post median within +-10% of pre',
+            add('A: /api/light processing time unchanged [14,25) (app log)', 'post median within +-10% of pre',
                 f'pre={med(pre_l):.2f} ms post={med(post_l):.2f} ms', ok(abs(med(post_l) - med(pre_l)) <= 0.1 * med(pre_l)))
-            add('A: /api/heavy processing time = its setting [14,25) (downstream log)', '300 ms (used: +-10%)',
+            add('A: /api/heavy processing time = its setting [14,25) (app log)', '300 ms (used: +-10%)',
                 f'post median={med(post_h):.2f} ms (no /api/heavy before the switch)', ok(abs(med(post_h) - 300) <= 30))
             hp = 100 * sum(1 for x in pre_ngx if x['uri'] == '/api/heavy') / max(len(pre_ngx), 1)
             hm = 100 * sum(1 for x in nm if x['uri'] == '/api/heavy') / max(len(nm), 1)
@@ -432,15 +432,15 @@ def check_scenario(name, R, base_conf):
                 ok(hp == 0 and abs(hm - 40) <= 5))
         if E['cause'] == 'B':
             pp = [x['proc'] for x in post]
-            add('B: processing time rises [14,25) (downstream log)', '50 -> 120 ms (used: +-10%)',
+            add('B: processing time rises [14,25) (app log)', '50 -> 120 ms (used: +-10%)',
                 f'pre={med(proc_pre):.2f} ms post={med(pp):.2f} ms', ok(abs(med(pp) - 120) <= 12))
-            add('B: downstream in service pinned at 20 [14,25) (downstream log)', '20 (used: mean >= 19, max 20)',
+            add('B: app in service pinned at 20 [14,25) (app log)', '20 (used: mean >= 19, max 20)',
                 f'mean={cm:.2f} max={cx}', ok(cm >= 19 and cx == 20))
         if E['cause'] == 'C':
             pp = [x['proc'] for x in post]
-            add('C: processing time unchanged [14,25) (downstream log)', 'post median within +-10% of pre',
+            add('C: processing time unchanged [14,25) (app log)', 'post median within +-10% of pre',
                 f'pre={med(proc_pre):.2f} ms post={med(pp):.2f} ms', ok(abs(med(pp) - med(proc_pre)) <= 0.1 * med(proc_pre)))
-            add('C: downstream in service pinned at 8 [14,25) (downstream log)', '8 (used: mean >= 7.6, max 8)',
+            add('C: app in service pinned at 8 [14,25) (app log)', '8 (used: mean >= 7.6, max 8)',
                 f'mean={cm:.2f} max={cx}', ok(cm >= 7.6 and cx == 8))
         if E['cause'] == 'D':
             tp = Counter(x['tenant'] for x in pre_ngx)
@@ -457,9 +457,9 @@ def check_scenario(name, R, base_conf):
 
     # 11. reader-side wait vs accept wait, per 1 s interval and per endpoint
     #   reader: median $upstream_header_time of nginx lines logged in the second ($msec) minus the
-    #           median processing time of downstream lines finishing in the second (start + processing)
+    #           median processing time of app lines finishing in the second (start + processing)
     #   bpf:    median accept wait (established-to-close minus accept-to-close) of connections closed
-    #           in the second. The endpoint of a bpf close comes from the downstream log lines whose
+    #           in the second. The endpoint of a bpf close comes from the app log lines whose
     #           start and end lie within 0.5 ms of the connection's accept and close; it is used when all
     #           such lines have the same endpoint (lines that share start and end share the processing
     #           time, so they can only be ambiguous between connections, not between endpoints).
@@ -495,7 +495,7 @@ def check_scenario(name, R, base_conf):
     fails = [x for x in res if not x[6]]
     add('reader-side wait vs accept wait, per 1 s and per endpoint (wait >= 10 ms, before the first 504/499)',
         'within 10% in every compared interval',
-        f'{len(res) - len(fails)}/{len(res)} within 10% (bpf closes matched to downstream lines: {matched}/{len(R.close)};'
+        f'{len(res) - len(fails)}/{len(res)} within 10% (bpf closes matched to app lines: {matched}/{len(R.close)};'
         f' first 504/499 at t={limit_t:.2f}){"" if res else "; no interval qualifies"}', ok(not fails) if res else 'info')
     if res:
         add('  t endpoint: reader/bpf ms (n_nginx_with_header,n_bpf), * = outside 10%', '',

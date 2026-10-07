@@ -1,6 +1,6 @@
 # rate-limit-cannot-protect
 
-Records what k6, nginx, the downstream and the kernel see when nginx (OSS) `limit_req` sits in front of a downstream that works on a fixed number of requests at a time. Every scenario starts from the same state and changes one item at 8 s, except `00-control`, which changes nothing. The common settings are in `nginx/base.conf`, `downstream/main.go`, `k6/load.js`, `docker-compose.yml` (the downstream's startup limit and delays, the backlog sysctls) and `scripts/run-all.sh` (the k6 values passed to every scenario), what each scenario changes is in `scenarios/<name>.env`, and the predictions are in `scripts/expect.py`.
+Records what k6, nginx, the app and the kernel see when nginx (OSS) `limit_req` sits in front of an app that works on a fixed number of requests at a time. Every scenario starts from the same state and changes one item at 8 s, except `00-control`, which changes nothing. The common settings are in `nginx/base.conf`, `app/main.go`, `k6/load.js`, `docker-compose.yml` (the app's startup limit and delays, the backlog sysctls) and `scripts/run-all.sh` (the k6 values passed to every scenario), what each scenario changes is in `scenarios/<name>.env`, and the predictions are in `scripts/expect.py`.
 
 ## Run
 

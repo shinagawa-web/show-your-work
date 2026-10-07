@@ -4,10 +4,10 @@
 #
 # Per scenario:
 #   1. nginx: copy nginx/$NGINX_CONF to nginx.conf, nginx -t, nginx -s reload, save nginx -T
-#   2. downstream: /admin?reset=1 (LIMIT=20, DELAY_LIGHT=50, DELAY_HEAVY=300); check that the
+#   2. app: /admin?reset=1 (LIMIT=20, DELAY_LIGHT=50, DELAY_HEAVY=300); check that the
 #      accept queue and the accepted sockets are 0
 #   3. k6 with the common schedule and the scenario's env (saved to k6-env.txt)
-#   4. wait until the downstream has accepted and answered everything nginx sent
+#   4. wait until the app has accepted and answered everything nginx sent
 #      (accept queue 0, no :8081 socket open), with the scenario's settings still in place
 set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
@@ -17,9 +17,9 @@ if [ $# -gt 0 ]; then scs=("$@"); else scs=($(ls scenarios | sed 's/\.env$//' | 
 t_job=$(date +%s%3N)
 dc() { docker compose "$@"; }
 now_ms() { date +%s%3N; }
-admin() { dc exec -T nginx curl -s "http://downstream:9001/admin?$1"; }
+admin() { dc exec -T nginx curl -s "http://app:9001/admin?$1"; }
 # accept queue length (Recv-Q of the LISTEN socket), accepted sockets (owned by the process),
-# all :8081 sockets in ESTABLISHED or CLOSE-WAIT; in the downstream netns
+# all :8081 sockets in ESTABLISHED or CLOSE-WAIT; in the app netns
 kstate() {
   dc exec -T kernel sh -c '
     q=$(ss -ltnH "sport = :8081" | awk "{print \$2}")
@@ -48,7 +48,7 @@ t_ready=$(now_ms)
   echo "\$ grep '^FROM' Dockerfile"; grep '^FROM' Dockerfile
   echo "\$ bpftrace --version"; dc exec -T bpf bpftrace --version
   echo "\$ ss -V"; dc exec -T kernel ss -V
-  echo "## downstream netns"
+  echo "## app netns"
   echo "\$ cat /proc/sys/net/core/somaxconn /proc/sys/net/ipv4/tcp_max_syn_backlog"
   dc exec -T kernel sh -c 'cat /proc/sys/net/core/somaxconn /proc/sys/net/ipv4/tcp_max_syn_backlog'
   echo "\$ ss -ltn  (Send-Q of a LISTEN socket = its backlog)"
@@ -62,8 +62,8 @@ t_ready=$(now_ms)
 dc exec -T nginx nginx -T > results/00-base-nginx-T.txt 2>&1
 
 # one request = one connection check with base.conf: a few requests through nginx, then the
-# downstream access log lines (request proto and Connection header as the downstream got them)
-# and the nginx <-> downstream sockets left in both network namespaces
+# app access log lines (request proto and Connection header as the app got them)
+# and the nginx <-> app sockets left in both network namespaces
 {
   ngx=$(dc ps -q nginx)
   echo "\$ nginx -T (base.conf)"
@@ -71,14 +71,14 @@ dc exec -T nginx nginx -T > results/00-base-nginx-T.txt 2>&1
   echo "\$ curl through nginx x5"
   for i in 1 2 3 4 5; do dc exec -T nginx curl -s -o /dev/null -H 'X-Tenant: check' -w '%{http_code} %{time_total}\n' http://localhost/api/light; done
   sleep 1
-  echo "\$ tail -5 downstream_access.log  (start proc_ms path request_id tenant proto connection)"
-  tail -5 results/raw/downstream_access.log
+  echo "\$ tail -5 app_access.log  (start proc_ms path request_id tenant proto connection)"
+  tail -5 results/raw/app_access.log
   echo "\$ tail -5 access.log"
   tail -5 results/raw/access.log
   echo "\$ ss -tnao (nginx netns), connections to :8081"
   docker run --rm --network "container:$ngx" rate-limit-cannot-protect-probe:local ss -tnaoH "dport = :8081" || true
   echo "[end]"
-  echo "\$ ss -tnaop (downstream netns), app port :8081"
+  echo "\$ ss -tnaop (app netns), app port :8081"
   dc exec -T kernel ss -tnaopH "sport = :8081" || true
   echo "[end]"
   echo "\$ bpf.log A / C lines of these requests"
@@ -117,7 +117,7 @@ run_one() {
       --summary-export="/${out}/k6-summary.json" /scripts/load.js > "$out/k6-stdout.txt" 2>&1 \
       || echo "k6 exit $?" >> "$out/k6-stdout.txt"
     t_end=$(now_ms)
-    # wait for the downstream to work off its accept queue with the scenario's settings
+    # wait for the app to work off its accept queue with the scenario's settings
     for i in $(seq 300); do
       st=$(kstate)
       [ "$st" = "0 0 0" ] && break
@@ -125,7 +125,7 @@ run_one() {
     done
     t_drained=$(now_ms)
     echo "after k6 (recvq inuse est+close-wait): $st  ($(( t_drained - t_end )) ms after k6 exit)" >> "$out/init.txt"
-    sleep 0.3   # downstream access log flush (100 ms)
+    sleep 0.3   # app access log flush (100 ms)
     printf 'T_START_MS=%s\nT_END_MS=%s\nT_DRAINED_MS=%s\nSWITCH_AT=%s\nDURATION=%s\n' \
       "$t_start" "$t_end" "$t_drained" "$SWITCH_AT" "${DURATION%s}" > "$out/meta.env"
   )
@@ -141,7 +141,7 @@ for sc in "${scs[@]}"; do
 done
 t_all_end=$(now_ms)
 
-dc logs --no-color downstream > results/raw/downstream.log 2>&1
+dc logs --no-color app > results/raw/app.log 2>&1
 dc logs --no-color kernel bpf > results/raw/probes.log 2>&1
 dc down -t 3 >/dev/null 2>&1
 

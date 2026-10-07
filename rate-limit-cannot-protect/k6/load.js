@@ -9,7 +9,7 @@
 //   TENANTS_BEFORE  tenants t0..t(N-1) before SWITCH_AT (default 10)
 //   TENANTS_AFTER   tenants from SWITCH_AT (default 10)
 //   HEAVY_AFTER     share of requests sent to /api/heavy from SWITCH_AT (default 0; before: 0)
-//   ADMIN_QUERY     sent to the downstream /admin at SWITCH_AT (empty: no change)
+//   ADMIN_QUERY     sent to the app /admin at SWITCH_AT (empty: no change)
 //   K6_TIMEOUT      client timeout of each request (default 60s)
 // At SWITCH_AT the "switch" scenario logs (raw console lines):
 //   T0_MS <unix ms of the test start>
@@ -20,7 +20,7 @@ import http from 'k6/http';
 import exec from 'k6/execution';
 
 const BASE = __ENV.BASE || 'http://nginx';
-const ADMIN = __ENV.ADMIN || 'http://downstream:9001';
+const ADMIN = __ENV.ADMIN || 'http://app:9001';
 const ITER_RATE = Number(__ENV.ITER_RATE || 600);
 const DURATION = __ENV.DURATION || '25s';
 const SWITCH_AT = Number(__ENV.SWITCH_AT || 8);

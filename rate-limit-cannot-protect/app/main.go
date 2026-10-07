@@ -1,4 +1,4 @@
-// Downstream service. The concurrency limit lives in the listener: at most N
+// App service. The concurrency limit lives in the listener: at most N
 // connections are accepted and not yet closed at any time. Connections over the
 // limit are not accepted and wait in the kernel accept queue (listen backlog).
 // The service keeps no queue of its own.

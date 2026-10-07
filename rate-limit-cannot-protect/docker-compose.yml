@@ -1,11 +1,11 @@
-# One stack for all scenarios. After each scenario run-all.sh waits until the downstream has
+# One stack for all scenarios. After each scenario run-all.sh waits until the app has
 # accepted and answered everything left in its accept queue, swaps the nginx config with
-# nginx -s reload and resets the downstream through /admin; k6 is exec'd per scenario.
+# nginx -s reload and resets the app through /admin; k6 is exec'd per scenario.
 services:
-  downstream:
+  app:
     build: {context: ., target: app}
     image: rate-limit-cannot-protect-app:local
-    command: ["/downstream"]
+    command: ["/app"]
     sysctls:
       net.core.somaxconn: "65535"
       net.ipv4.tcp_max_syn_backlog: "65535"
@@ -15,7 +15,7 @@ services:
       DELAY_HEAVY: "300"
       APP_PORT: "8081"
       ADMIN_PORT: "9001"
-      ACCESS_LOG: /results/downstream_access.log
+      ACCESS_LOG: /results/app_access.log
     volumes:
       - ./results/raw:/results
   nginx:
@@ -31,21 +31,21 @@ services:
     volumes:
       - ./nginx:/confs:ro
       - ./results/raw:/results
-    depends_on: [downstream]
-  # ss / nstat inside the downstream's network and PID namespaces (PID: so that ss -p can
+    depends_on: [app]
+  # ss / nstat inside the app's network and PID namespaces (PID: so that ss -p can
   # tell accepted sockets, which have an owning fd, from sockets still in the accept queue)
   kernel:
     build: {context: ., target: probe}
     image: rate-limit-cannot-protect-probe:local
     command: ["/sampler"]
-    network_mode: "service:downstream"
-    pid: "service:downstream"
+    network_mode: "service:app"
+    pid: "service:app"
     environment:
       OUT: /results/kernel_100ms.csv
       SAMPLE_MS: "100"
     volumes:
       - ./results/raw:/results
-    depends_on: [downstream]
+    depends_on: [app]
   # bpftrace (host kernel): accept wait and accept-to-close time of port 8081 connections
   bpf:
     image: rate-limit-cannot-protect-probe:local

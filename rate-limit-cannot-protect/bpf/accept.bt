@@ -1,4 +1,4 @@
-// Accept wait and in-service time of downstream app-port connections (port 8081).
+// Accept wait and in-service time of connections to the app port (8081).
 //   E: passive child socket SYN_RECV -> ESTABLISHED (tracepoint sock:inet_sock_set_state)
 //      = the connection is complete and sits in the accept queue
 //   A: kretprobe:inet_csk_accept returns that socket = accept()

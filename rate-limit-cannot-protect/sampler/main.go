@@ -1,11 +1,11 @@
-// Kernel-side sampler. Runs in the downstream's network and PID namespace and every
+// Kernel-side sampler. Runs in the app's network and PID namespace and every
 // SAMPLE_MS (default 100) appends one CSV row to OUT with:
 //   - app port 8081: ss -ltn Recv-Q (accept queue length) and Send-Q (backlog) of the LISTEN socket
 //   - inuse: app-port sockets in ESTABLISHED or CLOSE-WAIT that have an owning process
 //     (ss -p shows users:), i.e. accepted and not yet closed
 //   - queued_est: the same sockets without an owner, i.e. still in the accept queue
 //   - nstat TcpExtListenOverflows / TcpExtListenDrops (absolute counters of this netns)
-//   - the downstream's current settings read from GET /admin (limit, delays, drain)
+//   - the app's current settings read from GET /admin (limit, delays, drain)
 package main
 
 import (

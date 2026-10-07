@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Copy the part of the shared logs that belongs to one scenario into results/<scenario>/.
 
-Window: from just before k6 started (T_START_MS) to when the downstream had worked off its
+Window: from just before k6 started (T_START_MS) to when the app had worked off its
 accept queue after k6 exited (T_DRAINED_MS), plus 300 ms. Scenarios run one after another,
 so the windows do not overlap.
 nginx error logs have second resolution (UTC in the container): a line stamped second s is
@@ -40,7 +40,7 @@ def err_ms(line):
 
 
 keep('access.log', 'access.log', lambda l: float(l.split(' ', 1)[0]) * 1000)
-keep('downstream_access.log', 'downstream_access.log', lambda l: float(l.split(' ', 1)[0]) * 1000)
+keep('app_access.log', 'app_access.log', lambda l: float(l.split(' ', 1)[0]) * 1000)
 keep('kernel_100ms.csv', 'kernel_100ms.csv', lambda l: float(l.split(',', 1)[0]), header=True)
 keep('bpf.log', 'bpf.log', lambda l: float(l.split(' ')[1]) * 1000)
 keep('error.log', 'error.log', err_ms)
