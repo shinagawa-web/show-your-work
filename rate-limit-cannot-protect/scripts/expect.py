@@ -4,6 +4,9 @@ Common starting point: 10 tenants x 20 r/s = 200 r/s, all /api/light (50 ms), do
 accepts at most 20, so 200 x 0.05 = 10 in service and capacity 20 / 0.05 = 400 r/s.
 Switch at 8 s. Measured window: 6 s after the switch to 25 s, i.e. [14, 25).
 
+Control scenario: the switch at 8 s sends GET /admin with the common values and the k6 "after"
+values equal the "before" values, so the only saved difference is ADMIN_QUERY itself.
+
 Cause scenarios: mu = what the downstream completes per second after the change, excess =
 arrivals - mu (= predicted accept-queue slope), onset = seconds after the switch when
 wait + processing reaches the timeout, with wait = excess * T / mu.
@@ -26,7 +29,10 @@ _C = ['k6 ADMIN_QUERY:  -> limit=8', 'admin limit: 20 -> 8']
 _D = ['k6 TENANTS_AFTER: 10 -> 30']
 _MC = ['nginx - server downstream:8081;', 'nginx + server downstream:8081 max_conns=20;']
 
+CONTROL_QUERY = 'limit=20&delay_light=50&delay_heavy=300'
+
 S = {
+    '00-control': dict(kind='control', changes=[f'k6 ADMIN_QUERY:  -> {CONTROL_QUERY}']),
     '01-a-heavy-share': dict(kind='cause', cause='A', changes=_A, mu=20 / 0.15, arrivals=200,
                              onset={'/api/heavy': 1.4, '/api/light': 1.9}, gave_up=504, success=0),
     '02-b-latency': dict(kind='cause', cause='B', changes=_B, mu=20 / 0.12, arrivals=200,

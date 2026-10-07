@@ -1,6 +1,6 @@
 # rate-limit-cannot-protect
 
-nginx (OSS) `limit_req` with a per-client key, in front of a downstream service that can work on a fixed number of requests at a time. Every scenario starts from the same state and changes one item at 8 s. The run records what k6, nginx, the downstream and the kernel saw, and `scripts/analyze.py` checks each scenario against its prediction.
+nginx (OSS) `limit_req` with a per-client key, in front of a downstream service that can work on a fixed number of requests at a time. Every scenario starts from the same state and changes one item at 8 s, except the control scenario, which changes nothing. The run records what k6, nginx, the downstream and the kernel saw, and `scripts/analyze.py` checks each scenario against its prediction.
 
 ## Setup
 
@@ -17,6 +17,12 @@ k6 (constant-arrival-rate) -> nginx 1.30.5 (limit_req, proxy_pass) -> downstream
 - Time 0 is the k6 test start (`T0_MS`, logged by `k6/load.js`). The switch is at 8 s: the k6 side changes from that moment, and a second k6 scenario calls `/admin` at 8 s and logs `GET /admin` right before and after (`ADMIN_BEFORE`, `ADMIN_SET`, `ADMIN_AFTER`).
 
 ### Scenarios
+
+Control scenario (nothing changed at 8 s):
+
+| scenario | at 8 s |
+|---|---|
+| 00-control | the switch runs as in the other scenarios with the common values: k6 takes its "after" branch with `TENANTS_AFTER=10` and `HEAVY_AFTER=0`, and the second k6 scenario sends `/admin?limit=20&delay_light=50&delay_heavy=300` |
 
 Cause scenarios (one item changed at 8 s):
 

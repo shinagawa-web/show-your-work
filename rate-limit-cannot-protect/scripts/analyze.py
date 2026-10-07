@@ -14,6 +14,7 @@ Sources per scenario directory:
   bpf.log                A = accept (accept wait), C = close (accept-to-close, established-to-close)
   error.log, error-info.log, nginx-T.txt, k6-env.txt, k6-stdout.txt (T0_MS, ADMIN_BEFORE, ADMIN_AFTER)
 
+Scenario kinds (scripts/expect.py): control (nothing changes at the switch), cause, measure.
 Each check prints: name | prediction | observed | pass / fail / info. A scenario whose run
 had a host pause (k6 schedule gap or sampler round over 50 ms) is marked RUN INVALID. Where a prediction has no
 stated tolerance, the one used is written in the prediction column.
@@ -328,8 +329,35 @@ def check_scenario(name, R, base_conf):
     add('bpf accepts vs nginx upstream sends (whole run incl. drain)', 'equal',
         f'accepts={len(R.acc)} sends={sent} downstream_log_lines={len(R.ds)}', ok(len(R.acc) == sent))
 
+    # 8. control: nothing changed at the switch, so the whole run looks like the common point
+    if E['kind'] == 'control':
+        sent_q = R.admin.get('ADMIN_SET', {})
+        add('control: GET /admin?ADMIN_QUERY at the switch returned the common values', str(X.COMMON_ADMIN),
+            str({k: sent_q.get(k) for k in X.COMMON_ADMIN}) if sent_q else '(no ADMIN_SET line)',
+            ok(bool(sent_q) and all(sent_q.get(k) == v for k, v in X.COMMON_ADMIN.items())))
+        all_k6 = R.k6w(0, X.DUR)
+        all_ngx = [x for x in R.ngx if 0 <= x['start'] < X.DUR]
+        ka, na = Counter(x['status'] for x in all_k6), Counter(x['status'] for x in all_ngx)
+        add('control: [0,25) all 200', 'k6 and nginx: 200 only',
+            f'k6 {dict(sorted(ka.items()))} nginx {dict(sorted(na.items()))}', ok(set(ka) == {'200'} and set(na) == {'200'}))
+        bad = {st: (ka.get(st, 0), sum(1 for x in R.ngx if x['status'] == st)) for st in ('504', '429', '502')}
+        add('control: 504 / 429 / 502 over the whole run (k6, nginx)', '0 / 0 / 0',
+            ' '.join(f'{st}: k6={a} nginx={b}' for st, (a, b) in bad.items()), ok(all(a == 0 and b == 0 for a, b in bad.values())))
+        add('control: success rate [14,25) (k6)', '100%', f'{succ:.2f}% {dict(sorted(stm.items()))}', ok(succ == 100))
+        pre200 = [x['dur'] for x in pre_k6 if x['status'] == '200']
+        add('control: p99 of 200 responses [14,25) and [0,8) (k6)', '(not predicted)',
+            f'[14,25) {p99:.1f} ms (n={len(ok200)}); [0,8) {pct(pre200, 99):.1f} ms (n={len(pre200)})', 'info')
+        conc_a = R.ds_conc_series(0, X.DUR)
+        add('control: [0,25) downstream in service (downstream log, 10 ms instants)', '~10 (used: mean 9-11)',
+            f'mean={statistics.mean(conc_a):.2f} max={max(conc_a)}', ok(9 <= statistics.mean(conc_a) <= 11))
+        aw_a = [w for t, w in R.acc if 0 <= t < X.DUR]
+        add('control: [0,25) accept wait (bpf, by accept time)', 'p99 <= 5 ms',
+            f'p50={pct(aw_a, 50):.3f} ms p99={pct(aw_a, 99):.3f} ms max={max(aw_a):.3f} ms', ok(pct(aw_a, 99) <= 5))
+        q_a = [r['recvq_total'] for r in R.kw(0, X.DUR)]
+        add('control: [0,25) accept queue (ss Recv-Q, 100 ms)', '(not predicted)', f'max={max(q_a):.0f} samples={len(q_a)}', 'info')
+
     # 8. onset, queue slope, success, p99
-    if 'onset' in E:
+    elif 'onset' in E:
         g = str(E['gave_up'])
         for uri, pt in E['onset'].items():
             xs = [x['start'] for x in R.ngx if x['status'] == g and (uri == 'all' or x['uri'] == uri)]

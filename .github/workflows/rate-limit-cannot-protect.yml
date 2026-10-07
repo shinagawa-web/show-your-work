@@ -18,13 +18,13 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      # One job per group: cause scenarios (01-05) and measure scenarios (06-11). Each job starts
+      # One job per group: control and cause scenarios (00-05) and measure scenarios (06-11). Each job starts
       # its own stack and runs scripts/run-all.sh with the group's scenarios. The job fails if its
       # scenario loop exceeds 300 s.
       matrix:
         include:
           - group: cause
-            scenarios: 01-a-heavy-share 02-b-latency 03-c-capacity 04-d-tenants 05-b-front-cuts
+            scenarios: 00-control 01-a-heavy-share 02-b-latency 03-c-capacity 04-d-tenants 05-b-front-cuts
           - group: measure
             scenarios: 06-a-max-conns 07-b-max-conns 08-c-max-conns 09-d-max-conns 10-b-read-timeout-500ms 11-b-fixed-key-limit
     name: run (${{ matrix.group }})
