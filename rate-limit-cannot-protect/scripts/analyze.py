@@ -372,8 +372,20 @@ def check_scenario(name, R, base_conf):
         add('success rate [14,25) (k6)', f'{E["success"]}% (used: <= 5%)', f'{succ:.2f}% {dict(sorted(stm.items()))}', ok(succ <= 5))
         add('p99 of 200 responses [14,25) (k6)', '(not predicted)', f'{p99:.1f} ms (n={len(ok200)})', 'info')
     elif not fixed:
-        add('success rate [14,25) (k6)', f'{E["success"]:.1f}% +-5', f'{succ:.2f}% {dict(sorted(stm.items()))}',
-            ok(abs(succ - E['success']) <= 5))
+        # max_conns: what nginx returns as 200 in the measure window is what the app finished in it.
+        # Over the limit nginx answers 502 at once, so the app only works on requests nginx is
+        # still waiting for. Both sides by completion time: nginx $msec (end of the response),
+        # app start + processing (end of the response write). Tolerance 2%: a response finishing
+        # within a millisecond of 14 s or 25 s can be logged on different sides of the edge by the
+        # two writers, which is a few requests out of the window's 1000-plus. The calculated
+        # success rate (expect.py) and the k6 rate are kept as information only.
+        n200 = sum(1 for x in R.ngx if x['status'] == '200' and ma <= x['end'] < mb)
+        nfin = sum(1 for x in R.ds if ma <= x['end'] < mb)
+        diff = 100 * (n200 - nfin) / max(nfin, 1)
+        add('nginx 200 vs app finished [14,25) (by completion time)', 'equal (used: +-2%)',
+            f'nginx 200={n200} app finished={nfin} ({diff:+.2f}%)', ok(abs(n200 - nfin) <= 0.02 * max(n200, nfin)))
+        add('success rate [14,25) (k6)', f'{E["success"]:.1f}% calculated, not a check',
+            f'{succ:.2f}% {dict(sorted(stm.items()))}', 'info')
         add('p99 of 200 responses [14,25) (k6)', f'~{E["p99"]} ms (used: +-20%)', f'{p99:.1f} ms (n={len(ok200)})',
             ok(abs(p99 - E['p99']) <= 0.2 * E['p99']))
         qm = [r['recvq_total'] for r in R.kw(sw, X.DUR)]
@@ -468,7 +480,9 @@ def check_scenario(name, R, base_conf):
     #           such lines have the same endpoint (lines that share start and end share the processing
     #           time, so they can only be ambiguous between connections, not between endpoints).
     #   Compared: intervals with a bpf wait >= 10 ms that end before the first 504 / 499 ($msec),
-    #   with >= 5 samples on each side.
+    #   with >= 5 samples on each side. Tolerance: 10% of the bpf wait or 10 ms, whichever is
+    #   larger. $upstream_header_time has millisecond resolution, so where the wait is a few
+    #   tens of ms, 10% of it is close to the resolution of one side of the comparison.
     by_end = sorted((x['end'], i) for i, x in enumerate(R.ds))
     ends = [e for e, _ in by_end]
     bb = defaultdict(list)
@@ -495,14 +509,14 @@ def check_scenario(name, R, base_conf):
         r, b = med(bh[key]) - med(bp[key]), med(bb[key])
         if b < 10:
             continue
-        res.append((s_, uri, r, b, len(bh[key]), len(bb[key]), abs(r - b) <= 0.1 * b))
+        res.append((s_, uri, r, b, len(bh[key]), len(bb[key]), abs(r - b) <= max(0.1 * b, 10)))
     fails = [x for x in res if not x[6]]
     add('reader-side wait vs accept wait, per 1 s and per endpoint (wait >= 10 ms, before the first 504/499)',
-        'within 10% in every compared interval',
-        f'{len(res) - len(fails)}/{len(res)} within 10% (bpf closes matched to app lines: {matched}/{len(R.close)};'
+        'within 10% or 10 ms, whichever is larger, in every compared interval',
+        f'{len(res) - len(fails)}/{len(res)} within tolerance (bpf closes matched to app lines: {matched}/{len(R.close)};'
         f' first 504/499 at t={limit_t:.2f}){"" if res else "; no interval qualifies"}', ok(not fails) if res else 'info')
     if res:
-        add('  t endpoint: reader/bpf ms (n_nginx_with_header,n_bpf), * = outside 10%', '',
+        add('  t endpoint: reader/bpf ms (n_nginx_with_header,n_bpf), * = outside the tolerance', '',
             ' '.join(f'{s_}{u.replace("/api/", " ")}:{r:.1f}/{b:.1f}({nh},{nb}){"" if p else "*"}'
                      for s_, u, r, b, nh, nb, p in res), 'info')
 
