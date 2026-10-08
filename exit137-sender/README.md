@@ -6,15 +6,9 @@ Everything runs inside a small test VM started with QEMU+KVM, so that a host-wid
 
 ## Run
 
-On an Ubuntu 24.04 host with `/dev/kvm` (this is what CI does). `run-all.sh` first runs `scripts/install-deps.sh`, which installs QEMU and the build tools with apt and adds a udev rule on that host that makes `/dev/kvm` mode 0666. `scripts/kvm-preflight.sh` only checks that KVM works and the test VM boots, and writes `results/preflight/`.
+`.github/workflows/exit137-sender.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-```
-cd exit137-sender
-./run-all.sh          # all conditions
-./run-all.sh C1 C2    # some of them
-```
-
-Raw output goes to `results/`, one directory per condition and run. `results/summary.md` has one row per run.
+The workflow runs every condition. `run-all.sh` first runs `scripts/install-deps.sh`, which installs QEMU and the build tools on the runner and makes `/dev/kvm` usable. `results/summary.md`, one row per run, goes to the job summary, and `results/`, one directory per condition and run, is uploaded as the `exit137-sender-results` artifact.
 
 ## Pinned versions
 

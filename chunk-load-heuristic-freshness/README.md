@@ -4,20 +4,9 @@ A Vite app (entry JS plus one chunk loaded when a button is pressed) is served b
 
 ## Run
 
-On Linux with Docker, Node 22, and python3:
+`.github/workflows/chunk-load-heuristic-freshness.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-```
-cd chunk-load-heuristic-freshness
-./run-all.sh                                  # everything
-./run-all.sh --sets grid --ages 100m          # one set / one A
-./run-all.sh --sets pressfirst                # press the button on the first visit
-./run-all.sh --sets maxage300                 # max-age=300 on index.html
-./run-all.sh --sets cal-wait,cal-age          # calibration only
-```
-
-Each run writes `results/<UTC time>/`; `summary.md` there is the summary.
-
-Options passed through to `runner/run.mjs`: `--sets`, `--ages`, `--parallel` (groups at once, default 4), `--max-browsers` (default 16), `--base-port` (default 18000), `--no-calibration-gate`.
+The workflow runs every set. `summary.md` and `durations.txt` go to the job summary, and `results/<UTC time>/` is uploaded as the `chunk-load-heuristic-freshness-results` artifact.
 
 ## Variables
 
@@ -63,7 +52,7 @@ In `pressfirst` groups the runner also presses the button on the first visit and
 
 In `nocache304` groups without a deploy, the v1 container also serves the revisit; its access log is split at a snapshot taken after the fetches (`accessLog.v1` = fetch, `accessLog.v2` = revisit).
 
-The real-wait sets (`cal-wait`, `cal-age`, `deploytime`, and the real-wait group of `pressfirst`) run first, all groups at once. The other sets follow, `--parallel` groups at a time.
+The real-wait sets (`cal-wait`, `cal-age`, `deploytime`, and the real-wait group of `pressfirst`) run first, all groups at once. The other sets follow, a few groups at a time (`--parallel` of `runner/run.mjs`).
 
 If both calibration sets run, each calibration user is judged by its measured r/A, not by its point label: v1 is expected when r/A < 0.1 and v2 when r/A >= 0.1, in either method. If any user booted a version that contradicts its measured r/A, the run stops after calibration (exit 2). `results.json` `calibration.rows` and the Calibration section of `summary.md` list, per user, the method, measured r/A, expected and booted version, and pass/fail.
 

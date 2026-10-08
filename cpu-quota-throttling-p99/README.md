@@ -4,56 +4,23 @@ This reproduces, in a container with a CPU limit (CFS quota), the symptom where 
 
 ## Run
 
-Requirements on the host:
+`.github/workflows/cpu-quota-throttling-p99.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-- cgroup v2 (`stat -fc %T /sys/fs/cgroup` prints `cgroup2fs`)
-- Docker on cgroup v2 (either the systemd or the cgroupfs driver)
-- `python3`, `iproute2` (`ss`), `util-linux` (`nsenter`), passwordless `sudo`
-- Optional: `bpftrace` with a BTF kernel (`/sys/kernel/btf/vmlinux`)
-- Go is optional: if `go` is not on `PATH`, `scripts/build.sh` builds the load generator in a Go container
-
-On Ubuntu:
-
-```
-sudo apt-get install -y docker.io python3 iproute2 bpftrace
-sudo usermod -aG docker "$USER"
-```
-
-Then log in again and run:
-
-```
-cd cpu-quota-throttling-p99
-./run-all.sh [target ...]
-```
-
-| Target | What it runs |
+| Job | What it runs |
 |---|---|
-| `s3` | Section 3 (repro): `--cpus 0.5`, W=4, Poisson RPS 10 |
-| `s4`, `s6` | Sections 4 and 6: read `results/s3` (run s3 first if it is missing) |
-| `s5` or `s5:<name>` | Section 5 (cause): all conditions, or one of `rps5_w4`, `rps20_w4`, `rps10_w1` |
-| `s9` or `s9:<name>` | Section 9 (verification): all conditions, or one of `cpus0.75_w4`, `cpus1.0_w4`, `cpus1.5_w4`, `cpus2.0_w4` |
-| `s10` | Section 10 (environments): where the CPU limit appears in Docker and systemd, and in k3s with `K3S=1` |
+| `s3` | Sections 3, 4 and 6. Section 3 (repro): `--cpus 0.5`, W=4, Poisson RPS 10 |
+| `s5 (<name>)` | Section 5 (cause), one job per condition: `rps5_w4`, `rps20_w4`, `rps10_w1` |
+| `s9 (<name>)` | Section 9 (verification), one job per condition: `cpus0.75_w4`, `cpus1.0_w4`, `cpus1.5_w4`, `cpus2.0_w4` |
+| `s10` | Section 10 (environments): where the CPU limit appears in Docker and systemd, and in k3s |
+| `report` | Merges the results of the other jobs and writes `results/summary.md` with `scripts/report.py` |
 
-With no target it runs `s3 s4 s5 s6 s9 s10` and writes `results/summary.md`. The container under test, the load generator and the collectors all run on the same host. Examples:
+`results/summary.md` goes to the job summary and is uploaded as the `cpu-quota-throttling-p99-summary` artifact. Each of the other jobs uploads its `results/` as an artifact named after the job.
 
-```
-DUR=10 ./run-all.sh s3
-./run-all.sh s5:rps10_w1 s9:cpus1.0_w4
-K3S=1 ./run-all.sh s10
-```
+Each job first runs `scripts/preflight.sh`, which stops the run unless cgroup v2, Docker on cgroup v2, `python3`, `nsenter`, `ss` and passwordless `sudo` are available, and writes `results/environment/<host>_<targets>.txt`.
 
-| Environment variable | Default | Meaning |
-|---|---|---|
-| `DUR` | `60` | Seconds of load per condition |
-| `K3S` | `0` | `1` installs k3s in s10, checks one Pod with `resources.limits.cpu: 500m`, then uninstalls k3s |
-| `RESULTS` | `results` | Output directory |
-| `SEED` / `BURST` / `CPU_MS` | `1` / `1` / `20` | Random seed for arrivals, requests per burst, CPU time per request |
+## bpftrace
 
-Each run first calls `scripts/preflight.sh`, which stops the run unless Linux, cgroup v2, Docker on cgroup v2, `python3`, `nsenter`, `ss` and passwordless `sudo` are available, and writes `results/environment/<host>_<targets>.txt`. At the end, `scripts/report.py summary results` writes `results/summary.md` from every result found under `results/`, so results from several runs (or several machines) can be merged into one directory and summarized again.
-
-## bpftrace is optional
-
-If `bpftrace` is installed, BTF is present and kprobes attach to `throttle_cfs_rq` / `unthrottle_cfs_rq`, the run records when the container is throttled and unthrottled on each CPU. Otherwise preflight prints a warning and the run continues: the kprobe-based figures (length of one throttle, throttles crossed per request) show `skipped (bpftrace unavailable)`, and the other figures come from `cpu.stat`, `cpu.pressure` and the listen socket. Section 4 then takes throttle intervals from 10ms `cpu.stat` samples instead of kprobes.
+The run records when the container is throttled and unthrottled on each CPU with kprobes on `throttle_cfs_rq` / `unthrottle_cfs_rq`. If they cannot attach, preflight prints a warning and the run continues: the kprobe-based figures (length of one throttle, throttles crossed per request) show `skipped (bpftrace unavailable)`, and Section 4 takes throttle intervals from 10ms `cpu.stat` samples instead.
 
 ## Per-period analysis
 
@@ -65,12 +32,7 @@ With bpftrace, `scripts/analyze.py` also cuts the run into CFS periods on the co
 
 In `period_usage`, the `aligned` windows take usage from the samples nearest to each period boundary and the `nr_throttled` increase from the first samples at or after boundary + 2ms. The kernel adds to `nr_throttled` in the period timer at the end of the throttled period. The collector stamps each sample after reading `cpu.stat`, so a sample stamped a fraction of a millisecond after the boundary can hold a value read before the timer ran and put the increase in the next window. The other window sets (`naive`, `offset_sweep`) read both counters from the same samples.
 
-`results/summary.md` shows these for `s3` and `s5/rps10_w1`. The same numbers, with per-period detail and a CSV next to the results, come from:
-
-```
-python3 scripts/period_arrivals.py results/s3 [carry_threshold_ms]
-python3 scripts/period_usage.py results/s3 [near_ms]
-```
+`results/summary.md` shows these for `s3` and `s5/rps10_w1`.
 
 ## Pinned versions
 

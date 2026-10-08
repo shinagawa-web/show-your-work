@@ -4,15 +4,9 @@ Records what k6, nginx, the app and the kernel see when nginx (OSS) `limit_req` 
 
 ## Run
 
-On a Linux host with BTF (for bpftrace), Docker, Docker Compose v2 and `python3` (this is what CI does).
+`.github/workflows/rate-limit-cannot-protect.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-```
-cd rate-limit-cannot-protect
-./run-all.sh                    # every scenario
-./run-all.sh 02-b-latency       # some of them
-```
-
-Raw output goes to `results/`, one directory per scenario. `results/checks.txt` has each check with its prediction, the observed value and pass / fail.
+The workflow runs the scenarios in two jobs, `cause` (00-05) and `measure` (06-11). Each job puts `results/checks.txt` (each check with its prediction, the observed value and pass / fail), `results/timing.txt` and `results/00-environment.txt` in the job summary, fails when a check fails or a run is invalid, and uploads `results/`, one directory per scenario, as the `rate-limit-cannot-protect-results-<job>` artifact.
 
 ## Pinned versions
 

@@ -5,6 +5,8 @@ description: Reviews a verification folder, or the changes in a pull request, ag
 
 Your job is to keep the verification folders in the same shape, so that a reader who knows one folder can find their way in any other.
 
+Readers clone or fork the repository and run the verification on GitHub Actions. They are not expected to run the scripts on their own machine.
+
 What the experiment measures, whether its numbers are right, and code design are out of scope. Do not report anything that is not a difference from the conventions below or from the other folders.
 
 ## What you receive
@@ -17,11 +19,13 @@ If nothing is given, review every folder at the repository root that has a `run-
 
 ### 1. Entry point and output
 
-- `<slug>/run-all.sh` runs the whole verification on a Linux host. Optional arguments select a part of it
+- `<slug>/run-all.sh` is what the workflow runs. Optional arguments select a part of it
 - It writes everything under `<slug>/results/`, and `<slug>/.gitignore` lists `results/`
-- Nothing else has to be run first by hand, other than installing what the README lists
+- The workflow needs nothing else run first by hand
 
 ### 2. Lima
+
+Lima is for the maintainer's own runs and does not appear in READMEs.
 
 - `<slug>/lima.yaml` defines a VM that has what `run-all.sh` needs, with `mounts: []`
 - `scripts/vm-run.sh <slug> [args ...]` at the repository root runs it. A folder has no Lima runner of its own
@@ -29,7 +33,7 @@ If nothing is given, review every folder at the repository root that has a `run-
 ### 3. README
 
 - `# <slug>`, then a short intro on what is reproduced or recorded, not what was found
-- `## Run`: host requirements, the commands starting with `cd <slug>`, where the output goes and which file is the summary
+- `## Run`: which workflow runs it, what each job runs when there is more than one, what goes to the job summary, and which artifact holds `results/`. No host requirements, install steps or commands to run locally
 - Detail sections after `## Run`. `## Pinned versions` comes last when versions are pinned, followed only by source references such as upstream file and line at a pinned tag
 - Paths and file names in the README exist in the folder
 

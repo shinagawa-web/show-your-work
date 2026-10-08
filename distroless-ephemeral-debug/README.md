@@ -4,27 +4,9 @@ This starts a distroless nonroot Pod with a CPU limit in a kind cluster, attache
 
 ## Run
 
-Requirements on the host:
+`.github/workflows/distroless-ephemeral-debug.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-- cgroup v2
-- Docker
-- `jq`, `curl`, `python3`, `script` (util-linux)
-
-On Ubuntu:
-
-```
-sudo apt-get install -y docker.io jq curl python3
-sudo usermod -aG docker "$USER"
-```
-
-Then log in again and run:
-
-```
-cd distroless-ephemeral-debug
-./run-all.sh
-```
-
-This writes every raw output under `results/` and prints `results/summary.md`.
+`results/summary.md` goes to the job summary, and every raw output under `results/` is uploaded as the `distroless-ephemeral-debug-results` artifact.
 
 ## uid 0 targets
 
