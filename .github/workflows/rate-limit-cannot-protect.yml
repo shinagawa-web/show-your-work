@@ -27,7 +27,7 @@ jobs:
     name: run (${{ matrix.group }})
     steps:
       - uses: actions/checkout@v7
-      - run: ./scripts/run-all.sh ${{ matrix.scenarios }}
+      - run: ./run-all.sh ${{ matrix.scenarios }}
       - name: summary
         if: always()
         run: |

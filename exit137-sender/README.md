@@ -9,8 +9,11 @@ Everything runs inside a small test VM started with QEMU+KVM, so that a host-wid
 On an Ubuntu 24.04 host with `/dev/kvm` (this is what CI does). `scripts/install-deps.sh` adds a udev rule on that host that makes `/dev/kvm` mode 0666.
 
 ```
+cd exit137-sender
 ./run-all.sh          # all conditions
 ./run-all.sh C1 C2    # some of them
 ```
 
 Raw output goes to `results/`, one directory per condition and run. `results/summary.md` has one row per run.
+
+On macOS, create the VM once with `limactl create --name=exit137-sender exit137-sender/lima.yaml` and `limactl start exit137-sender`, then run `scripts/vm-run.sh exit137-sender [condition ...]` from the repository root. It copies this folder into the VM, runs `./run-all.sh` there and copies `results/` back. The test VM then runs inside the Lima VM, which needs nested virtualization (Apple M3 or later).

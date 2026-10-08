@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-here=$(cd "$(dirname "$0")/.." && pwd)
+here=$(cd "$(dirname "$0")" && pwd)
 cd "$here"
 if [ $# -gt 0 ]; then scs=("$@"); else scs=($(ls scenarios | sed 's/\.env$//' | sort)); fi
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 ts() { date +%s.%N; }
 out="results/$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$out"

@@ -2,6 +2,25 @@
 
 A Vite app (entry JS plus one chunk loaded when a button is pressed) is served by nginx with no `Cache-Control`. Each user fetches v1 in Chromium, then the v1 container is replaced by a v2 container that no longer has the v1 hashed JS, and the user opens the site again and presses the button. The run records which version boots, whether the chunk loads, Navigation/Resource Timing `transferSize`, console messages, and the nginx access log lines for each user.
 
+## Run
+
+On Linux with Docker, Node 22, and python3:
+
+```
+cd chunk-load-heuristic-freshness
+./run-all.sh                                  # everything
+./run-all.sh --sets grid --ages 100m          # one set / one A
+./run-all.sh --sets pressfirst                # press the button on the first visit
+./run-all.sh --sets maxage300                 # max-age=300 on index.html
+./run-all.sh --sets cal-wait,cal-age          # calibration only
+```
+
+Each run writes `results/<UTC time>/`; `summary.md` there is the summary.
+
+On macOS, create the VM once with `limactl create --name=chunk-load-heuristic-freshness chunk-load-heuristic-freshness/lima.yaml` and `limactl start chunk-load-heuristic-freshness`, then run `scripts/vm-run.sh chunk-load-heuristic-freshness [options ...]` from the repository root. It copies this folder into the VM, runs `./run-all.sh` there and copies `results/` back.
+
+Options passed through to `runner/run.mjs`: `--sets`, `--ages`, `--parallel` (groups at once, default 4), `--max-browsers` (default 16), `--base-port` (default 18000), `--no-calibration-gate`.
+
 ## Variables
 
 - A: age of `index.html` when it is fetched (`Date` minus `Last-Modified`). The container sets the mtime of every served file to `start - AGE_SEC` in `server/entrypoint.sh`.
@@ -17,7 +36,7 @@ A Vite app (entry JS plus one chunk loaded when a button is pressed) is served b
 - `server/entrypoint.sh` sets mtimes at container start and, only when asked, writes an nginx config with `Age`, `Cache-Control` for `index.html`, or the SPA fallback (`try_files $uri /index.html`). Without those, the stock config of `nginx:1.30.5` is used.
 - `runner/plan.mjs` the groups (one port and one v1/v2 container pair per group).
 - `runner/run.mjs` the run. No request interception is used.
-- `scripts/run.sh` one command: build images, install the runner, run, summarize.
+- `run-all.sh` one command: build images, install the runner, run, summarize.
 - `scripts/summarize.py` markdown summary of `results.json`.
 - `results/<run>/` `results.json` (one record per user), `nginx/*.access.log` and `*.error.log` per container, `summary.md`, `durations.txt`, `runner.log`, `images.txt`.
 
@@ -49,21 +68,6 @@ In `nocache304` groups without a deploy, the v1 container also serves the revisi
 The real-wait sets (`cal-wait`, `cal-age`, `deploytime`, and the real-wait group of `pressfirst`) run first, all groups at once. The other sets follow, `--parallel` groups at a time.
 
 If both calibration sets run, each calibration user is judged by its measured r/A, not by its point label: v1 is expected when r/A < 0.1 and v2 when r/A >= 0.1, in either method. If any user booted a version that contradicts its measured r/A, the run stops after calibration (exit 2). `results.json` `calibration.rows` and the Calibration section of `summary.md` list, per user, the method, measured r/A, expected and booted version, and pass/fail.
-
-## Run
-
-On Linux with Docker, Node 22, and python3:
-
-```
-cd chunk-load-heuristic-freshness
-scripts/run.sh                                  # everything
-scripts/run.sh --sets grid --ages 100m          # one set / one A
-scripts/run.sh --sets pressfirst                # press the button on the first visit
-scripts/run.sh --sets maxage300                 # max-age=300 on index.html
-scripts/run.sh --sets cal-wait,cal-age          # calibration only
-```
-
-Options passed through to `runner/run.mjs`: `--sets`, `--ages`, `--parallel` (groups at once, default 4), `--max-browsers` (default 16), `--base-port` (default 18000), `--no-calibration-gate`.
 
 ## Pinned versions
 
