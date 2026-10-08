@@ -51,8 +51,6 @@ K3S=1 ./run-all.sh s10
 
 Each run first calls `scripts/preflight.sh`, which stops the run unless Linux, cgroup v2, Docker on cgroup v2, `python3`, `nsenter`, `ss` and passwordless `sudo` are available, and writes `results/environment/<host>_<targets>.txt`. At the end, `scripts/report.py summary results` writes `results/summary.md` from every result found under `results/`, so results from several runs (or several machines) can be merged into one directory and summarized again.
 
-On macOS, create the VM once with `limactl create --name=cpu-quota-throttling-p99 cpu-quota-throttling-p99/lima.yaml` and `limactl start cpu-quota-throttling-p99`, then run `scripts/vm-run.sh cpu-quota-throttling-p99 [target ...]` from the repository root. It copies this folder into the VM, runs `./run-all.sh` there and copies `results/` back.
-
 ## bpftrace is optional
 
 If `bpftrace` is installed, BTF is present and kprobes attach to `throttle_cfs_rq` / `unthrottle_cfs_rq`, the run records when the container is throttled and unthrottled on each CPU. Otherwise preflight prints a warning and the run continues: the kprobe-based figures (length of one throttle, throttles crossed per request) show `skipped (bpftrace unavailable)`, and the other figures come from `cpu.stat`, `cpu.pressure` and the listen socket. Section 4 then takes throttle intervals from 10ms `cpu.stat` samples instead of kprobes.

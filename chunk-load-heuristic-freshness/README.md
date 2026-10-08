@@ -17,8 +17,6 @@ cd chunk-load-heuristic-freshness
 
 Each run writes `results/<UTC time>/`; `summary.md` there is the summary.
 
-On macOS, create the VM once with `limactl create --name=chunk-load-heuristic-freshness chunk-load-heuristic-freshness/lima.yaml` and `limactl start chunk-load-heuristic-freshness`, then run `scripts/vm-run.sh chunk-load-heuristic-freshness [options ...]` from the repository root. It copies this folder into the VM, runs `./run-all.sh` there and copies `results/` back.
-
 Options passed through to `runner/run.mjs`: `--sets`, `--ages`, `--parallel` (groups at once, default 4), `--max-browsers` (default 16), `--base-port` (default 18000), `--no-calibration-gate`.
 
 ## Variables

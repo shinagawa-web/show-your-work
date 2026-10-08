@@ -26,8 +26,6 @@ cd distroless-ephemeral-debug
 
 This writes every raw output under `results/` and prints `results/summary.md`.
 
-On macOS, create the VM once with `limactl create --name=distroless-ephemeral-debug distroless-ephemeral-debug/lima.yaml` and `limactl start distroless-ephemeral-debug`, then run `scripts/vm-run.sh distroless-ephemeral-debug` from the repository root. It copies this folder into the VM, runs `./run-all.sh` there and copies `results/` back.
-
 ## uid 0 targets
 
 `scripts/uid0.sh` (also called from `run-all.sh`) starts `app-uid0` (uid 0, gid 65532) and `app-uid0-gid0` (uid 0, gid 0) from `k8s/app-uid0.yaml`, which differ from `app` only in `runAsUser`/`runAsGroup`/`runAsNonRoot`, runs `scripts/probe.sh` from `legacy` and `default` debuggers against them, and writes `results/uid0/<pod>-<profile>.txt`. Each file ends with the target's `/proc/<pid>/status` credentials read from the node.

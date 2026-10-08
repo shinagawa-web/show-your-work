@@ -16,8 +16,6 @@ cd exit137-sender
 
 Raw output goes to `results/`, one directory per condition and run. `results/summary.md` has one row per run.
 
-On macOS, create the VM once with `limactl create --name=exit137-sender exit137-sender/lima.yaml` and `limactl start exit137-sender`, then run `scripts/vm-run.sh exit137-sender [condition ...]` from the repository root. It copies this folder into the VM, runs `./run-all.sh` there and copies `results/` back. The test VM then runs inside the Lima VM, which needs nested virtualization (Apple M3 or later).
-
 ## Pinned versions
 
 `scripts/versions.env` pins docker.io, containerd and runc in the test VM, and the Ubuntu cloud image it boots.
