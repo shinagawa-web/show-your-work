@@ -1,7 +1,3 @@
-// Trace, with wall-clock time: containerd-shim's openat() calls, cgroup
-// populated changes and removals (with the removing task), kernfs file
-// notifications for memory.events / cgroup.events and their delivery work,
-// and OOM victims.
 tracepoint:syscalls:sys_enter_openat /comm == "containerd-shim"/ { @path[tid] = args.filename; }
 tracepoint:syscalls:sys_exit_openat /comm == "containerd-shim" && @path[tid] != 0/ {
   printf("%s open pid=%d tid=%d ret=%d %s\n", strftime("%H:%M:%S.%f", nsecs), pid, tid, args.ret, str(@path[tid]));
@@ -19,7 +15,6 @@ kprobe:kernfs_notify {
   }
 }
 kprobe:kernfs_notify_workfn { printf("%s kernfs_notify_workfn comm=%s\n", strftime("%H:%M:%S.%f", nsecs), comm); }
-// The shim's inotify fd (cgroups EventChan) and the reads that return events on it.
 tracepoint:syscalls:sys_exit_inotify_init1 /comm == "containerd-shim"/ {
   @ino[pid] = args.ret;
   printf("%s inotify_init1 pid=%d tid=%d fd=%d\n", strftime("%H:%M:%S.%f", nsecs), pid, tid, args.ret);
@@ -29,7 +24,6 @@ tracepoint:syscalls:sys_exit_read /@rd[tid]/ {
   printf("%s inotify_read pid=%d tid=%d ret=%d\n", strftime("%H:%M:%S.%f", nsecs), pid, tid, args.ret);
   delete(@rd[tid]);
 }
-// File-backed page faults in the shim that take 1 ms or longer.
 kprobe:filemap_fault /comm == "containerd-shim"/ { @ff[tid] = nsecs; }
 kretprobe:filemap_fault /@ff[tid]/ {
   $d = (nsecs - @ff[tid]) / 1000;

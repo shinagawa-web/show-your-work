@@ -1,19 +1,9 @@
 #!/usr/bin/env bash
-# Runs as root inside the test VM after setup.sh. For each condition and run,
-# records docker events, the kernel log (OOM killer records), docker inspect
-# and dockerd's journal under $results/<cond>/<run>/.
-#   conditions.sh [COND...]   (default: C1 ... C11 and C3R)
-# Exits non-zero if any run failed (see check_run); writes $results/complete
-# when every condition has run.
-# Runs per condition: RUNS_<COND> (default from RUNS_DEFAULT below).
 set -uo pipefail
 results=${RESULTS:-/root/results}
 IMG=exit137/subject:local
 mkdir -p "$results"
 failed=0
-# More than one run only where the outcome may vary between runs: the order
-# of the oom and die events (C1, C2, C6) and which process the global OOM
-# killer picks and whether OOMKilled/oom show up (C2).
 declare -A RUNS_DEFAULT=([C1]=3 [C2]=10 [C6]=3)
 
 now() { date +%s.%N; }
@@ -22,7 +12,7 @@ kcursor() { journalctl -k -n 0 --show-cursor -q | sed -n 's/^-- cursor: //p'; }
 dcursor() { journalctl -u docker -n 0 --show-cursor -q | sed -n 's/^-- cursor: //p'; }
 ccursor() { journalctl -u containerd -n 0 --show-cursor -q | sed -n 's/^-- cursor: //p'; }
 running() { [ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null)" = true ]; }
-wait_log() { # name pattern timeout_s
+wait_log() {
   local i
   for i in $(seq $(( $3 * 20 ))); do
     docker logs "$1" 2>&1 | grep -q "$2" && return 0
@@ -32,7 +22,6 @@ wait_log() { # name pattern timeout_s
   return 1
 }
 
-# Wait for the subject's first line, i.e. the container's first start.
 wait_started() { wait_log "$name" started 10; }
 
 begin() {
@@ -43,8 +32,6 @@ begin() {
   t_start=$(now); kc=$(kcursor); dc=$(dcursor); cc=$(ccursor)
   echo "== $cond run $run ($name)"
 }
-# Right after start: State.Pid (PID 1 seen from the host), HostConfig.Init,
-# and PID 1's children.
 at_start() {
   docker inspect "$name" > "$dir/inspect-start.json"
   local rc; rc=$(docker inspect -f '{{.RestartCount}}' "$name")
@@ -65,14 +52,10 @@ at_start() {
     ps -o pid,ppid,comm,args --ppid "$pid1" -p "$pid1"
   } | tee "$dir/start.txt"
 }
-# docker events is read up to EVENTS_GRACE seconds after this point (the
-# command waits until then), so an oom event that arrives late is still
-# recorded; summary.txt shows how long after die it came.
 EVENTS_GRACE=${EVENTS_GRACE:-3}
 finish() {
   local t_end; t_end=$(awk -v a="$(now)" -v g="$EVENTS_GRACE" 'BEGIN{printf "%.9f", a+g}')
   echo "$EVENTS_GRACE" > "$dir/events-grace-seconds.txt"
-  # filter by ID: the name filter also matches "$name-filler"
   docker events --since "$t_start" --until "$t_end" --filter "container=$(docker inspect -f '{{.Id}}' "$name")" --format '{{json .}}' > "$dir/events.jsonl"
   if docker inspect "$name-filler" >/dev/null 2>&1; then
     docker events --since "$t_start" --until "$t_end" --filter "container=$(docker inspect -f '{{.Id}}' "$name-filler")" --format '{{json .}}' > "$dir/events-filler.jsonl"
@@ -95,7 +78,6 @@ finish() {
   fi
 }
 
-# C1: container memory limit, subject (PID 1) allocates past it
 C1() {
   docker run -d --name "$name" --memory 128m "$IMG" alloc 256 16 0 300 >/dev/null
   wait_started
@@ -104,10 +86,6 @@ C1() {
   finish
 }
 
-# C2: host-wide OOM. The subject holds more than the unlimited filler holds
-# when memory runs out; the subject's own limit is out of its reach. The
-# filler stops at 80% of MemAvailable, so it does not run out of memory again
-# after the subject is gone.
 C2() {
   local avail alloc
   sync; echo 3 > /proc/sys/vm/drop_caches
@@ -129,7 +107,6 @@ C2() {
   finish
 }
 
-# C3: docker stop -t 2 (no SIGTERM handler in the subject)
 C3() {
   docker run -d --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
   wait_log "$name" holding 10
@@ -140,7 +117,6 @@ C3() {
   finish
 }
 
-# C3R: C3 with --restart on-failure (not in the default list)
 C3R() {
   docker run -d --restart on-failure --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
   wait_log "$name" holding 10
@@ -153,7 +129,6 @@ C3R() {
   finish
 }
 
-# C4: docker kill
 C4() {
   docker run -d --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
   wait_log "$name" holding 10
@@ -163,7 +138,6 @@ C4() {
   finish
 }
 
-# C5: kill -9 to PID 1 from the host
 C5() {
   docker run -d --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
   wait_log "$name" holding 10
@@ -174,7 +148,6 @@ C5() {
   finish
 }
 
-# C6: --init, the child (subject) allocates past the limit
 C6() {
   docker run -d --init --name "$name" --memory 128m "$IMG" alloc 256 16 0 300 >/dev/null
   wait_log "$name" started 10
@@ -183,7 +156,6 @@ C6() {
   finish
 }
 
-# C7: --init, kill -9 to tini's child from the host
 C7() {
   docker run -d --init --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
   wait_log "$name" holding 10
@@ -194,7 +166,6 @@ C7() {
   finish
 }
 
-# C8: the subject returns 137 by itself
 C8() {
   docker run -d --name "$name" "$IMG" exit 137 300 >/dev/null
   wait_started
@@ -203,7 +174,6 @@ C8() {
   finish
 }
 
-# C9: kill -9 to PID 1 from inside the container
 C9() {
   docker run -d --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
   wait_log "$name" holding 10
@@ -217,7 +187,6 @@ C9() {
   finish
 }
 
-# C10: C1 with --restart on-failure; allocate only on the first start
 C10() {
   docker run -d --restart on-failure --name "$name" --memory 128m "$IMG" alloc 256 16 0 300 /marker >/dev/null
   wait_started
@@ -228,7 +197,6 @@ C10() {
   finish
 }
 
-# C11: C4 with --restart on-failure
 C11() {
   docker run -d --restart on-failure --name "$name" "$IMG" alloc 16 16 0 0 >/dev/null
   wait_log "$name" holding 10
@@ -239,11 +207,8 @@ C11() {
   finish
 }
 
-# When sourced (by investigate.sh), only define the functions.
 [[ "${BASH_SOURCE[0]}" != "$0" ]] && return 0
 
-# A run fails when a wait timed out, at_start saw a restarted container, or a
-# record is missing.
 check_run() {
   local f
   [ -s "$dir/notes.txt" ] && f="notes: $(tr '\n' ' ' < "$dir/notes.txt")"

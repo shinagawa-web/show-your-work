@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# Runs as root inside the test VM after setup.sh. Runs the given steps in
-# order, once each. Steps: any condition (C1 ... C11), or
-#   G0       host-wide OOM caused by a process outside Docker (no container)
-#   RESTART  restart containerd and dockerd
-# Run directories are numbered per condition in the order they ran.
 set -uo pipefail
 . "$(dirname "$0")/conditions.sh"
 
@@ -39,8 +34,6 @@ if [ "${TRACE:-0}" = 1 ]; then
   kill -0 "$trace_pid" || { echo "bpftrace failed"; exit 1; }
 fi
 if [ "${LOCKSHIM:-0}" = 1 ]; then
-  # Keep the shim binary and its libraries in memory (mlock), so the shim
-  # does not fault its code back in from disk under memory pressure.
   shim_files=$(ldd /usr/bin/containerd-shim-runc-v2 | awk '/=>/ {print $3} /^\t\// {print $1}')
   echo -1000 > /proc/self/oom_score_adj
   vmtouch -l -d -P "$results/vmtouch.pid" /usr/bin/containerd-shim-runc-v2 $shim_files </dev/null >/dev/null 2>&1

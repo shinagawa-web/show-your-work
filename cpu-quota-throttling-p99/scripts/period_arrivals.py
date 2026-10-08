@@ -1,20 +1,3 @@
-"""Per CFS period: requests that arrived vs. whether the cgroup was throttled.
-
-usage: python3 period_arrivals.py <result dir> [carry_threshold_ms]
-
-Periods are cut on the cgroup's own sched_cfs_period_timer (P) timestamps.
-When the timer is inactive (idle cgroup) the gap is filled with a 100ms grid
-that keeps the timer's phase. All timestamps are CLOCK_MONOTONIC.
-
-Per period k = [b_k, b_k+1):
-  arrivals   requests whose load generator send_mono_ns falls in the period
-  arr_accept requests whose server accept (inet_csk_accept) falls in the period
-  throttled  at least one throttle_cfs_rq returning 1 in the period
-  carry_ms   on-CPU time in the period of requests sent before b_k
-             (request thread run segments between accept and response send)
-  cg_ms      on-CPU time in the period of all cgroup threads (sched_switch)
-  fit_ms     sum over arrivals of min(20ms, time left in the period at send)
-"""
 import bisect, csv, sys
 from collections import Counter, defaultdict
 import tidlink
@@ -33,7 +16,6 @@ def load(d, ev=None):
 
 
 def timer_fires(ev):
-    """Firings of the period timer of the traced cgroup, identified from throttle records."""
     timers = {c[7] for c in ev["C"] if c[2] == 1}
     if len(timers) != 1:
         return None
@@ -41,7 +23,6 @@ def timer_fires(ev):
 
 
 def grid(pts, lo, hi):
-    """Period boundaries covering [lo, hi): real P timestamps, gaps filled at +100ms."""
     b = []
     t = pts[0]
     while t > lo:

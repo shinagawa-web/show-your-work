@@ -1,16 +1,4 @@
 #!/bin/sh
-# Runs at container start.
-#
-# AGE_SEC              mtime of every served file = start time - AGE_SEC
-#                      (Last-Modified = time since the previous deploy)
-# AGE_HEADER           if set, index.html is served with "Age: <value>"
-#                      (simulates the time between fetch and revisit)
-# SPA_FALLBACK=1       unknown paths are answered with index.html (200)
-# INDEX_CACHE_CONTROL  if set, index.html is served with this Cache-Control
-# LOG_IF_HEADERS=1     access log also records If-None-Match / If-Modified-Since
-#
-# With none of AGE_HEADER / SPA_FALLBACK / INDEX_CACHE_CONTROL set,
-# the stock /etc/nginx/conf.d/default.conf of the image is left untouched.
 set -eu
 
 now=$(date +%s)
@@ -22,7 +10,6 @@ if [ -n "${AGE_HEADER:-}" ] || [ "${SPA_FALLBACK:-0}" = 1 ] || [ -n "${INDEX_CAC
   log_format=""
   access_log=""
   if [ "${LOG_IF_HEADERS:-0}" = 1 ]; then
-    # log_format "main" of the image plus the two conditional request headers
     log_format='log_format cond '"'"'$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" inm="$http_if_none_match" ims="$http_if_modified_since"'"'"';'
     access_log='access_log /var/log/nginx/access.log cond;'
   fi

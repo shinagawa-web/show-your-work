@@ -1,29 +1,13 @@
-// Test plan: groups of users. Each group has its own port and its own
-// v1 -> v2 container pair. All users of a group fetch v1, then the group
-// is deployed (v1 container replaced by v2), then every user revisits.
-//
-// The time between fetch and revisit (r) is produced in one of two ways:
-//   realWaitSec: the runner actually waits that long before revisiting
-//   ageHeader:   the v1 container serves index.html with "Age: <sec>",
-//                and the user revisits right after the deploy
-// The age of index.html at fetch time (A) is produced by the mtime the
-// container sets at start (AGE_SEC).
 
 export const AGES = { '10m': 600, '100m': 6000, '1000m': 60000, '6d': 518400 };
 export const FRACTIONS = [0.05, 0.09, 0.11, 0.2];
 export const REPEATS = 3;
 export const MAX_AGE_SEC = 900;
 export const MAX_AGE_POINTS = [300, 540, 660, 840, 960, 1200];
-// max-age at other A: only the two points around MAX_AGE_SEC.
 export const MAX_AGE_OTHER_AGES = ['10m', '1000m'];
 export const MAX_AGE_OTHER_POINTS = [840, 960];
-// max-age=300 (maxage300 set): revisit points (s) per A.
 export const MAX_AGE_300_SEC = 300;
 export const MAX_AGE_300_POINTS = { '100m': [240, 360, 540, 660], '1000m': [240, 360] };
-// Deploy timing (real waiting, A=10m): where the deploy sits between fetch and revisit.
-//   early: right after the fetch
-//   mid:   at half of r
-//   late:  LATE_DEPLOY_LEAD_SEC before the earliest revisit of the group
 export const DEPLOY_TIMINGS = ['early', 'mid', 'late'];
 export const LATE_DEPLOY_LEAD_SEC = 3;
 
@@ -36,7 +20,6 @@ function users(prefix, n, extra) {
 export function buildPlan() {
   const groups = [];
 
-  // Calibration at A=10m: real waiting vs Age header, same points.
   groups.push({
     id: 'cal-wait-10m',
     set: 'cal-wait',
@@ -63,7 +46,6 @@ export function buildPlan() {
     });
   }
 
-  // Baseline grid: A x r. At A=100m, the same containers also host reload users.
   for (const [ageName, ageSec] of Object.entries(AGES)) {
     for (const f of FRACTIONS) {
       const g = {
@@ -83,7 +65,6 @@ export function buildPlan() {
     }
   }
 
-  // Factors at A=100m.
   const a = AGES['100m'];
   const factor = (set, v1, v2, points = FRACTIONS.map((f) => [pct(f), Math.round(f * a)])) => {
     for (const [point, age] of points) {
@@ -110,7 +91,6 @@ export function buildPlan() {
     MAX_AGE_POINTS.map((s) => [`s${s}`, s]));
   factor('reloadfail', { image: 'v1-reload' }, { image: 'v2-reload' });
 
-  // max-age at A=10m and A=1000m (A=100m is in the maxage set above).
   for (const ageName of MAX_AGE_OTHER_AGES) {
     for (const s of MAX_AGE_OTHER_POINTS) {
       const cc = { INDEX_CACHE_CONTROL: `max-age=${MAX_AGE_SEC}` };
@@ -127,7 +107,6 @@ export function buildPlan() {
     }
   }
 
-  // max-age=300 at A=100m and A=1000m.
   for (const [ageName, points] of Object.entries(MAX_AGE_300_POINTS)) {
     for (const s of points) {
       const cc = { INDEX_CACHE_CONTROL: `max-age=${MAX_AGE_300_SEC}` };
@@ -144,7 +123,6 @@ export function buildPlan() {
     }
   }
 
-  // Deploy timing: real waiting at A=10m, deploy early / mid / late.
   for (const timing of DEPLOY_TIMINGS) {
     for (const f of FRACTIONS) {
       groups.push({
@@ -164,8 +142,6 @@ export function buildPlan() {
     }
   }
 
-  // no-cache with and without a deploy; the access log also records the
-  // conditional request headers.
   for (const deploy of [false, true]) {
     for (const f of FRACTIONS) {
       const env = { INDEX_CACHE_CONTROL: 'no-cache', LOG_IF_HEADERS: '1' };
@@ -184,10 +160,6 @@ export function buildPlan() {
     }
   }
 
-  // Press first: same as the baseline, except every user also presses the
-  // button on the first visit, so the v1 chunk is fetched (and cached)
-  // before the deploy. Real waiting at A=10m (like cal-wait) and the Age
-  // header at A=100m (like grid).
   groups.push({
     id: 'pressfirst-wait-10m',
     set: 'pressfirst',

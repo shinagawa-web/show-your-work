@@ -1,14 +1,4 @@
 #!/usr/bin/env bash
-# Start the stack once, run every scenario (or the ones given) back to back, then analyse.
-# Usage: scripts/run-all.sh [scenario-name ...]   (names = scenarios/<name>.env)
-#
-# Per scenario:
-#   1. nginx: copy nginx/$NGINX_CONF to nginx.conf, nginx -t, nginx -s reload, save nginx -T
-#   2. app: /admin?reset=1 (LIMIT=20, DELAY_LIGHT=50, DELAY_HEAVY=300); check that the
-#      accept queue and the accepted sockets are 0
-#   3. k6 with the common schedule and the scenario's env (saved to k6-env.txt)
-#   4. wait (60 s at most) until the app has accepted and answered everything nginx sent
-#      (accept queue 0, no :8081 socket open), with the scenario's settings still in place
 set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 cd "$here"
@@ -18,8 +8,6 @@ t_job=$(date +%s%3N)
 dc() { docker compose "$@"; }
 now_ms() { date +%s%3N; }
 admin() { dc exec -T nginx curl -s "http://app:9001/admin?$1"; }
-# accept queue length (Recv-Q of the LISTEN socket), accepted sockets (owned by the process),
-# all :8081 sockets in ESTABLISHED or CLOSE-WAIT; in the app netns
 kstate() {
   dc exec -T kernel sh -c '
     q=$(ss -ltnH "sport = :8081" | awk "{print \$2}")
@@ -65,14 +53,8 @@ t_ready=$(now_ms)
   dc exec -T nginx cat /proc/sys/net/ipv4/ip_local_port_range
 } > results/00-environment.txt 2>&1
 
-# nginx -T of the common starting point (base.conf); each scenario's nginx-T.txt is compared with it.
-# The dump (stdout) and nginx's own status lines (stderr) go to separate files: written to one file,
-# a stderr line can land in the middle of a dump line.
 dc exec -T nginx nginx -T > results/00-base-nginx-T.txt 2> results/00-base-nginx-T-stderr.txt
 
-# one request = one connection check with base.conf: a few requests through nginx, then the
-# app access log lines (request proto and Connection header as the app got them)
-# and the nginx <-> app sockets left in both network namespaces
 {
   ngx=$(dc ps -q nginx)
   echo "\$ nginx -T (base.conf)"
@@ -106,7 +88,7 @@ run_one() {
     mkdir -p "$out"; chmod 777 "$out"
     cp "scenarios/$sc.env" "$out/scenario.env"
     dc exec -T nginx sh -c "cp /confs/$NGINX_CONF /etc/nginx/nginx.conf && nginx -t && nginx -s reload" > "$out/nginx-reload.txt" 2>&1
-    sleep 1   # let the old workers exit
+    sleep 1
     dc exec -T nginx nginx -T > "$out/nginx-T.txt" 2> "$out/nginx-T-stderr.txt"
     {
       echo "before reset (recvq inuse est+close-wait): $(kstate)"
@@ -126,9 +108,6 @@ run_one() {
       --summary-export="/${out}/k6-summary.json" /scripts/load.js > "$out/k6-stdout.txt" 2>&1 \
       || echo "k6 exit $?" >> "$out/k6-stdout.txt"
     t_end=$(now_ms)
-    # wait for the app to work off its accept queue with the scenario's settings
-    # (300 x 0.2 s = 60 s). On timeout: note it in init.txt and stderr and go on;
-    # analyze.py turns DRAINED=0 in meta.env into a failed check.
     drained=0
     for i in $(seq 300); do
       st=$(kstate)
@@ -140,7 +119,7 @@ run_one() {
     if [ "$drained" = 0 ]; then
       echo "DRAIN TIMEOUT: $sc app sockets still $st (recvq inuse est+close-wait) 60 s after k6 exit" | tee -a "$out/init.txt" >&2
     fi
-    sleep 0.3   # app access log flush (100 ms)
+    sleep 0.3
     printf 'T_START_MS=%s\nT_END_MS=%s\nT_DRAINED_MS=%s\nDRAINED=%s\nDRAIN_LAST=%s\nSWITCH_AT=%s\nDURATION=%s\n' \
       "$t_start" "$t_end" "$t_drained" "$drained" "$st" "$SWITCH_AT" "${DURATION%s}" > "$out/meta.env"
   )

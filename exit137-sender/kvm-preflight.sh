@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Preflight: check /dev/kvm on the Linux layer, start the test VM with
-# QEMU+KVM and run commands in it. Writes raw output under results/preflight/.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 out=${RESULTS:-$here/results}/preflight

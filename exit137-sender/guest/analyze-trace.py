@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""For each run under <results>, line up from trace.txt (bpftrace, wall-clock
-time of day) the OOM victim, the cgroup becoming empty, its removal, the
-kernfs notifications and the shim's opens of the cgroup's files, and whether
-docker events had `oom`. Times are milliseconds from mark_victim."""
 import json, os, re, sys
 from datetime import datetime, timezone
 
@@ -30,7 +26,7 @@ for cond in sorted((c for c in os.listdir(root) if re.fullmatch(r"C\d+", c)), ke
         has_oom = any(e["Action"] == "oom" for e in ev)
         scope = f"docker-{cid}.scope"
         kp = re.search(r"Killed process (\d+) ", open(os.path.join(d, "kernel.txt")).read())
-        vpid = int(kp.group(1)) if kp else pid1  # with --init (C6) the victim is the child
+        vpid = int(kp.group(1)) if kp else pid1
         victim = next((l for l in trace if "mark_victim" in l and f"pid={vpid} " in l), None)
         if not victim:
             rows.append((cond, run, has_oom, f"no mark_victim for pid {vpid}"))

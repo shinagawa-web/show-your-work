@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""Copy the part of the shared logs that belongs to one scenario into results/<scenario>/.
-
-Window: from just before k6 started (T_START_MS) to when the app had worked off its
-accept queue after k6 exited (T_DRAINED_MS), plus 300 ms. Scenarios run one after another,
-so the windows do not overlap.
-nginx error logs have second resolution (UTC in the container): a line stamped second s is
-kept when [s, s + 1 s) overlaps the window.
-"""
 import calendar
 import sys
 import time

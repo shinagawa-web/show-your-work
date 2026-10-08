@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Summarize one run directory, or (given the results root) write summary.md
-with one row per run. Values are copied from the raw files without judgement."""
 import json, os, re, sys
 
 

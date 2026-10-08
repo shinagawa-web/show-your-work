@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# One command: build images, install the runner, run the plan, summarize.
-# Extra arguments go to runner/run.mjs (e.g. --sets grid --ages 100m).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ts() { date +%s.%N; }

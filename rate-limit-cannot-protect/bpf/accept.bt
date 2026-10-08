@@ -1,12 +1,3 @@
-// Accept wait and in-service time of connections to the app port (8081).
-//   E: passive child socket SYN_RECV -> ESTABLISHED (tracepoint sock:inet_sock_set_state)
-//      = the connection is complete and sits in the accept queue
-//   A: kretprobe:inet_csk_accept returns that socket = accept()
-//   C: kprobe:tcp_close on that socket = the service closed it after answering
-// Output lines (wall clock from strftime, microseconds):
-//   A <wall> <accept_wait_us> <local_port>
-//   C <wall> <accept_to_close_us> <local_port> <established_to_close_us>
-// Counters every second: E <wall> <established_count>
 tracepoint:sock:inet_sock_set_state
 / args->protocol == 6 && args->oldstate == 3 && args->newstate == 1 && args->sport == 8081 /
 {

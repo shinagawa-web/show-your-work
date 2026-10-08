@@ -1,5 +1,3 @@
-# app:   the app service (standard library only), from scratch
-# probe: kernel-side sampler (ss / nstat) and bpftrace, on Ubuntu 24.04
 FROM golang:1.27.1-bookworm AS build
 WORKDIR /src
 COPY go.mod ./

@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Run scripts/run-all.sh inside the Lima VM created from lima.yaml and copy results/ back.
-# Usage: scripts/vm-run.sh [scenario-name ...]
 set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 vm=${VM:-rate-limit-cannot-protect}

@@ -1,13 +1,3 @@
-// Runs the plan: start containers, fetch v1, deploy v2, revisit, record.
-//
-//   node run.mjs [--sets cal-wait,cal-age,deploytime,grid,keep,spa,nocache,nocache304,maxage,maxage300,reloadfail,pressfirst]
-//                [--ages 10m,100m,1000m,6d] [--parallel 4] [--max-browsers 16]
-//                [--out ../results/<run-id>] [--no-calibration-gate]
-//
-// Images site-repro:<name> (see plan.mjs IMAGES) must already be built.
-// No request interception is used; cache behaviour is read from
-// Navigation/Resource Timing and the nginx access log.
-
 import { chromium } from 'playwright';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -20,7 +10,6 @@ import { buildPlan, LATE_DEPLOY_LEAD_SEC } from './plan.mjs';
 const exec = promisify(execFile);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// ---------- args ----------
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, a, i, all) => {
     if (a.startsWith('--')) acc.push([a.slice(2), all[i + 1] && !all[i + 1].startsWith('--') ? all[i + 1] : true]);
@@ -28,9 +17,6 @@ const args = Object.fromEntries(
   }, []),
 );
 const ALL_SETS = ['cal-wait', 'cal-age', 'deploytime', 'grid', 'keep', 'spa', 'nocache', 'nocache304', 'maxage', 'maxage300', 'reloadfail', 'pressfirst'];
-// Sets that wait in real time. They run first, all at once (they mostly sleep).
-// A set is real-wait per group: a group with realWaitSec users (e.g. the
-// pressfirst-wait group) runs in this phase too.
 const REAL_WAIT_SETS = ['cal-wait', 'cal-age', 'deploytime'];
 const isRealWait = (g) => REAL_WAIT_SETS.includes(g.set) || g.users.some((u) => u.realWaitSec != null);
 const sets = args.sets ? String(args.sets).split(',') : ALL_SETS;
@@ -45,7 +31,6 @@ const BASE_PORT = Number(args['base-port'] || 18000);
 
 for (const s of sets) if (!ALL_SETS.includes(s)) throw new Error(`unknown set ${s}`);
 
-// ---------- load sampling ----------
 let activeBrowsers = 0;
 let peakBrowsers = 0;
 const loadSamples = [];
@@ -66,7 +51,6 @@ const sampler = setInterval(() => {
 }, 1000);
 const loadNow = () => ({ activeBrowsers, loadavg1: os.loadavg()[0] });
 
-// ---------- semaphores ----------
 function semaphore(n) {
   let free = n;
   const q = [];
@@ -79,7 +63,6 @@ function semaphore(n) {
 const browserSlot = semaphore(MAX_BROWSERS);
 const groupSlot = semaphore(PARALLEL);
 
-// ---------- docker ----------
 async function docker(...a) {
   const { stdout, stderr } = await exec('docker', a, { maxBuffer: 64 * 1024 * 1024 });
   return { stdout, stderr };
@@ -89,7 +72,7 @@ async function waitReady(port) {
     try {
       const r = await fetch(`http://127.0.0.1:${port}/50x.html`);
       if (r.status > 0) return;
-    } catch { /* not yet */ }
+    } catch {}
     await sleep(100);
   }
   throw new Error(`port ${port} not ready`);
@@ -109,7 +92,6 @@ async function stopContainer(name) {
   return { accessLog: logs.stdout, errorLog: logs.stderr };
 }
 
-// ---------- browser ----------
 const UA = (id) => `Mozilla/5.0 (X11; Linux) chunk-repro/${id}`;
 
 async function withContext(user, fn) {
@@ -172,9 +154,6 @@ function headersOf(resp) {
   };
 }
 
-// Click the button and wait for the chunk to load or fail. If the page
-// reloads itself (reload-on-failure countermeasure), observe the new
-// document and click once more.
 async function clickAndObserve(page) {
   const attempts = [];
   for (let attempt = 1; attempt <= 2; attempt++) {
@@ -191,9 +170,8 @@ async function clickAndObserve(page) {
       try {
         state = await pageState(page);
         if (state.app && (state.app.loaded || state.app.errors.length)) break;
-      } catch { /* navigating */ }
+      } catch {}
     }
-    // Give a reload-on-failure handler time to navigate.
     const settle = Date.now() + 1500;
     while (navs === 0 && Date.now() < settle) await sleep(100);
     page.off('framenavigated', onNav);
@@ -211,7 +189,6 @@ async function clickAndObserve(page) {
 }
 const summarizeApp = (s) => s.app && { version: s.app.version, loaded: s.app.loaded, errors: s.app.errors };
 
-// ---------- one group ----------
 async function runGroup(g, port, record) {
   const v1Name = `clhf-${runId}-${g.id}-v1`.toLowerCase();
   const v2Name = `clhf-${runId}-${g.id}-v2`.toLowerCase();
@@ -219,7 +196,6 @@ async function runGroup(g, port, record) {
   const v1Env = { AGE_SEC: String(g.ageSec), ...(g.ageHeader != null ? { AGE_HEADER: String(g.ageHeader) } : {}) };
   gr.v1 = await startContainer(v1Name, port, g.v1, v1Env);
 
-  // 1. every user fetches v1 and closes the browser (cache stays on disk)
   const results = await Promise.all(g.users.map((u) => withContext(u, async (ctx) => {
     const page = await ctx.newPage();
     const o = observe(page);
@@ -227,8 +203,6 @@ async function runGroup(g, port, record) {
     const resp = await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load' });
     await sleep(100);
     const st = await pageState(page);
-    // pressFirst: press the button on the first visit too, and wait for the
-    // chunk to load before the browser is closed.
     let click = null;
     let afterClick = null;
     if (g.pressFirst) {
@@ -240,10 +214,6 @@ async function runGroup(g, port, record) {
   })));
   gr.timeline.fetchesDone = Date.now();
 
-  // 2. deploy: replace the v1 container with v2 on the same port.
-  // deployAt (real-wait groups only): early = now, mid = half of the earliest
-  // r of the group, late = LATE_DEPLOY_LEAD_SEC before the earliest revisit.
-  // deploy === false: no deploy, v1 keeps serving the revisit.
   gr.deployAt = g.deploy === false ? 'none' : (g.deployAt || 'early');
   if (g.deployAt === 'mid' || g.deployAt === 'late') {
     const due = Math.min(...results.map((r) => r.fetch.state.nav.responseStartAbs + r.user.realWaitSec * 1000));
@@ -265,7 +235,6 @@ async function runGroup(g, port, record) {
     gr.timeline.deployDone = Date.now();
   }
 
-  // 3. revisit: relaunch the same profile, open a new tab, press the button
   await Promise.all(results.map(async (r) => {
     const u = r.user;
     if (u.realWaitSec != null) {
@@ -297,7 +266,6 @@ async function runGroup(g, port, record) {
   }));
   gr.timeline.revisitsDone = Date.now();
   if (g.deploy === false) {
-    // Same container served fetch and revisit: split its log at the snapshot.
     const all = await stopContainer(v1Name);
     gr.v1.logs = { accessLog: gr.v1.logsAfterFetch, errorLog: all.errorLog };
     gr.v2 = { image: gr.v1.image, env: gr.v1.env, note: 'no deploy; revisit served by the v1 container',
@@ -308,7 +276,6 @@ async function runGroup(g, port, record) {
   }
 
   for (const r of results) {
-    // log_format main of the nginx image: ... "$http_user_agent" "$http_x_forwarded_for"
     const tag = `chunk-repro/${r.user.id}"`;
     const pick = (log) => log.split('\n').filter((l) => l.includes(tag));
     const fetchHdr = r.fetch.response;
@@ -331,7 +298,6 @@ async function runGroup(g, port, record) {
         r_sec: rSec,
         r_over_A: aSec ? rSec / aSec : null,
         deployDoneBeforeRevisit: gr.timeline.deployDone ? gr.timeline.deployDone < r.revisit.state.timeOrigin : null,
-        // position of the deploy between fetch (0) and revisit (1)
         deployStartFrac: gr.timeline.deployStart
           ? (gr.timeline.deployStart - r.fetch.state.nav.responseStartAbs) / (r.revisit.state.timeOrigin - r.fetch.state.nav.responseStartAbs) : null,
         deployDoneFrac: gr.timeline.deployDone
@@ -341,7 +307,6 @@ async function runGroup(g, port, record) {
       bootedVersion: r.revisit.state.app?.version ?? null,
       navTransferSize: r.revisit.state.nav?.transferSize ?? null,
       chunk: r.revisit.click,
-      // Resource Timing entries of the chunk (feature-*.js). transferSize 0 = served from cache.
       firstVisitChunk: g.pressFirst ? {
         result: r.fetch.click,
         resources: chunkResources(r.fetch.afterClick),
@@ -371,10 +336,6 @@ async function runGroups(groups, portOf, slot = groupSlot) {
   return { record, groupRecords };
 }
 
-// Calibration gate. Each cal-wait / cal-age user is judged by its measured
-// r/A (not by its point label): v1 is expected when r/A < CAL_BOUNDARY, v2
-// when r/A >= CAL_BOUNDARY. A user fails when the booted version differs
-// from the expected one, or when r/A or the booted version is missing.
 const CAL_BOUNDARY = 0.1;
 function calibrationCheck(record) {
   const rows = record
@@ -399,7 +360,6 @@ function calibrationCheck(record) {
   return { rule: `expected v1 if measured r/A < ${CAL_BOUNDARY}, else v2`, boundary: CAL_BOUNDARY, rows, pass: rows.every((r) => r.pass) };
 }
 
-// ---------- main ----------
 async function main() {
   await fs.mkdir(OUT, { recursive: true });
   const timings = { start: Date.now() };

@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# Runs as root inside the test VM after setup.sh. Steps, in order:
-#   C1 / C2      one run of the condition
-#   RACE_ON      start recording kernel events into one ftrace buffer
-#   RACE_OFF     stop recording
-#   PLAIN        (first step only) do not run `ctr events`
-#   TP_ON        record only the tracepoints mark_victim, sched_process_exit
-#                (subject), cgroup_notify_populated and cgroup_rmdir, with the
-#                default buffer size; the buffer is drained after every run
-#   BUFFER       only enlarge the ftrace buffer (buffer_size_kb=16384), no events
-# Always: `ctr -n moby events` in the background (containerd's own record of
-# /tasks/oom), and per-run conditions (leftover containers and scopes,
-# MemAvailable) in pre.txt. The ftrace buffer uses trace_clock=boot; clock.txt
-# has CLOCK_REALTIME/CLOCK_BOOTTIME pairs to put user-space times on it.
 set -uo pipefail
 here=$(dirname "$0")
 . "$here/conditions.sh"

@@ -139,7 +139,6 @@ def analyze(d):
     pts = period_arrivals.timer_fires(tev) if bpf else None
 
     def ends_by_next_timer(iv):
-        # Throttle end (unthrottle) minus the first period timer firing after the throttle start.
         if not pts or not iv:
             return None
         late = []

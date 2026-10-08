@@ -1,6 +1,3 @@
-# One stack for all scenarios. After each scenario run-all.sh waits until the app has
-# accepted and answered everything left in its accept queue, swaps the nginx config with
-# nginx -s reload and resets the app through /admin; k6 is exec'd per scenario.
 services:
   app:
     build: {context: ., target: app}
@@ -21,19 +18,14 @@ services:
   nginx:
     image: nginx:1.30.5
     command: ["sh", "-c", "cp /confs/base.conf /etc/nginx/nginx.conf && exec nginx -g 'daemon off;'"]
-    # nginx closes the upstream connection first when it gives up (504/499), so those local
-    # ports stay in TIME_WAIT; a wider range keeps connect() from running out of ports.
     sysctls:
       net.ipv4.ip_local_port_range: "1024 65000"
-    # open file limit for worker_connections 8192
     ulimits:
       nofile: 65536
     volumes:
       - ./nginx:/confs:ro
       - ./results/raw:/results
     depends_on: [app]
-  # ss / nstat inside the app's network and PID namespaces (PID: so that ss -p can
-  # tell accepted sockets, which have an owning fd, from sockets still in the accept queue)
   kernel:
     build: {context: ., target: probe}
     image: rate-limit-cannot-protect-probe:local
@@ -46,7 +38,6 @@ services:
     volumes:
       - ./results/raw:/results
     depends_on: [app]
-  # bpftrace (host kernel): accept wait and accept-to-close time of port 8081 connections
   bpf:
     image: rate-limit-cannot-protect-probe:local
     privileged: true

@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Start the test VM (Ubuntu 24.04 cloud image) with QEMU+KVM on the Linux
-# layer and wait until a command runs in it over SSH.
-# The same script runs inside the lima VM (aarch64) and on the CI runner
-# (x86_64); only the QEMU binary, machine type, firmware and image differ.
 set -euo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 vmdir=${VMDIR:-$here/.vm}

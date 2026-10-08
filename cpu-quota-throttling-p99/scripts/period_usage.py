@@ -1,26 +1,3 @@
-"""cpu.stat usage_usec re-aggregated into 100ms windows, vs nr_throttled.
-
-usage: python3 period_usage.py <result dir> [near_ms]
-
-Windows are cut on the 10ms cpu.stat samples (cpustat_10ms.csv). A window
-boundary at time t uses the sample nearest to t.
-
-  aligned   boundaries on the CFS period grid (sched_cfs_period_timer, P);
-            usage from the samples nearest to each boundary; nr_throttled
-            delta from the first samples at or after boundary + 2ms (the
-            kernel adds to nr_throttled in the period timer at the end of
-            the throttled period, and a sample stamped just after the
-            boundary may have read cpu.stat before the timer ran)
-  naive     every 10 samples from the collector's first sample
-  offset X  samples nearest to the period grid shifted by +X ms; usage and
-            nr_throttled from the same samples
-
-"sample minus boundary" is always measured from the period boundary.
-
-For each window: usage delta (ms), nr_throttled delta, and whether a
-throttle_cfs_rq (bpftrace) returning 1 happened inside the window.
-Only windows fully inside [first request send, last response recv] count.
-"""
 import bisect, csv, sys
 from collections import Counter
 import tidlink

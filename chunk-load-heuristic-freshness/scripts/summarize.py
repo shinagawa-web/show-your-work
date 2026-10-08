@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Print a markdown summary of results.json (one row per user)."""
 import json
 import re
 import statistics
@@ -121,7 +120,6 @@ for s, us in groups.items():
         print(row(u))
     print()
 
-# Boundary per (set, A, method): largest r/A that booted v1, smallest r/A that booted v2.
 print("## Boundary\n")
 print("| set | A s (target) | method | deploy | max r/A booting v1 | min r/A booting v2 | n |")
 print("|---|---|---|---|---|---|---|")
