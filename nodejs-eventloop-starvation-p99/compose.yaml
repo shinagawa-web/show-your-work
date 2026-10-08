@@ -1,0 +1,25 @@
+services:
+  app:
+    build: ./app
+    ports:
+      - "3000:3000"
+    cpus: 2.0
+    mem_limit: 512m
+    environment:
+      PORT: 3000
+      SYNC_MS: ${SYNC_MS:-0}
+      SHED_THRESHOLD_MS: ${SHED_THRESHOLD_MS:-}
+      UV_THREADPOOL_SIZE: 4
+    profiles: [base, shedding]
+
+  app-shed:
+    build: ./app
+    ports:
+      - "3000:3000"
+    cpus: 2.0
+    mem_limit: 512m
+    environment:
+      PORT: 3000
+      SHED_THRESHOLD_MS: ${SHED_THRESHOLD_MS:-70}
+      UV_THREADPOOL_SIZE: 4
+    profiles: [shedding-only]

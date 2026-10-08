@@ -1,0 +1,11 @@
+{
+  "name": "nodejs-eventloop-starvation-p99",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "exp01": "node loadgen/ramp.js exp01"
+  },
+  "dependencies": {
+    "autocannon": "^7.15.0"
+  }
+}
