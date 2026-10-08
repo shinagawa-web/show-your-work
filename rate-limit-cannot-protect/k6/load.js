@@ -1,21 +1,3 @@
-// Open-model load. One constant-arrival-rate schedule for every scenario:
-//   ITER_RATE iterations/s (default 600) for DURATION (default 25s), evenly spaced.
-//   Each tenant sends TENANT_RATE r/s (default 20). With N tenants an iteration sends a
-//   request when iterationInTest % (ITER_RATE / (N * TENANT_RATE)) == 0, so 10 tenants
-//   send every 3rd iteration (200 r/s, one request every 5 ms) and 30 tenants send every
-//   iteration (600 r/s). The tenant of each request is picked at random among the N.
-// Scenario shape (env vars):
-//   SWITCH_AT       seconds since the test start; the "after" values apply from here
-//   TENANTS_BEFORE  tenants t0..t(N-1) before SWITCH_AT (default 10)
-//   TENANTS_AFTER   tenants from SWITCH_AT (default 10)
-//   HEAVY_AFTER     share of requests sent to /api/heavy from SWITCH_AT (default 0; before: 0)
-//   ADMIN_QUERY     sent to the app /admin at SWITCH_AT (empty: no change)
-//   K6_TIMEOUT      client timeout of each request (default 60s)
-// At SWITCH_AT the "switch" scenario logs (raw console lines):
-//   T0_MS <unix ms of the test start>
-//   ADMIN_BEFORE <GET /admin>
-//   ADMIN_SET <GET /admin?ADMIN_QUERY>     (only when ADMIN_QUERY is set)
-//   ADMIN_AFTER <GET /admin>
 import http from 'k6/http';
 import exec from 'k6/execution';
 

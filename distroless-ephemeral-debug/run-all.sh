@@ -210,7 +210,9 @@ EOF
   [ -z "$np" ] || rs "kubectl get $np -o json | jq '{hostPID: .spec.hostPID, hostNetwork: .spec.hostNetwork, hostIPC: .spec.hostIPC, sc: .spec.containers[0].securityContext, mounts: .spec.containers[0].volumeMounts, volumes: .spec.volumes}'"
 } > "$results/07-node.txt"
 
-RESULTS=$results "$here/scripts/uid0.sh"
+status=0
+RESULTS=$results "$here/scripts/uid0.sh" || { echo "uid0.sh failed"; status=1; }
 
-python3 "$here/scripts/summary.py" "$results" > "$results/summary.md"
+python3 "$here/scripts/summary.py" "$results" > "$results/summary.md" || { echo "summary.py failed"; status=1; }
 cat "$results/summary.md"
+exit "$status"

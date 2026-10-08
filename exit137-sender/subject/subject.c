@@ -1,18 +1,3 @@
-/*
- * Subject process for the exit 137 conditions. Single process, no signal
- * handlers (SIGTERM keeps its default disposition).
- *
- * Built once and installed twice in the image: as /subject (the process
- * under test) and as /filler (the unlimited container in C2), so the two show
- * up under different command names in the OOM killer records.
- *
- *   subject alloc <MiB|-1> <step_MiB> <step_ms> <start_ms> [marker]
- *       Sleep start_ms, then allocate and touch memory in steps until MiB
- *       (-1: without bound), then hold it forever. With a marker path: if the
- *       marker exists, allocate nothing; otherwise create it and allocate.
- *   subject exit <code> <delay_ms>
- *       Sleep delay_ms, then return <code>.
- */
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

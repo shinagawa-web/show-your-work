@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Report whether /dev/kvm exists and answers KVM_GET_API_VERSION.
 set -uo pipefail
 echo "\$ uname -a"; uname -a
 echo "\$ ls -l /dev/kvm"; ls -l /dev/kvm 2>&1

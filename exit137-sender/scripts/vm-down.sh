@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Stop the test VM.
 set -uo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 vmdir=${VMDIR:-$here/.vm}

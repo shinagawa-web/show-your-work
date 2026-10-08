@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Builds the site images used by runner/plan.mjs (IMAGES).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 build() {

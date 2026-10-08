@@ -1,24 +1,4 @@
 #!/usr/bin/env python3
-"""Acceptance checks for every scenario, plus a per-second table per scenario.
-
-Usage: scripts/analyze.py results <scenario> ...
-Writes results/<scenario>/summary.txt (per-second table) and prints the checks to stdout
-(run-all.sh saves them as results/checks.txt).
-
-Time axis: t = seconds since the k6 test start (T0_MS logged by k6/load.js).
-Sources per scenario directory:
-  k6.csv                 http_req_duration of the "load" scenario; start = sample time - duration
-  access.log             nginx; start = $msec - $request_time, end = $msec
-  app_access.log         app; start (handler got the request), processing time, $request_id
-  kernel_100ms.csv       ss / nstat in the app netns every 100 ms
-  bpf.log                A = accept (accept wait), C = close (accept-to-close, established-to-close)
-  error.log, error-info.log, nginx-T.txt, k6-env.txt, k6-stdout.txt (T0_MS, ADMIN_BEFORE, ADMIN_AFTER)
-
-Scenario kinds (scripts/expect.py): control (nothing changes at the switch), cause, measure.
-Each check prints: name | prediction | observed | pass / fail / info. A scenario whose run
-had a host pause (a gap over 50 ms in the k6 schedule) is marked RUN INVALID. Where a prediction has no
-stated tolerance, the one used is written in the prediction column.
-"""
 import bisect
 import csv
 import json
@@ -53,7 +33,6 @@ def num(x):
 
 
 def slope(pts):
-    """least-squares slope of (t, y)"""
     if len(pts) < 2:
         return float('nan')
     mt = sum(t for t, _ in pts) / len(pts)
@@ -96,8 +75,6 @@ class Run:
             if not m:
                 continue
             msec, rt, st, uri, tn, ua, us, uct, uht, urt, rid = m.groups()
-            # $msec, $request_time and T0 all have ms resolution: subtract in integer ms so that a
-            # request starting exactly at the switch is not put just before it by float rounding
             end_ms = round(float(msec) * 1000) - self.t0_ms
             self.ngx.append(dict(start=(end_ms - round(float(rt) * 1000)) / 1000, end=end_ms / 1000, status=st, uri=uri, tenant=tn, ua=ua, us=us,
                                  sent=bool(ADDR.match(ua)), header=num(uht), rid=rid))
@@ -134,7 +111,7 @@ class Run:
                 self.acc.append((t, int(p[2]) / 1000))
             elif p[0] == 'C' and len(p) > 4:
                 a2c, e2c = int(p[2]) / 1000, int(p[4]) / 1000
-                self.close.append((t, a2c, e2c - a2c))  # close time, accept-to-close ms, accept wait ms
+                self.close.append((t, a2c, e2c - a2c))
             elif p[0] == 'E':
                 self.est.append((t, int(p[2])))
 
@@ -201,7 +178,6 @@ def config_changes(R, base_conf):
 
 
 def msg_type(line):
-    # "2026/10/06 09:22:47 [error] 79#79: *1320 <message>, client: ..." -> "[error] <message>"
     m = re.match(r'^\S+ \S+ (\[\w+\]) \d+#\d+: (?:\*\d+ )?(.*?)(?:, client: .*)?$', line)
     return re.sub(r'[0-9.]+', 'N', f'{m.group(1)} {m.group(2)}' if m else line)
 
@@ -263,7 +239,6 @@ def check_scenario(name, R, base_conf):
     meas_k6 = R.k6w(ma, mb)
     fixed = name == '11-b-fixed-key-limit'
 
-    # 1. common starting point before the switch
     conc = R.ds_conc_series(0, sw)
     c_mean, c_max = statistics.mean(conc), max(conc)
     q_pre = [r['recvq_total'] for r in R.kw(0, sw)]
@@ -283,7 +258,6 @@ def check_scenario(name, R, base_conf):
         f'k6 {dict(sorted(k6st.items()))} nginx {dict(sorted(ngst.items()))}',
         v or ok(set(k6st) == {'200'} and set(ngst) == {'200'}))
 
-    # 2. fixed-key limit_req
     succ = 100 * sum(1 for x in meas_k6 if x['status'] == '200') / max(len(meas_k6), 1)
     stm = Counter(x['status'] for x in meas_k6)
     ok200 = [x['dur'] for x in meas_k6 if x['status'] == '200']
@@ -301,35 +275,29 @@ def check_scenario(name, R, base_conf):
             f'slope={s:.2f}/s max={max(y for _, y in q):.0f}', ok(abs(s) <= lim))
         add('p99 of 200 responses [14,25) (k6)', '(not predicted)', f'{p99:.1f} ms (n={len(ok200)})', 'info')
 
-    # 3. configuration: only the listed item changed
     ch = sorted(config_changes(R, base_conf))
     exp = sorted(E['changes'])
     add('saved settings differ from the common point only by the listed item', '; '.join(exp), '; '.join(ch) or '(none)',
         ok(ch == exp))
 
-    # 4. no 429 except the fixed-key scenario
     n429 = Counter(x['tenant'] for x in R.ngx if x['status'] == '429')
     if not fixed:
         add('429 over the whole run, all tenants (nginx)', '0', f'{sum(n429.values())} {dict(n429) if n429 else ""}'.strip(),
             ok(sum(n429.values()) == 0))
 
-    # 5. ListenOverflows
     k0, k1 = R.kern[0], R.kern[-1]
     ov, dr = int(k1['listen_overflows'] - k0['listen_overflows']), int(k1['listen_drops'] - k0['listen_drops'])
     add('nstat TcpExtListenOverflows / ListenDrops over the run', '0 / 0', f'+{ov} / +{dr}', ok(ov == 0 and dr == 0))
 
-    # 6. one upstream attempt per request
     multi = [x for x in R.ngx if ',' in x['ua'] or ' : ' in x['ua'] or ',' in x['us'] or ' : ' in x['us']]
     uas = Counter('<addr>' if x['sent'] else x['ua'] for x in R.ngx)
     add('$upstream_addr / $upstream_status with more than one entry', '0', f'{len(multi)} of {len(R.ngx)} ($upstream_addr: {dict(uas)})',
         ok(not multi))
 
-    # 7. 1 request = 1 connection
     sent = sum(1 for x in R.ngx if x['sent'])
     add('bpf accepts vs nginx upstream sends (whole run incl. drain)', 'equal',
         f'accepts={len(R.acc)} sends={sent} app_log_lines={len(R.ds)}', ok(len(R.acc) == sent))
 
-    # 8. control: nothing changed at the switch, so the whole run looks like the common point
     if E['kind'] == 'control':
         sent_q = R.admin.get('ADMIN_SET', {})
         add('control: GET /admin?ADMIN_QUERY at the switch returned the common values', str(X.COMMON_ADMIN),
@@ -356,7 +324,6 @@ def check_scenario(name, R, base_conf):
         q_a = [r['recvq_total'] for r in R.kw(0, X.DUR)]
         add('control: [0,25) accept queue (ss Recv-Q, 100 ms)', '(not predicted)', f'max={max(q_a):.0f} samples={len(q_a)}', 'info')
 
-    # 8. onset, queue slope, success, p99
     elif 'onset' in E:
         g = str(E['gave_up'])
         for uri, pt in E['onset'].items():
@@ -372,13 +339,6 @@ def check_scenario(name, R, base_conf):
         add('success rate [14,25) (k6)', f'{E["success"]}% (used: <= 5%)', f'{succ:.2f}% {dict(sorted(stm.items()))}', ok(succ <= 5))
         add('p99 of 200 responses [14,25) (k6)', '(not predicted)', f'{p99:.1f} ms (n={len(ok200)})', 'info')
     elif not fixed:
-        # max_conns: what nginx returns as 200 in the measure window is what the app finished in it.
-        # Over the limit nginx answers 502 at once, so the app only works on requests nginx is
-        # still waiting for. Both sides by completion time: nginx $msec (end of the response),
-        # app start + processing (end of the response write). Tolerance 2%: a response finishing
-        # within a millisecond of 14 s or 25 s can be logged on different sides of the edge by the
-        # two writers, which is a few requests out of the window's 1000-plus. The calculated
-        # success rate (expect.py) and the k6 rate are kept as information only.
         n200 = sum(1 for x in R.ngx if x['status'] == '200' and ma <= x['end'] < mb)
         nfin = sum(1 for x in R.ds if ma <= x['end'] < mb)
         diff = 100 * (n200 - nfin) / max(nfin, 1)
@@ -399,7 +359,6 @@ def check_scenario(name, R, base_conf):
         n502 = sum(1 for x in R.ngx if x['status'] == '502' and not x['sent'])
         add('502 without an upstream attempt (max_conns) over the run', '(not predicted)', f'{n502}', 'info')
 
-    # 9. work the app finished after nginx had already given up
     if E['kind'] == 'cause':
         g = str(E['gave_up'])
         firsts = [x['end'] for x in R.ngx if x['status'] == g]
@@ -424,7 +383,6 @@ def check_scenario(name, R, base_conf):
         else:
             add(f'app finished after nginx had returned {g}', '~100%', f'no {g} in the run', 'fail')
 
-    # 10. telling the causes apart (cause scenarios A-D)
     if E['kind'] == 'cause' and name != '05-b-front-cuts':
         post = [x for x in R.ds if ma <= x['start'] < mb]
         pre_l = [x['proc'] for x in R.ds if 0 <= x['start'] < sw and x['uri'] == '/api/light']
@@ -471,18 +429,6 @@ def check_scenario(name, R, base_conf):
             add('D: app in service pinned at 20 [14,25) (app log)', '20 (used: mean >= 19, max 20)',
                 f'mean={cm:.2f} max={cx}', ok(cm >= 19 and cx == 20))
 
-    # 11. reader-side wait vs accept wait, per 1 s interval and per endpoint
-    #   reader: median $upstream_header_time of nginx lines logged in the second ($msec) minus the
-    #           median processing time of app lines finishing in the second (start + processing)
-    #   bpf:    median accept wait (established-to-close minus accept-to-close) of connections closed
-    #           in the second. The endpoint of a bpf close comes from the app log lines whose
-    #           start and end lie within 0.5 ms of the connection's accept and close; it is used when all
-    #           such lines have the same endpoint (lines that share start and end share the processing
-    #           time, so they can only be ambiguous between connections, not between endpoints).
-    #   Compared: intervals with a bpf wait >= 10 ms that end before the first 504 / 499 ($msec),
-    #   with >= 5 samples on each side. Tolerance: 10% of the bpf wait or 10 ms, whichever is
-    #   larger. $upstream_header_time has millisecond resolution, so where the wait is a few
-    #   tens of ms, 10% of it is close to the resolution of one side of the comparison.
     by_end = sorted((x['end'], i) for i, x in enumerate(R.ds))
     ends = [e for e, _ in by_end]
     bb = defaultdict(list)
@@ -521,9 +467,6 @@ def check_scenario(name, R, base_conf):
                      for s_, u, r, b, nh, nb, p in res), 'info')
 
     add('k6 dropped iterations / requests sent', '', f'{dropped(R)} / {len(R.k6)}', 'info')
-    # pauses of the whole host show up as gaps in the evenly spaced k6 schedule. The sampler
-    # round (ss / nstat / GET /admin) is recorded only: it grows with the sockets ss has to read,
-    # so it follows the accept queue rather than host pauses.
     st = sorted(x['start'] for x in R.k6 if 0 <= x['start'] < X.DUR)
     gaps = sorted(((b - a) * 1000, a) for a, b in zip(st, st[1:]))[-3:]
     sm = sorted((r['sample_ms'], r['t']) for r in R.kern if 0 <= r['t'] < X.DUR)[-3:]
@@ -532,8 +475,6 @@ def check_scenario(name, R, base_conf):
         ', '.join(f'{g:.0f}@{t:.2f}' for g, t in reversed(gaps)), ok(gaps[-1][0] <= 50))
     add('longest sampler rounds [0,25) (ms @ t), recorded only', '(not a pause check)',
         ', '.join(f'{g:.0f}@{t:.2f}' for g, t in reversed(sm)), 'info')
-    # run-all.sh waits up to 60 s after k6 exit for the app sockets to go back to 0 0 0
-    # (DRAINED in meta.env); a timeout means the drain window of this run is cut short.
     add('app drained after k6: recvq inuse est+close-wait within 60 s of k6 exit (DRAINED)', '0 0 0',
         f"{R.meta.get('DRAIN_LAST', '?')} at {R.drained:.1f} s", ok(R.meta.get('DRAINED') == '1'))
     return rows, paused

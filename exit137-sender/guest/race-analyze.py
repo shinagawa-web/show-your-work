@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""Per run of race.sh: (1) whether OOM reached Docker by three records
-(docker events oom, OOMKilled, ctr /tasks/oom), (2) run conditions, (3) for
-traced runs, event times in ms from mark_victim on the ftrace boot clock
-(user-space times converted with the CLOCK_REALTIME/CLOCK_BOOTTIME pairs).
-  race-analyze.py <results>"""
 import json, os, re, statistics, sys
 from datetime import datetime, timezone
 

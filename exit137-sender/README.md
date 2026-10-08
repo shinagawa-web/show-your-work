@@ -6,11 +6,10 @@ Everything runs inside a small test VM started with QEMU+KVM, so that a host-wid
 
 ## Run
 
-On an Ubuntu 24.04 host with `/dev/kvm` (this is what CI does). `scripts/install-deps.sh` adds a udev rule on that host that makes `/dev/kvm` mode 0666.
+`.github/workflows/exit137-sender.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-```
-./run-all.sh          # all conditions
-./run-all.sh C1 C2    # some of them
-```
+The workflow runs every condition. `results/summary.md`, one row per run, goes to the job summary, and `results/`, one directory per condition and run, is uploaded as the `exit137-sender-results` artifact.
 
-Raw output goes to `results/`, one directory per condition and run. `results/summary.md` has one row per run.
+## Pinned versions
+
+`scripts/versions.env`.

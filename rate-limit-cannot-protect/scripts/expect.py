@@ -1,23 +1,3 @@
-"""Predictions and the expected configuration change of each scenario.
-
-Common starting point: 10 tenants x 20 r/s = 200 r/s, all /api/light (50 ms), app
-accepts at most 20, so 200 x 0.05 = 10 in service and capacity 20 / 0.05 = 400 r/s.
-Switch at 8 s. Measured window: 6 s after the switch to 25 s, i.e. [14, 25).
-
-Control scenario: the switch at 8 s sends GET /admin with the common values and the k6 "after"
-values equal the "before" values, so the only saved difference is ADMIN_QUERY itself.
-
-Cause scenarios: mu = what the app completes per second after the change, excess =
-arrivals - mu (= predicted accept-queue slope), onset = seconds after the switch when
-wait + processing reaches the timeout, with wait = excess * T / mu.
-
-`changes` lists every difference from the common starting point, in the form the analysis
-prints them:
-  k6 <VAR>: <common> -> <scenario>          (k6-env.txt)
-  admin <field>: <before> -> <after>        (GET /admin right before and after the switch)
-  nginx - <line> / nginx + <line>           (nginx -T, comment lines dropped)
-"""
-
 COMMON_K6 = dict(ITER_RATE='600', DURATION='25s', SWITCH_AT='8', TENANT_RATE='20', TENANTS_BEFORE='10',
                  TENANTS_AFTER='10', HEAVY_AFTER='0', ADMIN_QUERY='', K6_TIMEOUT='60s')
 COMMON_ADMIN = dict(limit=20, delay_light=50, delay_heavy=300, drain=False)

@@ -1,10 +1,3 @@
-/*
- * cgprobe <cgroup dir> : watch a cgroup v2 directory the way containerd's
- * cgroups EventChan does (inotify IN_MODIFY on memory.events and
- * cgroup.events), and also poll both files every millisecond. Prints one line
- * per inotify event and per change seen by polling, with CLOCK_REALTIME in
- * nanoseconds, until the files are gone.
- */
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -22,7 +15,6 @@ static long long ns(void)
 	return ts.tv_sec * 1000000000LL + ts.tv_nsec;
 }
 
-/* read "key value" pairs into one line; returns -errno on failure */
 static int slurp(const char *path, char *out, size_t n)
 {
 	int fd = open(path, O_RDONLY | O_CLOEXEC);

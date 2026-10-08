@@ -18,9 +18,6 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      # One job per group: control and cause scenarios (00-05) and measure scenarios (06-11). Each job starts
-      # its own stack and runs scripts/run-all.sh with the group's scenarios. The job fails if its
-      # scenario loop exceeds 300 s, or if results/checks.txt has a failed check or an invalid run.
       matrix:
         include:
           - group: cause
@@ -30,7 +27,7 @@ jobs:
     name: run (${{ matrix.group }})
     steps:
       - uses: actions/checkout@v7
-      - run: ./scripts/run-all.sh ${{ matrix.scenarios }}
+      - run: ./run-all.sh ${{ matrix.scenarios }}
       - name: summary
         if: always()
         run: |

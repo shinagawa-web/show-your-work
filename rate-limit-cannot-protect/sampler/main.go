@@ -1,11 +1,3 @@
-// Kernel-side sampler. Runs in the app's network and PID namespace and every
-// SAMPLE_MS (default 100) appends one CSV row to OUT with:
-//   - app port 8081: ss -ltn Recv-Q (accept queue length) and Send-Q (backlog) of the LISTEN socket
-//   - inuse: app-port sockets in ESTABLISHED or CLOSE-WAIT that have an owning process
-//     (ss -p shows users:), i.e. accepted and not yet closed
-//   - queued_est: the same sockets without an owner, i.e. still in the accept queue
-//   - nstat TcpExtListenOverflows / TcpExtListenDrops (absolute counters of this netns)
-//   - the app's current settings read from GET /admin (limit, delays, drain)
 package main
 
 import (
@@ -39,7 +31,6 @@ func run(name string, args ...string) []string {
 }
 
 func localPort(fields []string) string {
-	// the first field that looks like addr:port is the local address
 	for _, f := range fields {
 		if i := strings.LastIndex(f, ":"); i > 0 && !strings.HasPrefix(f, "users:") {
 			if _, err := strconv.Atoi(f[i+1:]); err == nil {
@@ -96,7 +87,7 @@ func main() {
 		}
 		recvq, sendq := map[string]int{}, map[string]int{}
 		for _, l := range run("ss", "-ltnH") {
-			fl := strings.Fields(l) // State Recv-Q Send-Q Local Peer
+			fl := strings.Fields(l)
 			if len(fl) < 4 || !isApp(localPort(fl[3:4])) {
 				continue
 			}
@@ -106,7 +97,7 @@ func main() {
 		}
 		inuse, queued := 0, 0
 		for _, l := range run("ss", "-tnpH", "state", "established", "state", "close-wait") {
-			fl := strings.Fields(l) // State Recv-Q Send-Q Local Peer [users:...]
+			fl := strings.Fields(l)
 			if len(fl) < 5 || !isApp(localPort(fl[3:4])) {
 				continue
 			}

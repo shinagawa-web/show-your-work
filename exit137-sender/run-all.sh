@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Linux layer: start the test VM with QEMU+KVM, run every condition inside it
-# and copy the raw output back to results/.
-#   run-all.sh [COND...]
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-$here/results}
@@ -29,8 +26,6 @@ runs_env=$(env | grep -E '^RUNS_C[0-9]+[A-Z]*=[0-9]+$' | tr '\n' ' ')
 "$here/scripts/vm-ssh.sh" "sudo $runs_env PROBE=${PROBE:-0} TRACE=${TRACE:-0} TRACE_SHIM=${TRACE_SHIM:-0} TRACE_NAMES=${TRACE_NAMES:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/${GUEST_SCRIPT:-conditions.sh} $*" > "$results/conditions.txt" 2>&1
 cond_status=$?
 grep -E "seconds|^==|FAILED" "$results/conditions.txt"
-# Collect whatever was recorded even when the conditions failed; ssh exits
-# with 255 when the connection is lost (e.g. the test VM stops answering).
 "$here/scripts/vm-ssh.sh" 'sudo python3 ~/w/guest/summarize.py /root/results' > "$results/summarize.txt" 2>&1
 sum_status=$?
 "$here/scripts/vm-ssh.sh" 'sudo tar -C /root/results -c .' | tar -C "$results" -x

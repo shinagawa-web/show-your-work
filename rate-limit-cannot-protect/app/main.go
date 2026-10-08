@@ -1,28 +1,3 @@
-// App service. The concurrency limit lives in the listener: at most N
-// connections are accepted and not yet closed at any time. Connections over the
-// limit are not accepted and wait in the kernel accept queue (listen backlog).
-// The service keeps no queue of its own.
-//
-// Each request sleeps for the endpoint's processing time, answers 200 with
-// "Connection: close" and the connection is closed at once (hijacked from net/http,
-// see app). The sleep is not cancelled when the client goes away.
-//
-// Access log (ACCESS_LOG, one line per request, written after the response):
-//
-//	<start, unix seconds with microseconds> <processing time ms> <path> <X-Request-Id> <X-Tenant> <request proto> <Connection header or ->
-//
-// start is when the handler got the request (after accept and reading the request);
-// processing time runs from start to the end of the response write.
-//
-// App port: APP_PORT (default 8081). One listener only: the Accept loop takes a slot
-// before it blocks in accept(), so a second listener would hold a slot of its own
-// while idle.
-// Admin (separate listener, not limited): ADMIN_PORT (default 9001)
-//
-//	GET /admin                         current settings
-//	GET /admin?limit=&delay_light=&delay_heavy=
-//	GET /admin?reset=1                 back to the startup defaults
-//	GET /admin?drain=1                 accept everything, answer at once (not used by run-all.sh)
 package main
 
 import (
@@ -46,7 +21,6 @@ type settings struct {
 	Drain      bool    `json:"drain"`
 }
 
-// gate is a counting semaphore whose size can change at runtime.
 type gate struct {
 	mu     sync.Mutex
 	cond   *sync.Cond
@@ -110,7 +84,6 @@ func (g *gate) release() {
 
 func (g *gate) wake() { g.mu.Lock(); g.mu.Unlock(); g.cond.Broadcast() }
 
-// limitListener calls Accept only while the gate has room.
 type limitListener struct{ net.Listener }
 
 func (l limitListener) Accept() (net.Conn, error) {
@@ -155,15 +128,13 @@ func app(w http.ResponseWriter, r *http.Request) {
 	if s.Drain {
 		d = 0
 	}
-	// Take the connection over from net/http so that it is closed right after the
-	// response. Letting net/http close it would add rstAvoidanceDelay (500 ms) while
-	// the connection still holds a slot of the limit.
+	// net/http closing it would add rstAvoidanceDelay while the conn still holds a slot.
 	conn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	time.Sleep(time.Duration(d * float64(time.Millisecond))) // not cancelled on client close
+	time.Sleep(time.Duration(d * float64(time.Millisecond)))
 	fmt.Fprint(conn, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 3\r\nConnection: close\r\n\r\nok\n")
 	accessLog(start, time.Since(start), r)
 	conn.Close()
@@ -224,7 +195,7 @@ func main() {
 	if port == "" {
 		port = "8081"
 	}
-	ln, err := net.Listen("tcp", ":"+port) // backlog = net.core.somaxconn of this netns
+	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatal(err)
 	}

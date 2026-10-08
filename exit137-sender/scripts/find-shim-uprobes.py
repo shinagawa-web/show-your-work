@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""Derive the uprobe addresses used by guest/shim-uprobes.sh from a stripped
-containerd-shim-runc-v2 (arm64): resolve Go function entries from .gopclntab,
-disassemble cgroups v3.1.2 (*Manager).EventChan.func1 with objdump, and pick
-the instructions that mark each branch.
-  find-shim-uprobes.py <path to containerd-shim-runc-v2>
-Needs objdump (binutils)."""
 import re, struct, subprocess, sys
 
 path = sys.argv[1]
@@ -14,7 +8,7 @@ hdr = subprocess.run(["objdump", "-h", path], capture_output=True, text=True, ch
 
 def section(name):
     m = re.search(re.escape(name) + r"\s+([0-9a-f]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([0-9a-f]+)", hdr)
-    return [int(x, 16) for x in m.groups()]  # size, vma, file offset
+    return [int(x, 16) for x in m.groups()]
 
 
 size, _, off = section(".gopclntab")
@@ -57,17 +51,17 @@ def nxt(i):
 
 
 out = {}
-out["isempty"] = nxt(idx_of_call("isCgroupEmpty"))               # after the call: r0 = result
-out["readmev"] = nxt(idx_of_call("readKVStatsFile"))             # after the call: r0 = err (itab)
-s = idx_of_call("chansend1", 0)                                  # ec <- Event
+out["isempty"] = nxt(idx_of_call("isCgroupEmpty"))
+out["readmev"] = nxt(idx_of_call("readKVStatsFile"))
+s = idx_of_call("chansend1", 0)
 out["sendev"] = ins[s][0]
-t = next(i for i in range(s, len(ins)) if ins[i][1] == "tbz")    # if !shouldExit: loop
-out["retev"] = nxt(t)                                            # shouldExit: return after Event
-u = idx_of_call("underlyingErrorIs")                             # os.IsNotExist(statErr)
+t = next(i for i in range(s, len(ins)) if ins[i][1] == "tbz")
+out["retev"] = nxt(t)
+u = idx_of_call("underlyingErrorIs")
 b = next(i for i in range(u, len(ins)) if ins[i][1] == "tbnz")
-out["senderr"] = nxt(b)                                          # exists: errCh <- err
-out["retsilent"] = int(ins[b][2].split(",")[-1].strip().split()[0], 16)  # not exist: return
-out["readerr"] = ins[idx_of_call("chansend1", 2)][0]             # fd.Read error: errCh <- err
+out["senderr"] = nxt(b)
+out["retsilent"] = int(ins[b][2].split(",")[-1].strip().split()[0], 16)
+out["readerr"] = ins[idx_of_call("chansend1", 2)][0]
 out["oomevent"] = funcs["github.com/containerd/containerd/v2/cmd/containerd-shim-runc-v2/task.(*service).oomEvent"][0]
 
 tsize, tvma, toff = section(".text")

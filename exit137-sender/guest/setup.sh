@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# Runs as root inside the test VM: install Docker, build the subject image
-# (static subject binary + busybox, no registry pull) and record versions.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-/root/results}
 mkdir -p "$results"
-# Keep apt-daily, apt-daily-upgrade and unattended-upgrades from running
-# during the conditions (memory use in a 512 MiB VM, package changes).
 systemctl stop apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
 systemctl mask apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service >/dev/null 2>&1
 export DEBIAN_FRONTEND=noninteractive
@@ -31,7 +27,6 @@ if [ "${LOCKSHIM:-0}" = 1 ]; then
   apt-get "${apt_opts[@]}" install -y --no-install-recommends vmtouch
 fi
 if [ "${DEBUG:-0}" = 1 ]; then
-  # debug logs for containerd (and its shims) and dockerd
   mkdir -p /etc/systemd/system/containerd.service.d
   printf '[Service]\nExecStart=\nExecStart=/usr/bin/containerd --log-level debug\n' > /etc/systemd/system/containerd.service.d/debug.conf
   echo '{"debug": true}' > /etc/docker/daemon.json
