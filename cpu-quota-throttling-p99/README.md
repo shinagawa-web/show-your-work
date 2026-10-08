@@ -10,7 +10,7 @@ Requirements on the host:
 - Docker on cgroup v2 (either the systemd or the cgroupfs driver)
 - `python3`, `iproute2` (`ss`), `util-linux` (`nsenter`), passwordless `sudo`
 - Optional: `bpftrace` with a BTF kernel (`/sys/kernel/btf/vmlinux`)
-- Go is optional: if `go` is not on `PATH`, `scripts/build.sh` builds the load generator in a `golang:1.25` container
+- Go is optional: if `go` is not on `PATH`, `scripts/build.sh` builds the load generator in a Go container
 
 On Ubuntu:
 
@@ -73,3 +73,7 @@ In `period_usage`, the `aligned` windows take usage from the samples nearest to 
 python3 scripts/period_arrivals.py results/s3 [carry_threshold_ms]
 python3 scripts/period_usage.py results/s3 [near_ms]
 ```
+
+## Pinned versions
+
+The images in `server/Dockerfile` and `scripts/build.sh`, and Go in `loadgen/go.mod`.

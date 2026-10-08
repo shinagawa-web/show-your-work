@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -uo pipefail
-here=$(cd "$(dirname "$0")" && pwd)
+here=$(cd "$(dirname "$0")/.." && pwd)
 out=${RESULTS:-$here/results}/preflight
 mkdir -p "$out"
 start=$(date +%s.%N)

@@ -33,7 +33,7 @@ Options passed through to `runner/run.mjs`: `--sets`, `--ages`, `--parallel` (gr
 
 - `app/` Vite app. `VITE_APP_VERSION` changes every hashed file name between v1 and v2. `VITE_RELOAD_ON_PRELOAD_ERROR=1` adds a `vite:preloadError` handler that reloads once.
 - `server/Dockerfile` builds one site image (`site-repro:v1`, `v2`, `v2-keep`, `v1-reload`, `v2-reload`).
-- `server/entrypoint.sh` sets mtimes at container start and, only when asked, writes an nginx config with `Age`, `Cache-Control` for `index.html`, or the SPA fallback (`try_files $uri /index.html`). Without those, the stock config of `nginx:1.30.5` is used.
+- `server/entrypoint.sh` sets mtimes at container start and, only when asked, writes an nginx config with `Age`, `Cache-Control` for `index.html`, or the SPA fallback (`try_files $uri /index.html`). Without those, the stock config of the nginx image is used.
 - `runner/plan.mjs` the groups (one port and one v1/v2 container pair per group).
 - `runner/run.mjs` the run. No request interception is used.
 - `run-all.sh` one command: build images, install the runner, run, summarize.
@@ -71,8 +71,8 @@ If both calibration sets run, each calibration user is judged by its measured r/
 
 ## Pinned versions
 
-- Playwright 1.63.0 with `chromium-headless-shell` (Chromium 153.0.8010.12)
-- `nginx:1.30.5`, `node:22.23.3-bookworm-slim` (build stage), Vite 8.3.1
+- Playwright in `runner/package.json`, run with `chromium-headless-shell`. The Chromium source below is at the tag of the Chromium build that this Playwright version ships
+- the nginx and node images in `server/Dockerfile`, Vite in `app/package.json`, Node in the workflow and `lima.yaml`
 - `results.json` `env` records the browser version, image IDs, node, kernel, and CPU count of each run.
 
 ## Chromium source

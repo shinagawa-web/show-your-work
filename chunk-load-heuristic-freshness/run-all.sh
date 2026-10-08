@@ -16,7 +16,8 @@ set -e
 t3=$(ts)
 python3 scripts/summarize.py "$out/results.json" > "$out/summary.md" || true
 t4=$(ts)
-printf 'build_images_sec %.1f\ninstall_runner_sec %.1f\nrun_sec %.1f\nsummarize_sec %.1f\nrunner_exit %d\n' \
-  "$(echo "$t1-$t0" | bc)" "$(echo "$t2-$t1" | bc)" "$(echo "$t3-$t2" | bc)" "$(echo "$t4-$t3" | bc)" "$rc" | tee "$out/durations.txt"
+sec() { awk -v a="$2" -v b="$1" 'BEGIN{printf "%.1f", a-b}'; }
+printf 'build_images_sec %s\ninstall_runner_sec %s\nrun_sec %s\nsummarize_sec %s\nrunner_exit %d\n' \
+  "$(sec "$t0" "$t1")" "$(sec "$t1" "$t2")" "$(sec "$t2" "$t3")" "$(sec "$t3" "$t4")" "$rc" | tee "$out/durations.txt"
 echo "$out"
 exit $rc

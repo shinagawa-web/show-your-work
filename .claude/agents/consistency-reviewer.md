@@ -29,13 +29,13 @@ If nothing is given, review every folder at the repository root that has a `run-
 ### 3. README
 
 - `# <slug>`, then a short intro on what is reproduced or recorded, not what was found
-- `## Run`: host requirements, the commands starting with `cd <slug>`, where the output goes, and the macOS line with `limactl create`, `limactl start` and `scripts/vm-run.sh`
+- `## Run`: host requirements, the commands starting with `cd <slug>`, where the output goes and which file is the summary, and the macOS line with `limactl create`, `limactl start` and `scripts/vm-run.sh`
 - Detail sections after `## Run`. `## Pinned versions` comes last when versions are pinned, followed only by source references such as upstream file and line at a pinned tag
 - Paths and file names in the README exist in the folder
 
 ### 4. No results in documents
 
-READMEs, the root README, commit messages and pull request bodies contain no results: no observed values, no findings, no tables of outcomes, no links to or IDs of specific CI runs. Every run produces results again, so they go stale. Inputs, design values, predictions, pinned versions and how to run are allowed, but where the value is defined in a file, pointing to that file is preferred over copying the value.
+READMEs, the root README, commit messages and pull request bodies contain no results: no observed values, no findings, no tables of outcomes, no links to or IDs of specific CI runs. Every run produces results again, so they go stale. Inputs, design values, predictions, pinned versions and how to run are allowed, and so is a pull request saying how its own change was checked, but where the value is defined in a file, pointing to that file is preferred over copying the value.
 
 ### 5. Comments
 
@@ -53,7 +53,7 @@ No comments in code, scripts, configuration or data files. Python docstrings cou
 - `on:` `workflow_dispatch` and `push` with `paths` covering `<slug>/**`, the workflow file itself, and any local action it uses
 - `defaults.run`: `shell: bash`, `working-directory: <slug>`
 - Every job: `runs-on: ubuntu-24.04` and `timeout-minutes`
-- Runs `./run-all.sh` (with arguments as needed), not a script under `scripts/`
+- Runs `./run-all.sh` (with arguments as needed), not a script under `scripts/`. The exception is a job that only merges the results of the other jobs into one summary
 - Writes the summary to `$GITHUB_STEP_SUMMARY` with `if: always()`, in at least one job
 - Uploads `<slug>/results/` with `actions/upload-artifact` and `if: always()`, artifact name starting with `<slug>`
 - Fails the job when the verification itself is invalid, not only when a command errors

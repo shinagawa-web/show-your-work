@@ -15,3 +15,7 @@ cd rate-limit-cannot-protect
 Raw output goes to `results/`, one directory per scenario. `results/checks.txt` has each check with its prediction, the observed value and pass / fail.
 
 On macOS, create the VM once with `limactl create --name=rate-limit-cannot-protect rate-limit-cannot-protect/lima.yaml` and `limactl start rate-limit-cannot-protect`, then run `scripts/vm-run.sh rate-limit-cannot-protect [scenario ...]` from the repository root. It copies this folder into the VM, runs `./run-all.sh` there and copies `results/` back.
+
+## Pinned versions
+
+The images in `Dockerfile` and `docker-compose.yml`.
