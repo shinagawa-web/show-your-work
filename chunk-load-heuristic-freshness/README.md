@@ -10,57 +10,19 @@ The workflow runs every set. `summary.md` and `durations.txt` go to the job summ
 
 ## Variables
 
-- A: age of `index.html` when it is fetched (`Date` minus `Last-Modified`). The container sets the mtime of every served file to `start - AGE_SEC` in `server/entrypoint.sh`.
-- r: time from fetch to revisit. It is produced in one of two ways:
-  - `real-wait`: the runner waits r seconds before revisiting (calibration only)
-  - `age-header`: the v1 container serves `index.html` with `Age: <r>` and the user revisits right after the deploy. The recorded r is the `Age` value plus the seconds that actually passed between fetch and revisit.
-- The boundary is judged with the measured `r / A` (`measured.r_over_A` in `results.json`), not the target values.
+- A: age of `index.html` when it is fetched (`Date` minus `Last-Modified`)
+- r: time from fetch to revisit, produced in one of two ways:
+  - real wait: the runner waits r seconds before revisiting
+  - `Age` header: the v1 container serves `index.html` with `Age: <r>` and the user revisits right after the deploy. The recorded r is the `Age` value plus the seconds that actually passed
+- The boundary is judged with the measured `r / A` (`measured.r_over_A` in `results.json`), not the target values
 
-## Layout
+The sets and the A, r and server settings of each are in `runner/plan.mjs`. A deploy between fetch and revisit cannot be placed with the `Age` header, so the `deploytime` set waits in real time.
 
-- `app/` Vite app. `VITE_APP_VERSION` changes every hashed file name between v1 and v2. `VITE_RELOAD_ON_PRELOAD_ERROR=1` adds a `vite:preloadError` handler that reloads once.
-- `server/Dockerfile` builds one site image (`site-repro:v1`, `v2`, `v2-keep`, `v1-reload`, `v2-reload`).
-- `server/entrypoint.sh` sets mtimes at container start and, only when asked, writes an nginx config with `Age`, `Cache-Control` for `index.html`, or the SPA fallback (`try_files $uri /index.html`). Without those, the stock config of the nginx image is used.
-- `runner/plan.mjs` the groups (one port and one v1/v2 container pair per group).
-- `runner/run.mjs` the run. No request interception is used.
-- `run-all.sh` one command: build images, install the runner, run, summarize.
-- `scripts/summarize.py` markdown summary of `results.json`.
-- `results/<run>/` `results.json` (one record per user), `nginx/*.access.log` and `*.error.log` per container, `summary.md`, `durations.txt`, `runner.log`, `images.txt`.
-
-## Sets
-
-| set | A | r | server |
-|:---|:---|:---|:---|
-| cal-wait | 10m | 5/9/11% by real waiting | stock |
-| cal-age | 10m | 5/9/11% by `Age` | stock + `Age` on v1 |
-| grid | 10m, 100m, 1000m, 6d | 5/9/11/20% by `Age`; at 100m also the reload method | stock + `Age` on v1 |
-| keep | 100m | 5/9/11/20% | v2 image also has the v1 assets |
-| spa | 100m | 5/9/11/20% | SPA fallback on v1 and v2 |
-| nocache | 100m | 5/9/11/20% | `Cache-Control: no-cache` on `index.html` |
-| maxage | 100m; also 10m and 1000m | 300/540/660/840/960/1200 s at 100m; 840/960 s at 10m and 1000m | `Cache-Control: max-age=900` on `index.html` |
-| maxage300 | 100m; 1000m | 240/360/540/660 s at 100m; 240/360 s at 1000m | `Cache-Control: max-age=300` on `index.html` |
-| deploytime | 10m | 5/9/11/20% by real waiting; deploy early / mid / late | stock |
-| nocache304 | 100m | 5/9/11/20% by `Age`; with and without a deploy | `Cache-Control: no-cache` on `index.html`; access log adds `inm="$http_if_none_match" ims="$http_if_modified_since"` |
-| reloadfail | 100m | 5/9/11/20% | app reloads once on `vite:preloadError` |
-| pressfirst | 10m; 100m | 5/9/11% by real waiting at 10m; 5/9/11/20% by `Age` at 100m | stock (+ `Age` on v1 at 100m); the button is also pressed on the first visit, so the v1 chunk is fetched before the deploy |
-
-Three users per point, each with its own persistent profile. After the fetch the browser is closed; the revisit relaunches the same profile, opens `context.newPage()` and navigates (the disk cache is used). The reload method then calls `page.reload()` before pressing the button. Each user sends a user agent ending in `chunk-repro/<user id>` so its access log lines can be picked out.
-
-Deploy timing cannot be expressed with the `Age` header: `Age` puts the whole fetch-to-revisit interval before the fetch, so there is no real time between fetch and revisit to place a deploy in. The `deploytime` set therefore waits in real time. `early` deploys right after the fetches, `mid` at half of the earliest r of the group, `late` 3 s before the earliest revisit. `measured.deployStartFrac` / `deployDoneFrac` record where the deploy actually fell between fetch (0) and revisit (1).
-
-In `pressfirst` groups the runner also presses the button on the first visit and waits for the chunk to load or fail before closing the browser. `firstVisitChunk` in `results.json` holds that click result and the Resource Timing entries of the chunk (`feature-*.js`); `revisitChunkResources` holds the chunk entries of the revisit (`transferSize` 0 = served from cache). Both are also columns of the `pressfirst` table in `summary.md`.
-
-In `nocache304` groups without a deploy, the v1 container also serves the revisit; its access log is split at a snapshot taken after the fetches (`accessLog.v1` = fetch, `accessLog.v2` = revisit).
-
-The real-wait sets (`cal-wait`, `cal-age`, `deploytime`, and the real-wait group of `pressfirst`) run first, all groups at once. The other sets follow, a few groups at a time (`--parallel` of `runner/run.mjs`).
-
-If both calibration sets run, each calibration user is judged by its measured r/A, not by its point label: v1 is expected when r/A < 0.1 and v2 when r/A >= 0.1, in either method. If any user booted a version that contradicts its measured r/A, the run stops after calibration (exit 2). `results.json` `calibration.rows` and the Calibration section of `summary.md` list, per user, the method, measured r/A, expected and booted version, and pass/fail.
+The real-wait sets, including the calibration sets `cal-wait` and `cal-age`, run first. If a calibration user boots a version that contradicts its measured r/A, the other sets are not run and the run exits with 2.
 
 ## Pinned versions
 
-- Playwright in `runner/package.json`, run with `chromium-headless-shell`. The Chromium source below is at the tag of the Chromium build that this Playwright version ships
-- the nginx and node images in `server/Dockerfile`, Vite in `app/package.json`, Node in the workflow and `lima.yaml`
-- `results.json` `env` records the browser version, image IDs, node, kernel, and CPU count of each run.
+Playwright in `runner/package.json`, the nginx and node images in `server/Dockerfile`, Vite in `app/package.json`. `results.json` `env` records the browser version and image IDs of each run.
 
 ## Chromium source
 

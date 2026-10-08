@@ -8,8 +8,8 @@ Everything runs inside a small test VM started with QEMU+KVM, so that a host-wid
 
 `.github/workflows/exit137-sender.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-The workflow runs every condition. `run-all.sh` first runs `scripts/install-deps.sh`, which installs QEMU and the build tools on the runner and makes `/dev/kvm` usable. `results/summary.md`, one row per run, goes to the job summary, and `results/`, one directory per condition and run, is uploaded as the `exit137-sender-results` artifact.
+The workflow runs every condition. `results/summary.md`, one row per run, goes to the job summary, and `results/`, one directory per condition and run, is uploaded as the `exit137-sender-results` artifact.
 
 ## Pinned versions
 
-`scripts/versions.env` pins docker.io, containerd and runc in the test VM, and the Ubuntu cloud image it boots.
+`scripts/versions.env`.
