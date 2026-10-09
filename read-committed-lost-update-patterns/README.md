@@ -10,8 +10,8 @@ This reproduces, under PostgreSQL 16's default Read Committed isolation, the two
 |---|---|
 | `A` | `SELECT stock`, sleep, `UPDATE ... SET stock = stock - 1`, `INSERT INTO orders` |
 | `B` | `SELECT stock` into `v`, sleep, `UPDATE ... SET stock = v - 1`, `INSERT INTO orders` |
-| `C` | `UPDATE ... SET stock = stock - 1 WHERE ... AND stock > 0`, `INSERT INTO orders` if a row was updated |
-| `CB` | as `B`, with `AND stock > 0` on the `UPDATE` |
+| `C` | as `A`, with `AND stock > 0` on the `UPDATE`; `INSERT INTO orders` only if a row was updated |
+| `CB` | as `B`, with `AND stock > 0` on the `UPDATE`; `INSERT INTO orders` only if a row was updated |
 | `D` | as `B`, with `AND stock = v` on the `UPDATE`; retries from the `SELECT` when no row was updated |
 
 A thread that reads `stock <= 0` stops without ordering.

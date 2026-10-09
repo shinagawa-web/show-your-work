@@ -81,6 +81,13 @@ def worker_c(item_id, worker_id, wait_sec, retries_box):
         conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("BEGIN ISOLATION LEVEL READ COMMITTED")
+            cur.execute("SELECT stock FROM items WHERE id = %s", (item_id,))
+            stock = cur.fetchone()[0]
+            if stock <= 0:
+                conn.commit()
+                return
+            if wait_sec:
+                cur.execute("SELECT pg_sleep(%s)", (wait_sec,))
             cur.execute(
                 "UPDATE items SET stock = stock - 1 WHERE id = %s AND stock > 0",
                 (item_id,),
