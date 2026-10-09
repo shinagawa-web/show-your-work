@@ -1,0 +1,12 @@
+services:
+  go-app:
+    build: .
+    ports:
+      - "3000:3000"
+    cpus: 2.0
+    mem_limit: 128m
+    environment:
+      PORT: 3000
+      ARM: ${ARM:-a}
+      WORKER_CAP: ${WORKER_CAP:-10}
+    profiles: [go-queue]

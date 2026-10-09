@@ -1,0 +1,8 @@
+{
+  "name": "go-goroutine-pileup-memory",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "autocannon": "^7.15.0"
+  }
+}

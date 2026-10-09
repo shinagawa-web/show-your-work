@@ -1,0 +1,57 @@
+name: go-goroutine-pileup-memory
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "go-goroutine-pileup-memory/**"
+      - ".github/workflows/go-goroutine-pileup-memory.yml"
+
+env:
+  CONCURRENCY: "50"
+  DURATION: "30"
+  WARMUP: "10"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: go-goroutine-pileup-memory
+
+jobs:
+  arm-a:
+    name: "Arm A — unlimited goroutines"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Install deps
+        run: npm install
+      - name: Start go-app
+        run: |
+          ARM=a docker compose --profile go-queue up -d --build
+          sleep 5
+      - name: Run load
+        env:
+          APP_URL: http://localhost:3000
+          ARM: a
+          CSV_OUT: results-go-arm-a.csv
+        run: node loadgen/ramp-go.js
+      - name: Summarize
+        run: |
+          {
+            echo '## Arm A — unlimited goroutines (math loop burnCPU)'
+            echo ''
+            echo '| sync_ms | endpoint | p50 | p99 | goroutines_peak | mem_mb |'
+            echo '|---------|----------|-----|-----|----------------|--------|'
+            tail -n +2 results-go-arm-a.csv | awk -F',' '{ printf "| %s | %s | %s | %s | %s | %s |\n", $4, $2, $7, $8, $11, $12 }'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: go-goroutine-pileup-memory-arm-a
+          path: go-goroutine-pileup-memory/results-go-arm-a.csv
+      - name: Stop app
+        if: always()
+        run: docker compose --profile go-queue down
