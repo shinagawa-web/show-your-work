@@ -11,13 +11,13 @@ This measures the throughput of transactions that take a row lock with `SELECT .
 
 With `--observe`, it also counts sessions in `pg_stat_activity` with `wait_event_type = 'Lock'` every 0.5s.
 
-`run_all.sh` runs three rounds, each condition twice:
+`run_all.sh` has ten conditions in three rounds, and runs each twice:
 
-| Round | Pattern | Concurrency | hold | Initial stock |
-|---|---|---|---|---|
-| 1 | `for_update` | 20 | 0.1s, 1.0s, 5.0s | 1000 |
-| 2 | `for_update` with `--observe` | 1, 5, 10, 20, 50 | 0.1s | 1000 |
-| 3 | `for_update` and `conditional` | 20 | 0.1s (`for_update` only) | 1000 and 200000 |
+| Round | Conditions | Pattern | Concurrency | hold | Initial stock |
+|---|---|---|---|---|---|
+| 1 | `hold-0.1`, `hold-1.0`, `hold-5.0` | `for_update` | 20 | 0.1s, 1.0s, 5.0s | 1000 |
+| 2 | `conc-1`, `conc-5`, `conc-10`, `conc-20`, `conc-50` | `for_update` with `--observe` | 1, 5, 10, 20, 50 | 0.1s | 1000 |
+| 3 | `pattern-for-update`, `pattern-conditional` | `for_update`, `conditional` | 20 | 0.1s (`for_update` only) | 1000, 200000 |
 
 The schema is in `schema.sql`. PostgreSQL runs with `max_connections=200` (`docker-compose.yml`).
 
@@ -27,9 +27,12 @@ On a host with Docker:
 
 ```
 cd select-for-update-throughput-ceiling
-./run_all.sh
+./run_all.sh                    # every condition
+./run_all.sh hold-5.0 conc-20   # only these
 ```
+
+CI runs each condition as its own job.
 
 ## Results
 
-The CI job summary has the output of every round, without the per-sample lock waiter lines. The artifact carries the full output.
+Each CI job's summary has the output of that condition, without the per-sample lock waiter lines. The artifact carries the full output.
