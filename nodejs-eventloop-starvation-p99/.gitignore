@@ -1,0 +1,6 @@
+node_modules/
+*.csv
+experiments/*/summary.md
+experiments/*/summary-*.md
+app/isolate-*.log
+profile-output.txt
