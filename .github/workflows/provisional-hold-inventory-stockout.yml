@@ -1,0 +1,38 @@
+name: provisional-hold-inventory-stockout
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "provisional-hold-inventory-stockout/**"
+      - ".github/workflows/provisional-hold-inventory-stockout.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: provisional-hold-inventory-stockout
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run sim.py and run.py
+        run: |
+          set -o pipefail
+          chmod +x run_all.sh
+          ./run_all.sh | tee results.txt
+      - name: Summarize
+        if: always()
+        run: |
+          {
+            echo '```'
+            grep -E '^(===|customers=| *T\(|  *[0-9]+  )' results.txt 2>/dev/null || echo "no results"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: provisional-hold-inventory-stockout
+          path: provisional-hold-inventory-stockout/results.txt
