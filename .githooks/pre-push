@@ -8,5 +8,5 @@ while read -r _ local_sha _ remote_sha; do
   else
     base=$remote_sha
   fi
-  "$(git rev-parse --show-toplevel)/scripts/check-public-refs.sh" "$base" "$local_sha"
+  "$(git rev-parse --show-toplevel)/.github/scripts/check-public-refs.sh" "$base" "$local_sha"
 done

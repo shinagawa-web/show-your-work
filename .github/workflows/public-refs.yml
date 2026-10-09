@@ -13,4 +13,4 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - run: scripts/check-public-refs.sh "${{ github.event.pull_request.base.sha || github.event.before }}" HEAD
+      - run: .github/scripts/check-public-refs.sh "${{ github.event.pull_request.base.sha || github.event.before }}" HEAD
