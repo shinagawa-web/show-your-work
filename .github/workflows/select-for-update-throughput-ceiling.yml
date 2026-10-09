@@ -1,0 +1,53 @@
+name: select-for-update-throughput-ceiling
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "select-for-update-throughput-ceiling/**"
+      - ".github/workflows/select-for-update-throughput-ceiling.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: select-for-update-throughput-ceiling
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        condition:
+          - hold-0.1
+          - hold-1.0
+          - hold-5.0
+          - conc-1
+          - conc-5
+          - conc-10
+          - conc-20
+          - conc-50
+          - pattern-for-update
+          - pattern-conditional
+    name: ${{ matrix.condition }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run
+        run: |
+          set -o pipefail
+          chmod +x run_all.sh
+          ./run_all.sh ${{ matrix.condition }} | tee results.txt
+      - name: Summarize
+        if: always()
+        run: |
+          {
+            echo '```'
+            grep -vE '^  lock_waiters=' results.txt 2>/dev/null || echo "no results"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: select-for-update-throughput-ceiling-${{ matrix.condition }}
+          path: select-for-update-throughput-ceiling/results.txt
