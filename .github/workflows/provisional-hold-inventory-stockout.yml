@@ -13,26 +13,65 @@ defaults:
     working-directory: provisional-hold-inventory-stockout
 
 jobs:
-  run:
+  sim:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - name: Run sim.py and run.py
+      - name: Run sim.py
         run: |
           set -o pipefail
           chmod +x run_all.sh
-          ./run_all.sh | tee results.txt
+          ./run_all.sh sim | tee results-sim.txt
       - name: Summarize
         if: always()
         run: |
-          {
-            echo '```'
-            grep -E '^(===|customers=| *T\(|  *[0-9]+  )' results.txt 2>/dev/null || echo "no results"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          { echo '```'; cat results-sim.txt 2>/dev/null || echo "no results"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: provisional-hold-inventory-stockout
-          path: provisional-hold-inventory-stockout/results.txt
+          name: provisional-hold-inventory-stockout-sim
+          path: provisional-hold-inventory-stockout/results-sim.txt
+
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5]
+    name: run.py (${{ matrix.shard }})
+    env:
+      RUNS: "2"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run run.py
+        run: |
+          set -o pipefail
+          chmod +x run_all.sh
+          ./run_all.sh run | tee results-run-${{ matrix.shard }}.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: provisional-hold-inventory-stockout-run-${{ matrix.shard }}
+          path: provisional-hold-inventory-stockout/results-run-${{ matrix.shard }}.txt
+
+  report:
+    needs: run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: provisional-hold-inventory-stockout-run-*
+          merge-multiple: true
+          path: provisional-hold-inventory-stockout/
+      - name: Average run.py over all shards
+        run: |
+          python3 report.py results-run-*.txt | tee results-run.txt
+          { echo '```'; cat results-run.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: provisional-hold-inventory-stockout-run
+          path: provisional-hold-inventory-stockout/results-run.txt
