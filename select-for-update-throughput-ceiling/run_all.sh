@@ -22,8 +22,8 @@ for conc in 1 5 10 20 50; do
 done
 
 # Round 3: pattern comparison at concurrency=20, 30s window
-# conditional needs large stock: 200+ TPS × 30s = 6000+ commits
+# conditional needs stock that outlasts the window: 1,500+ TPS × 30s = 45,000+ commits
 run --pattern for_update  --concurrency 20 --hold 0.1 --duration 30 --init-stock 1000  --runs 2
-run --pattern conditional --concurrency 20             --duration 30 --init-stock 50000 --runs 2
+run --pattern conditional --concurrency 20             --duration 30 --init-stock 200000 --runs 2
 
 docker compose down

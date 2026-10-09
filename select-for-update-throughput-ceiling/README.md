@@ -17,7 +17,7 @@ With `--observe`, it also counts sessions in `pg_stat_activity` with `wait_event
 |---|---|---|---|---|
 | 1 | `for_update` | 20 | 0.1s, 1.0s, 5.0s | 1000 |
 | 2 | `for_update` with `--observe` | 1, 5, 10, 20, 50 | 0.1s | 1000 |
-| 3 | `for_update` and `conditional` | 20 | 0.1s (`for_update` only) | 1000 and 50000 |
+| 3 | `for_update` and `conditional` | 20 | 0.1s (`for_update` only) | 1000 and 200000 |
 
 The schema is in `schema.sql`. PostgreSQL runs with `max_connections=200` (`docker-compose.yml`).
 
