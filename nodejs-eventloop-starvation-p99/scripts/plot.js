@@ -59,7 +59,7 @@ const tableRows = knobs.map((k, i) => {
 
 const table = [tableHeader, tableSep, ...tableRows].join('\n')
 
-const summary = `## Experiment 01 — Event Loop Starvation
+const summary = `## Event Loop Starvation
 
 ### Knob: sync blocking weight (${knobs.join(' / ')} ms)
 
