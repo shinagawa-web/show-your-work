@@ -62,21 +62,28 @@ def _sweeper(stop, scenarios, window):
         while not stop.wait(0.5):
             try:
                 with conn.cursor() as cur:
+                    # The expiry release query from the article, with the
+                    # released hold_ids returned for the dead-hold bookkeeping.
                     cur.execute(
-                        "WITH expired AS ("
-                        "  UPDATE holds SET status = 'expired'"
-                        "   WHERE product_id = ANY(%s) AND status = 'reserved'"
-                        "     AND expires_at <= NOW()"
-                        "  RETURNING hold_id, product_id, quantity"
-                        "), inv_update AS ("
-                        "  UPDATE inventory i"
-                        "    SET stock = i.stock + e.total"
-                        "    FROM (SELECT product_id, SUM(quantity) AS total"
-                        "          FROM expired GROUP BY product_id) e"
-                        "    WHERE i.product_id = e.product_id"
+                        "WITH batch AS ("
+                        "  SELECT hold_id, product_id, quantity"
+                        "  FROM holds"
+                        "  WHERE status = 'reserved' AND expires_at <= NOW()"
+                        "  ORDER BY expires_at"
+                        "  LIMIT 100"
+                        "  FOR UPDATE SKIP LOCKED"
+                        "), done AS ("
+                        "  UPDATE holds h SET status = 'expired'"
+                        "  FROM batch WHERE h.hold_id = batch.hold_id"
+                        "  RETURNING h.hold_id, h.product_id, h.quantity"
+                        "), restored AS ("
+                        "  UPDATE inventory i SET stock = i.stock + agg.qty"
+                        "  FROM ("
+                        "    SELECT product_id, SUM(quantity) AS qty FROM done GROUP BY product_id"
+                        "  ) agg"
+                        "  WHERE i.product_id = agg.product_id"
                         ")"
-                        "SELECT hold_id, product_id FROM expired",
-                        (product_ids,),
+                        "SELECT hold_id, product_id FROM done"
                     )
                     rows = cur.fetchall()
                 conn.commit()

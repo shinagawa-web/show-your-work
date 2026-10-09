@@ -84,4 +84,6 @@ T(min)   confirmed  exp_during_co  lost_sale dead_ratio
 
 ## CI
 
-`run_all.sh` runs `sim.py` with 30 seeds and `run.py` with 3 rounds, both with the defaults above. `sim.py` seeds each run with its index, so it prints the same table every time. `run.py` does not fix a seed, so its table changes from run to run. The CI job summary has both tables, and the artifact carries the full output.
+`run_all.sh` runs `sim.py` with 30 seeds, with the defaults above and again with `--stock` 150, 200 and 300, and `run.py` with 3 rounds and the defaults. `sim.py` seeds each run with its index, so it prints the same table every time. `run.py` does not fix a seed, so its table changes from run to run. The CI job summary has both tables, and the artifact carries the full output.
+
+`run.py` releases expired holds with one sweeper that runs every 0.5s (30s of simulated time) and processes up to 100 holds per run, oldest first, with `FOR UPDATE SKIP LOCKED`. `sim.py` releases them every 10s of simulated time (`--sweep`).
