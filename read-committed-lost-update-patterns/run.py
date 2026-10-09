@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import sys
 import threading
 import psycopg
 from psycopg import sql
@@ -152,13 +153,20 @@ PATTERNS = {"A": worker_a, "B": worker_b, "C": worker_c, "D": worker_d, "CB": wo
 def run_once(pattern, concurrency, keys, init_stock, wait_sec):
     fn = PATTERNS[pattern]
     retries_box = {}
+    errors = []
     with psycopg.connect(DSN) as conn:
         init_db(conn, keys, init_stock)
+
+    def target(*args):
+        try:
+            fn(*args)
+        except Exception as e:
+            errors.append(e)
 
     threads = []
     for i in range(concurrency):
         item_id = (i % keys) + 1
-        t = threading.Thread(target=fn, args=(item_id, i, wait_sec, retries_box))
+        t = threading.Thread(target=target, args=(item_id, i, wait_sec, retries_box))
         threads.append(t)
     for t in threads:
         t.start()
@@ -168,6 +176,8 @@ def run_once(pattern, concurrency, keys, init_stock, wait_sec):
     with psycopg.connect(DSN) as conn:
         result = measure(conn, keys, init_stock)
     result["retries"] = sum(retries_box.values())
+    result["errors"] = len(errors)
+    result["first_error"] = " ".join(f"{type(errors[0]).__name__}: {errors[0]}".split()) if errors else ""
     return result
 
 def main():
@@ -181,10 +191,19 @@ def main():
     args = parser.parse_args()
 
     print(f"pattern={args.pattern} concurrency={args.concurrency} keys={args.keys} init_stock={args.init_stock} wait={args.wait}s")
-    print(f"{'run':>4}  {'stock_sum':>10} {'decremented':>12} {'orders_ok':>10} {'lost_decrements':>16} {'negative_rows':>14} {'min_stock':>10} {'retries':>8}")
+    print(f"{'run':>4}  {'stock_sum':>10} {'decremented':>12} {'orders_ok':>10} {'lost_decrements':>16} {'negative_rows':>14} {'min_stock':>10} {'retries':>8} {'errors':>7}")
+    invalid = []
     for r in range(1, args.runs + 1):
         res = run_once(args.pattern, args.concurrency, args.keys, args.init_stock, args.wait)
-        print(f"{r:>4}  {res['stock_sum']:>10} {res['decremented']:>12} {res['orders_ok']:>10} {res['lost_decrements']:>16} {res['negative_rows']:>14} {res['min_stock']:>10} {res['retries']:>8}")
+        print(f"{r:>4}  {res['stock_sum']:>10} {res['decremented']:>12} {res['orders_ok']:>10} {res['lost_decrements']:>16} {res['negative_rows']:>14} {res['min_stock']:>10} {res['retries']:>8} {res['errors']:>7}")
+        if res["errors"]:
+            invalid.append(f"run {r}: {res['errors']} errors ({res['first_error']})")
+        elif res["orders_ok"] == 0:
+            invalid.append(f"run {r}: no orders")
+    for reason in invalid:
+        print(f"RUN INVALID: {reason}")
+    if invalid:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

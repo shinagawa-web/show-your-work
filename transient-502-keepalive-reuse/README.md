@@ -1,29 +1,13 @@
 # transient-502-keepalive-reuse
 
-nginx pools keepalive connections to its backend. When the backend closes one and a busy worker reuses it before noticing, the request gets no response: a sporadic 502 that never reproduces by hand.
+Puts nginx, which pools keepalive connections to its backend, in front of two Node.js instances, closes the pooled connections from the backend side under load, and records the 502s nginx returns: nginx and backend access logs, the nginx error log, a loopback packet capture of FIN, RST and PSH packets, and `nstat` counters. Each scenario is one case in `scripts/scenario.sh`.
 
-This reproduces it with nginx in front of two Node.js instances and measures it.
+## Run
 
-## Run it
+`.github/workflows/transient-502-keepalive-reuse.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. Each job runs one scenario.
 
-On a Linux host with Docker:
+`results/summary.md` goes to the job summary: the environment, `summary.txt` (requests, 502s, the error log and `nstat`) and the output of `scripts/analyze.py` (502s per turnover, the packet sequence of reset connections, retries, and the difference between requests sent and requests the backend received). `results/` is uploaded as the `transient-502-keepalive-reuse-<scenario>` artifact. A run that did not happen (nginx or the backends logged no request, `ab` did not complete, no packet capture, a failed step) fails the job with a `RUN INVALID` line in the summary; 502s themselves never fail it.
 
-```
-cd transient-502-keepalive-reuse
-docker build -t keepalive-lab .
-docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW -v "$PWD":/lab keepalive-lab bash /lab/run.sh <scenario>
-python3 tools/analyze.py out/<scenario>
-```
+## Pinned versions
 
-Output lands in `out/<scenario>/`. Scenario names are in `run.sh`. CI runs `baseline-concurrent`, `baseline-concurrent-noturnover`, `retry-get`, `retry-post`, `nonidem-post`, `ka-timeout` and `drain`.
-
-`tools/analyze.py` reads `loopback.txt` if it exists. To produce it from the capture:
-
-```
-docker run --rm -v "$PWD":/lab keepalive-lab bash -c \
-  "tcpdump -r /lab/out/<scenario>/loopback.pcap -n -tt > /lab/out/<scenario>/loopback.txt"
-```
-
-## Results
-
-Each CI job's summary has the aggregated figures for that scenario. Artifacts carry the raw logs.
+The images in `Dockerfile`.

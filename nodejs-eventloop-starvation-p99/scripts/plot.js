@@ -59,9 +59,7 @@ const tableRows = knobs.map((k, i) => {
 
 const table = [tableHeader, tableSep, ...tableRows].join('\n')
 
-const summary = `## Experiment 01 — Event Loop Starvation
-
-Claim: p99 spikes even when CPU has headroom. The unrelated lightweight endpoint (/light) degrades too.
+const summary = `## Event Loop Starvation
 
 ### Knob: sync blocking weight (${knobs.join(' / ')} ms)
 

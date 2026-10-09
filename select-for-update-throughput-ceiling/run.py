@@ -1,16 +1,7 @@
 #!/usr/bin/env python3
-"""
-Measure throughput ceiling for SELECT ... FOR UPDATE vs alternatives.
-
-Patterns:
-  for_update:  SELECT ... FOR UPDATE, sleep(hold), UPDATE
-  conditional: UPDATE SET stock = stock - 1 WHERE stock > 0
-
-Each worker loops for the duration of the measurement window (stop_event driven),
-so TPS emerges from system behavior rather than being defined by thread count x hold.
-"""
 import argparse
 import os
+import sys
 import threading
 import time
 import psutil
@@ -33,7 +24,7 @@ def init_db(init_stock):
         conn.commit()
 
 
-def worker_for_update(latencies, stop_event, hold_sec):
+def worker_for_update(latencies, errors, stop_event, hold_sec):
     with psycopg.connect(DSN) as conn:
         while not stop_event.is_set():
             t0 = time.monotonic()
@@ -54,14 +45,15 @@ def worker_for_update(latencies, stop_event, hold_sec):
                     )
                     conn.commit()
                 latencies.append(time.monotonic() - t0)
-            except Exception:
+            except Exception as e:
+                errors.append(None if errors else e)
                 try:
                     conn.rollback()
                 except Exception:
                     pass
 
 
-def worker_conditional(latencies, stop_event, hold_sec):
+def worker_conditional(latencies, errors, stop_event, hold_sec):
     with psycopg.connect(DSN) as conn:
         while not stop_event.is_set():
             t0 = time.monotonic()
@@ -80,7 +72,8 @@ def worker_conditional(latencies, stop_event, hold_sec):
                     )
                     conn.commit()
                 latencies.append(time.monotonic() - t0)
-            except Exception:
+            except Exception as e:
+                errors.append(None if errors else e)
                 try:
                     conn.rollback()
                 except Exception:
@@ -111,12 +104,16 @@ def _observe(stop_event):
 def run_once(pattern, concurrency, hold_sec, duration_sec, init_stock, observe=False):
     fn = PATTERNS[pattern]
     latencies = []
+    errors = []
     lock = threading.Lock()
     stop = threading.Event()
 
     def wrapper():
         local = []
-        fn(local, stop, hold_sec)
+        try:
+            fn(local, errors, stop, hold_sec)
+        except Exception as e:
+            errors.append(None if errors else e)
         with lock:
             latencies.extend(local)
 
@@ -140,15 +137,18 @@ def run_once(pattern, concurrency, hold_sec, duration_sec, init_stock, observe=F
     obs_stop.set()
     elapsed = time.monotonic() - t_start
 
+    first_error = " ".join(f"{type(errors[0]).__name__}: {errors[0]}".split()) if errors else ""
     if not latencies:
-        return {"tps": 0.0, "p50_ms": 0.0, "p99_ms": 0.0, "elapsed_s": elapsed, "count": 0}
+        return {"tps": 0.0, "p50_ms": 0.0, "p99_ms": 0.0, "elapsed_s": elapsed, "count": 0,
+                "errors": len(errors), "first_error": first_error}
 
     latencies.sort()
     n = len(latencies)
     p50 = latencies[min(int(n * 0.50), n - 1)] * 1000
     p99 = latencies[min(int(n * 0.99), n - 1)] * 1000
     tps = n / elapsed
-    return {"tps": tps, "p50_ms": p50, "p99_ms": p99, "elapsed_s": elapsed, "count": n}
+    return {"tps": tps, "p50_ms": p50, "p99_ms": p99, "elapsed_s": elapsed, "count": n,
+            "errors": len(errors), "first_error": first_error}
 
 
 def main():
@@ -166,7 +166,8 @@ def main():
         f"pattern={args.pattern} concurrency={args.concurrency} "
         f"hold={args.hold}s duration={args.duration}s init_stock={args.init_stock}"
     )
-    print(f"{'run':>4}  {'tps':>8} {'p50_ms':>9} {'p99_ms':>9} {'count':>6} {'elapsed_s':>10}")
+    print(f"{'run':>4}  {'tps':>8} {'p50_ms':>9} {'p99_ms':>9} {'count':>6} {'elapsed_s':>10} {'errors':>7}")
+    invalid = []
     for r in range(1, args.runs + 1):
         res = run_once(
             args.pattern, args.concurrency, args.hold,
@@ -175,7 +176,16 @@ def main():
         print(
             f"{r:>4}  {res['tps']:>8.2f} "
             f"{res['p50_ms']:>9.1f} {res['p99_ms']:>9.1f} {res['count']:>6} {res['elapsed_s']:>10.3f}"
+            f" {res['errors']:>7}"
         )
+        if res["errors"]:
+            invalid.append(f"run {r}: {res['errors']} errors ({res['first_error']})")
+        elif res["count"] == 0:
+            invalid.append(f"run {r}: no commits")
+    for reason in invalid:
+        print(f"RUN INVALID: {reason}")
+    if invalid:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

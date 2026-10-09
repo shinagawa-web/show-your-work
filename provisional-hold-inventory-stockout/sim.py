@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""
-In-memory discrete-event simulation (no DB required).
-Same parameter names as run.py. Time unit: 1 = 1 minute.
-"""
 import argparse
 import heapq
 import math
