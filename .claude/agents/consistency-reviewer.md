@@ -11,7 +11,7 @@ What the experiment measures, whether its numbers are right, and code design are
 
 ## What you receive
 
-- One or more folder names (slugs), or a pull request number or branch. For a pull request, review every folder it touches, and the shared files it touches (`README.md`, `scripts/`, `.github/`, `.claude/`).
+- One or more folder names (slugs), or a pull request number or branch. For a pull request, review every folder it touches, and the shared files it touches (`README.md`, `.github/`, `.githooks/`, `.lima/`, `.claude/`).
 
 If nothing is given, review every folder at the repository root that has a `run-all.sh` or a workflow under `.github/workflows/`.
 
@@ -28,7 +28,7 @@ If nothing is given, review every folder at the repository root that has a `run-
 Lima is for the maintainer's own runs and does not appear in READMEs.
 
 - `<slug>/lima.yaml` defines a VM that has what `run-all.sh` needs, with `mounts: []`
-- `scripts/vm-run.sh <slug> [args ...]` at the repository root runs it. A folder has no Lima runner of its own
+- `.lima/vm-run.sh <slug> [args ...]` runs it. A folder has no Lima runner of its own
 
 ### 3. README
 

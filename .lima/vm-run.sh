@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-[ $# -ge 1 ] || { echo "usage: scripts/vm-run.sh <slug> [run-all.sh args ...]" >&2; exit 2; }
+[ $# -ge 1 ] || { echo "usage: .lima/vm-run.sh <slug> [run-all.sh args ...]" >&2; exit 2; }
 slug=${1%/}
 shift
 root=$(cd "$(dirname "$0")/.." && pwd)
