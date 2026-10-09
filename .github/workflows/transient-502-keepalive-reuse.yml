@@ -13,7 +13,7 @@ defaults:
     working-directory: transient-502-keepalive-reuse
 
 jobs:
-  scenario:
+  run:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -27,43 +27,14 @@ jobs:
           - nonidem-post
           - ka-timeout
           - drain
-    name: ${{ matrix.sc }}
+    name: run (${{ matrix.sc }})
     steps:
       - uses: actions/checkout@v7
-      - name: Record the environment
-        run: |
-          {
-            echo '```'
-            uname -srm; nproc; free -h | head -2
-            docker version --format 'docker {{.Server.Version}}'
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Build
-        run: docker build -t keepalive-lab .
-      - name: Run
-        run: |
-          docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
-            -v "$PWD":/lab keepalive-lab bash /lab/run.sh ${{ matrix.sc }}
-          sudo chown -R "$(id -u):$(id -g)" out
-      - name: Summarize
+      - run: ./run-all.sh ${{ matrix.sc }}
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
         if: always()
-        run: |
-          {
-            echo '```'
-            cat out/${{ matrix.sc }}/summary.txt 2>/dev/null || echo "no summary"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Aggregate
-        run: |
-          if [ -f out/${{ matrix.sc }}/loopback.pcap ]; then
-            docker run --rm -v "$PWD":/lab keepalive-lab bash -c \
-              "tcpdump -r /lab/out/${{ matrix.sc }}/loopback.pcap -n -tt 2>/dev/null > /lab/out/${{ matrix.sc }}/loopback.txt"
-            sudo chown -R "$(id -u):$(id -g)" out
-          fi
-          { echo '```'; python3 tools/analyze.py out/${{ matrix.sc }}; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: transient-502-keepalive-reuse-${{ matrix.sc }}
-          path: transient-502-keepalive-reuse/out/${{ matrix.sc }}
-          retention-days: 90
+          path: transient-502-keepalive-reuse/results/

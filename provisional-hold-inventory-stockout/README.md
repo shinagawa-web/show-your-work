@@ -1,95 +1,30 @@
 # provisional-hold-inventory-stockout
 
-Simulations for measuring how hold timer length affects confirmed sales, checkout expirations, and lost sales under finite stock.
+This measures how the length of the hold timer affects confirmed sales, holds that expire during checkout, and lost sales under finite stock. `sim.py` simulates it in memory, and `run.py` runs the same scenario against PostgreSQL. Both take the same parameters, defined in their argparse options.
 
-Two scripts share the same parameters and produce the same output format. `sim.py` runs without a database; `run.py` runs against PostgreSQL.
+## Run
 
-## sim.py — in-memory simulation
+`.github/workflows/provisional-hold-inventory-stockout.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-No database required. Runs fast; useful for sweeping parameter space.
+| Job | What it runs |
+|---|---|
+| `sim` | `./run-all.sh sim`: `sim.py` with the stock values in `run-all.sh` |
+| `run (<n>)` | `./run-all.sh run`: `run.py` for `RUNS` rounds, one job per shard |
+| `report` | `report.py` averages the tables of the `run` jobs into one table |
 
-```
-python sim.py [options]
-```
-
-| Option | Default | Description |
-|---|---|---|
-| `--stock` | 100 | Initial inventory |
-| `--customers` | 300 | Number of arrivals |
-| `--window` | 30.0 | Arrival window in minutes |
-| `--purchase` | 2.0 | p50 checkout duration (minutes) |
-| `--p95` | 3× purchase | p95 checkout duration (minutes) |
-| `--abandon-rate` | 0.7 | Fraction of customers who abandon |
-| `--timers` | `1,2,3,5,7,10,15,20` | Hold timer values to sweep (minutes) |
-| `--sweep` | 10s | Expiry sweep interval (minutes) |
-| `--remove-rate` | 0.0 | Fraction of abandoners who actively remove their hold |
-| `--runs` | 30 | Seeds to average over |
-
-Example:
-
-```
-python sim.py --customers 500 --stock 150
-```
-
-## run.py — PostgreSQL simulation
-
-Runs the same scenario against a real database. Each timer value gets its own `product_id`; all run in parallel.
-
-Start the database and create the schema first:
-
-```
-docker compose up -d --wait
-docker compose exec -T postgres psql -U postgres -d lab -f /dev/stdin < schema.sql
-```
-
-Then:
-
-```
-python run.py [options]
-```
-
-| Option | Default | Description |
-|---|---|---|
-| `--stock` | 100 | Initial inventory per product |
-| `--customers` | 300 | Number of arrivals |
-| `--window` | 30.0 | Arrival window in seconds (1 s here = 1 min real) |
-| `--purchase` | 2.0 | p50 checkout duration (seconds) |
-| `--p95` | 3× purchase | p95 checkout duration (seconds) |
-| `--abandon-rate` | 0.7 | Fraction of customers who abandon |
-| `--timers` | `1,2,3,5,7,10,15,20` | Hold timer values to sweep (seconds) |
-| `--runs` | 30 | Rounds to average over |
-
-Database connection is read from environment variables: `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`. Defaults point to the `docker-compose.yml` instance.
-
-Example:
-
-```
-python run.py --customers 500 --stock 150
-```
+`results/summary.txt` of `sim` and `report` goes to the job summary. Each job uploads its `results/` as an artifact named `provisional-hold-inventory-stockout-results-<job>`.
 
 ## Output
 
-Both scripts print a table with one row per timer value:
+Each table has one row per hold timer `T`:
 
-```
-T(min)   confirmed  exp_during_co  lost_sale dead_ratio
-     1      ...            ...        ...        ...
-     2      ...            ...        ...        ...
-```
+- `confirmed`: customers who completed checkout before their hold expired
+- `exp_during_co`: customers whose hold expired while they were checking out
+- `lost_sale`: buyers who found no stock while an abandoned hold existed
+- `dead_ratio`: mean fraction of reserved holds that belong to abandoners, sampled during the arrival window
 
-- `confirmed` — customers who completed checkout before their hold expired
-- `exp_during_co` — customers whose hold expired while they were checking out
-- `lost_sale` — buyers who found no stock but an abandoned hold existed
-- `dead_ratio` — mean fraction of reserved holds that belong to abandoners, sampled during the arrival window
+`sim.py` counts time in minutes. `run.py` counts it in seconds, one second standing for one minute, and runs every `T` in parallel with its own `product_id`. `sim.py` seeds each run with its index, so it prints the same tables every time; `run.py` does not fix a seed. `report.py` needs every `run` job to have the same number of rounds.
 
-## CI
+## Pinned versions
 
-```
-./run_all.sh [sim] [run]
-```
-
-`sim` runs `sim.py` with 30 seeds, with the defaults above and again with `--stock` 150, 200 and 300. `run` runs `run.py` for `RUNS` rounds (default 3) with the defaults. With no target it runs both.
-
-`sim.py` seeds each run with its index, so it prints the same tables every time. `run.py` does not fix a seed, so its table changes from run to run. CI runs `run.py` in five parallel jobs of two rounds each, and `report.py` averages their tables into one table over ten rounds. The job summaries have the tables, and the artifacts carry the full output.
-
-`run.py` releases expired holds with one sweeper that runs every 0.5s (30s of simulated time) and processes up to 100 holds per run, oldest first, with `FOR UPDATE SKIP LOCKED`. `sim.py` releases them every 10s of simulated time (`--sweep`).
+The images in `Dockerfile` and `docker-compose.yml`.

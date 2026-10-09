@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""Aggregate the figures worth quoting from a scenario's out/ directory.
-
-  python3 tools/analyze.py out/baseline-concurrent
-"""
 import sys, re, bisect, collections, pathlib
 
 d = pathlib.Path(sys.argv[1])
@@ -10,8 +6,6 @@ d = pathlib.Path(sys.argv[1])
 def reload_delay():
     f = d/"turnover-times.txt"
     if not f.exists(): return
-    # a turnover line is "<epoch> <port>"; attribute each 502 to the most recent
-    # turnover of the instance the 502 actually came from
     turns = collections.defaultdict(list)
     for ln in f.read_text().splitlines():
         g = ln.split()
@@ -60,8 +54,6 @@ def packet_sequence():
                 for j in range(i+1, len(ev)):
                     t2, d2, fl2, _ = ev[j]
                     if d2 == "front->be" and "P" in fl2:
-                        # the reuse has to follow the FIN closely, otherwise this
-                        # is a later, unrelated connection on a recycled port
                         if (t2 - t) > 0.05: break
                         for k in range(j+1, len(ev)):
                             t3, _, fl3, _ = ev[k]

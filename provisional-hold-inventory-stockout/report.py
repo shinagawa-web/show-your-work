@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""
-Average the run.py tables from several outputs of `./run_all.sh run`.
-
-  python3 report.py results-run-*.txt
-
-Every output must come from the same number of rounds, so the mean of the
-per-output means is the mean over all rounds. Each output prints its means
-to one decimal, so the result can be off by up to 0.05.
-"""
 import collections
 import sys
 

@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-Finite-cohort simulation: N customers arrive via Poisson process over a window,
-competing for finite stock. All T values run in parallel (one product_id per T).
-
-1s here = 1min real (same scaling as previous steady-state script).
-"""
 import argparse
 import math
 import os
@@ -62,8 +56,6 @@ def _sweeper(stop, scenarios, window):
         while not stop.wait(0.5):
             try:
                 with conn.cursor() as cur:
-                    # The expiry release query from the article, with the
-                    # released hold_ids returned for the dead-hold bookkeeping.
                     cur.execute(
                         "WITH batch AS ("
                         "  SELECT hold_id, product_id, quantity"

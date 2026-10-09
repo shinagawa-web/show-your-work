@@ -2,7 +2,8 @@
 set -uo pipefail
 sc="${1:?scenario}"
 cd /lab
-o="out/$sc"; rm -rf "$o"; mkdir -p "$o" run
+o="results/$sc"; r=results/.run
+rm -rf "$o"; mkdir -p "$o" "$r"
 
 front_conf=conf/front.conf
 turnover=close-idle
@@ -37,22 +38,22 @@ esac
 start_app() {
   PORT="$1" SLOW_MS="$app_slow" KEEPALIVE_MS="$app_keepalive" NO_KEEPALIVE="$app_nokeepalive" \
     SHUTDOWN_KILL_MS="$app_shutdown_kill" LOG="/lab/$o/backend-access.log" node /lab/app/server.js 2>>"$o/backend-error.log" &
-  echo $! > "run/app-$1.pid"
+  echo $! > "$r/app-$1.pid"
 }
 stop_app() {
-  [ -f "run/app-$1.pid" ] || return 0
-  kill -"${2:-TERM}" "$(cat "run/app-$1.pid")" 2>/dev/null
-  wait "$(cat "run/app-$1.pid")" 2>/dev/null
-  rm -f "run/app-$1.pid"
+  [ -f "$r/app-$1.pid" ] || return 0
+  kill -"${2:-TERM}" "$(cat "$r/app-$1.pid")" 2>/dev/null
+  wait "$(cat "$r/app-$1.pid")" 2>/dev/null
+  rm -f "$r/app-$1.pid"
 }
 
 cp "$front_conf" app/server.js "$o/"
-sed "s|/lab/out/|/lab/$o/|g" "$front_conf" > run/front.conf
-sed "s|    server 127.0.0.1:8082 max_fails=0;||" run/front.conf > run/front-only-a.conf
-sed "s|    server 127.0.0.1:8081 max_fails=0;||" run/front.conf > run/front-only-b.conf
+sed "s|/lab/results/front-|/lab/$o/front-|g" "$front_conf" > "$r/front.conf"
+sed "s|    server 127.0.0.1:8082 max_fails=0;||" "$r/front.conf" > "$r/front-only-a.conf"
+sed "s|    server 127.0.0.1:8081 max_fails=0;||" "$r/front.conf" > "$r/front-only-b.conf"
 
 start_app 8081; start_app 8082; sleep 1
-nginx -c /lab/run/front.conf -p /lab & sleep 1
+nginx -c "/lab/$r/front.conf" -p /lab & sleep 1
 
 tcpdump -i lo -n -s 128 "(tcp port 8081 or tcp port 8082) and (tcp[tcpflags] & (tcp-fin|tcp-rst|tcp-push) != 0)" \
   -w "$o/loopback.pcap" 2>"$o/tcpdump.log" &
@@ -87,14 +88,14 @@ case "$turnover" in
   drain)
     ( end=$((SECONDS + 60)); port=8081
       while [ $SECONDS -lt $end ]; do
-        if [ "$port" = "8081" ]; then cp run/front-only-b.conf run/front.conf
-        else cp run/front-only-a.conf run/front.conf; fi
-        nginx -c /lab/run/front.conf -p /lab -s reload 2>>"$o/reload.log"
+        if [ "$port" = "8081" ]; then cp "$r/front-only-b.conf" "$r/front.conf"
+        else cp "$r/front-only-a.conf" "$r/front.conf"; fi
+        nginx -c "/lab/$r/front.conf" -p /lab -s reload 2>>"$o/reload.log"
         sleep 0.5
         stop_app "$port" TERM; start_app "$port"
-        cp run/front-only-a.conf run/front.conf
-        sed "s|/lab/out/|/lab/$o/|g" "$front_conf" > run/front.conf
-        nginx -c /lab/run/front.conf -p /lab -s reload 2>>"$o/reload.log"
+        cp "$r/front-only-a.conf" "$r/front.conf"
+        sed "s|/lab/results/front-|/lab/$o/front-|g" "$front_conf" > "$r/front.conf"
+        nginx -c "/lab/$r/front.conf" -p /lab -s reload 2>>"$o/reload.log"
         turn "$port"
         [ "$port" = "8081" ] && port=8082 || port=8081
         sleep 0.4
@@ -104,8 +105,8 @@ esac
 
 case "$load" in
   get)  ab -r -k -c 64 -n 70000 -s 30 http://127.0.0.1:8080/ > "$o/ab.log" 2>&1 ;;
-  post) printf 'x=1' > run/post.txt
-        ab -r -k -c 64 -n 70000 -s 30 -p run/post.txt -T application/x-www-form-urlencoded \
+  post) printf 'x=1' > "$r/post.txt"
+        ab -r -k -c 64 -n 70000 -s 30 -p "$r/post.txt" -T application/x-www-form-urlencoded \
            http://127.0.0.1:8080/ > "$o/ab.log" 2>&1 ;;
   sequential)
         for i in $(seq 1 400); do
@@ -125,7 +126,7 @@ esac
 nstat > "$o/nstat.txt"
 sleep 1
 kill $tcpdump_pid 2>/dev/null; wait $tcpdump_pid 2>/dev/null
-nginx -c /lab/run/front.conf -p /lab -s quit 2>/dev/null
+nginx -c "/lab/$r/front.conf" -p /lab -s quit 2>/dev/null
 stop_app 8081; stop_app 8082
 sleep 1
 

@@ -7,107 +7,30 @@ on:
       - "nodejs-eventloop-starvation-p99/**"
       - ".github/workflows/nodejs-eventloop-starvation-p99.yml"
 
-env:
-  CONCURRENCY: "10"
-  DURATION: "30"
-  WARMUP: "10"
-
 defaults:
   run:
     shell: bash
     working-directory: nodejs-eventloop-starvation-p99
 
 jobs:
-  baseline:
-    name: "No shedding"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-      - name: Install deps
-        run: npm install && cd app && npm install
-      - name: Start app
-        run: |
-          docker compose --profile base up -d --build
-          sleep 5
-      - name: Run load
-        env:
-          APP_URL: http://localhost:3000
-          CSV_OUT: results-baseline.csv
-        run: node loadgen/ramp.js exp01
-      - name: Plot
-        run: node analyze/plot.js results-baseline.csv >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v7
-        with:
-          name: nodejs-eventloop-starvation-p99-baseline
-          path: nodejs-eventloop-starvation-p99/results-baseline.csv
-      - name: Stop app
-        if: always()
-        run: docker compose --profile base down
-
-  with-shedding:
-    name: "Shedding threshold=${{ matrix.threshold }}ms"
+  run:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
-        threshold: [150]
+        condition: [baseline, shed-150, profile]
+    name: run (${{ matrix.condition }})
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "22"
-      - name: Install deps
-        run: npm install && cd app && npm install
-      - name: Start app with shedding
-        run: |
-          SHED_THRESHOLD_MS=${{ matrix.threshold }} docker compose --profile base up -d --build
-          sleep 5
-      - name: Run load
-        env:
-          APP_URL: http://localhost:3000
-          CSV_OUT: results-shed-${{ matrix.threshold }}ms.csv
-        run: node loadgen/ramp.js exp01
-      - name: Plot
-        run: |
-          echo "## Shedding threshold: ${{ matrix.threshold }}ms" >> "$GITHUB_STEP_SUMMARY"
-          node analyze/plot.js results-shed-${{ matrix.threshold }}ms.csv >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v7
-        with:
-          name: nodejs-eventloop-starvation-p99-shed-${{ matrix.threshold }}ms
-          path: nodejs-eventloop-starvation-p99/results-shed-${{ matrix.threshold }}ms.csv
-      - name: Stop app
+          node-version-file: nodejs-eventloop-starvation-p99/.node-version
+      - run: ./run-all.sh ${{ matrix.condition }}
+      - run: cat results/*/summary.md >> "$GITHUB_STEP_SUMMARY"
         if: always()
-        run: docker compose --profile base down
-
-  profiling:
-    name: "V8 CPU profile (sync_ms=200)"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-      - name: Run profiling experiment
-        env:
-          SYNC_MS: "200"
-          LOAD_DURATION: "20"
-        run: |
-          chmod +x experiments/02-profiling/run.sh
-          experiments/02-profiling/run.sh | tee profile-output.txt
-      - name: Summarize
-        run: |
-          echo '## V8 CPU Profile — blockEventLoop (sync_ms=200)' >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          grep -A 60 '\[Bottom up' profile-output.txt | head -60 >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
-          name: nodejs-eventloop-starvation-p99-v8-cpu-profile
-          path: |
-            nodejs-eventloop-starvation-p99/app/isolate-*.log
-            nodejs-eventloop-starvation-p99/profile-output.txt
+          name: nodejs-eventloop-starvation-p99-${{ matrix.condition }}
+          path: nodejs-eventloop-starvation-p99/results/

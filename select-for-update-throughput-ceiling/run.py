@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-Measure throughput ceiling for SELECT ... FOR UPDATE vs alternatives.
-
-Patterns:
-  for_update:  SELECT ... FOR UPDATE, sleep(hold), UPDATE
-  conditional: UPDATE SET stock = stock - 1 WHERE stock > 0
-
-Each worker loops for the duration of the measurement window (stop_event driven),
-so TPS emerges from system behavior rather than being defined by thread count x hold.
-"""
 import argparse
 import os
 import threading
