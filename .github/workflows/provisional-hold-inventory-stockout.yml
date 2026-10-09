@@ -59,8 +59,10 @@ jobs:
           pattern: provisional-hold-inventory-stockout-results-run-*
           path: provisional-hold-inventory-stockout/results/
       - run: |
-          python3 report.py results/*/output.txt > results/summary.txt
+          rc=0
+          python3 report.py results/*/output.txt > results/summary.txt || rc=$?
           { echo '```'; cat results/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

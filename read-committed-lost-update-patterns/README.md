@@ -18,7 +18,7 @@ This reproduces, under PostgreSQL's default Read Committed isolation, the two wa
 | `CB` | as `B`, with `AND stock > 0` on the `UPDATE`; `INSERT INTO orders` only if a row was updated |
 | `D` | as `B`, with `AND stock = v` on the `UPDATE`; retries from the `SELECT` when no row was updated |
 
-Each row of the table is one run: `stock_sum` is the stock left, `decremented` how much was actually subtracted, `orders_ok` the orders written, `lost_decrements` their difference (`orders_ok - decremented`), `negative_rows` the rows below zero, `min_stock` the lowest stock, and `retries` the retries of `D`.
+Each row of the table is one run: `stock_sum` is the stock left, `decremented` how much was actually subtracted, `orders_ok` the orders written, `lost_decrements` their difference (`orders_ok - decremented`), `negative_rows` the rows below zero, `min_stock` the lowest stock, `retries` the retries of `D`, and `errors` the threads that raised. A run with errors or with no orders is reported as `RUN INVALID` and fails the job.
 
 ## Pinned versions
 

@@ -22,12 +22,14 @@ main() {
   set -e
   docker compose up -d --wait
   docker compose exec -T postgres psql -U postgres -d lab -f /dev/stdin < schema.sql
+  status=0
   for c in "$@"; do
     args=$(condition "$c")
     echo "=== $args ==="
-    docker compose run --rm throughput-runner $args
+    docker compose run --rm throughput-runner $args || status=1
   done
   docker compose down
+  return "$status"
 }
 
 rm -rf results

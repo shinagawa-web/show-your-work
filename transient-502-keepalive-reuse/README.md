@@ -6,7 +6,7 @@ Puts nginx, which pools keepalive connections to its backend, in front of two No
 
 `.github/workflows/transient-502-keepalive-reuse.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. Each job runs one scenario.
 
-`results/summary.md` goes to the job summary: the environment, `summary.txt` (requests, 502s, the error log and `nstat`) and the output of `scripts/analyze.py` (502s per turnover, the packet sequence of reset connections, retries, and the difference between requests sent and requests the backend received). `results/` is uploaded as the `transient-502-keepalive-reuse-<scenario>` artifact.
+`results/summary.md` goes to the job summary: the environment, `summary.txt` (requests, 502s, the error log and `nstat`) and the output of `scripts/analyze.py` (502s per turnover, the packet sequence of reset connections, retries, and the difference between requests sent and requests the backend received). `results/` is uploaded as the `transient-502-keepalive-reuse-<scenario>` artifact. A run that did not happen (nginx or the backends logged no request, `ab` did not complete, no packet capture, a failed step) fails the job with a `RUN INVALID` line in the summary; 502s themselves never fail it.
 
 ## Pinned versions
 

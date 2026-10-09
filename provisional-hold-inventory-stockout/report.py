@@ -7,9 +7,12 @@ COLS = ["confirmed", "exp_during_co", "lost_sale", "dead_ratio"]
 sums = collections.defaultdict(lambda: [0.0] * len(COLS))
 counts = collections.Counter()
 header = None
+invalid = []
 for path in sys.argv[1:]:
     in_run = False
     for line in open(path):
+        if line.startswith("RUN INVALID"):
+            invalid.append(f"{path}: {line.strip()}")
         if line.startswith("=== run.py"):
             in_run = True
             continue
@@ -27,6 +30,10 @@ for path in sys.argv[1:]:
                 sums[T][i] += float(v)
             counts[T] += 1
 
+if invalid:
+    for line in invalid:
+        print(line)
+    sys.exit(1)
 if not counts:
     sys.exit("no run.py table found")
 n = set(counts.values())

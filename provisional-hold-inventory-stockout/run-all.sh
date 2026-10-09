@@ -13,25 +13,27 @@ done
 
 main() {
   set -e
+  status=0
   for target in "$@"; do
     case "$target" in
       sim)
         echo "=== sim.py ==="
-        python3 sim.py --runs 30
+        python3 sim.py --runs 30 || status=1
         for stock in 150 200 300; do
           echo "=== sim.py --stock $stock ==="
-          python3 sim.py --runs 30 --stock "$stock"
+          python3 sim.py --runs 30 --stock "$stock" || status=1
         done
         ;;
       run)
         docker compose up -d --wait
         docker compose exec -T postgres psql -U postgres -d lab -f /dev/stdin < schema.sql
         echo "=== run.py ==="
-        docker compose run --rm runner --runs "$RUNS"
+        docker compose run --rm runner --runs "$RUNS" || status=1
         docker compose down
         ;;
     esac
   done
+  return "$status"
 }
 
 rm -rf results

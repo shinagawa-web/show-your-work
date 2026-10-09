@@ -23,7 +23,7 @@ Each table has one row per hold timer `T`:
 - `lost_sale`: buyers who found no stock while an abandoned hold existed
 - `dead_ratio`: mean fraction of reserved holds that belong to abandoners, sampled during the arrival window
 
-`sim.py` counts time in minutes. `run.py` counts it in seconds, one second standing for one minute, and runs every `T` in parallel with its own `product_id`. `sim.py` seeds each run with its index, so it prints the same tables every time; `run.py` does not fix a seed. `report.py` needs every `run` job to have the same number of rounds.
+`sim.py` counts time in minutes. `run.py` counts it in seconds, one second standing for one minute, and runs every `T` in parallel with its own `product_id`. `sim.py` seeds each run with its index, so it prints the same tables every time; `run.py` does not fix a seed. `report.py` needs every `run` job to have the same number of rounds. `errors` after a `run.py` table counts the database calls that raised; a run with errors is reported as `RUN INVALID` and fails the job, and so does `report` when a shard was invalid.
 
 ## Pinned versions
 

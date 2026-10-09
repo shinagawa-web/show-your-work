@@ -4,6 +4,7 @@ import math
 import os
 import random
 import statistics
+import sys
 import threading
 import time
 
@@ -48,7 +49,7 @@ class _Scenario:
         self.dead_ratio_snapshots = []
 
 
-def _sweeper(stop, scenarios, window):
+def _sweeper(stop, scenarios, window, errors):
     product_ids = [sc.product_id for sc in scenarios]
     by_pid = {sc.product_id: sc for sc in scenarios}
     start = time.time()
@@ -99,14 +100,15 @@ def _sweeper(stop, scenarios, window):
                             with sc.lock:
                                 dead = len(sc.abandoned_ids)
                             sc.dead_ratio_snapshots.append(dead / total)
-            except Exception:
+            except Exception as e:
+                errors.append(None if errors else e)
                 try:
                     conn.rollback()
                 except Exception:
                     pass
 
 
-def _customer(sc, abandon_rate, purchase_sec, p95_sec):
+def _customer(sc, abandon_rate, purchase_sec, p95_sec, errors):
     rng = random.Random()
     is_buyer = rng.random() >= abandon_rate
 
@@ -127,7 +129,8 @@ def _customer(sc, abandon_rate, purchase_sec, p95_sec):
                 )
                 row = cur.fetchone()
             conn.commit()
-    except Exception:
+    except Exception as e:
+        errors.append(None if errors else e)
         return
 
     if row is None:
@@ -156,7 +159,8 @@ def _customer(sc, abandon_rate, purchase_sec, p95_sec):
                 )
                 expired = cur.rowcount == 0
             conn.commit()
-    except Exception:
+    except Exception as e:
+        errors.append(None if errors else e)
         return
 
     if expired:
@@ -175,18 +179,18 @@ def _customer(sc, abandon_rate, purchase_sec, p95_sec):
             conn.commit()
         with sc.lock:
             sc.confirmed += 1
-    except Exception:
-        pass
+    except Exception as e:
+        errors.append(None if errors else e)
 
 
-def _arrival_generator(sc, abandon_rate, purchase_sec, p95_sec, n_customers, arrival_rate):
+def _arrival_generator(sc, abandon_rate, purchase_sec, p95_sec, n_customers, arrival_rate, errors):
     rng = random.Random()
     threads = []
     for _ in range(n_customers):
         time.sleep(rng.expovariate(arrival_rate))
         t = threading.Thread(
             target=_customer,
-            args=(sc, abandon_rate, purchase_sec, p95_sec),
+            args=(sc, abandon_rate, purchase_sec, p95_sec, errors),
             daemon=True,
         )
         t.start()
@@ -195,18 +199,18 @@ def _arrival_generator(sc, abandon_rate, purchase_sec, p95_sec, n_customers, arr
         t.join()
 
 
-def run_round(T_values, abandon_rate, purchase_sec, p95_sec, n_customers, arrival_rate, stock):
+def run_round(T_values, abandon_rate, purchase_sec, p95_sec, n_customers, arrival_rate, stock, errors):
     scenarios = [_Scenario(i + 1, T) for i, T in enumerate(T_values)]
     init_db(stock, len(scenarios))
 
     stop = threading.Event()
     window_sec = n_customers / arrival_rate
-    threading.Thread(target=_sweeper, args=(stop, scenarios, window_sec), daemon=True).start()
+    threading.Thread(target=_sweeper, args=(stop, scenarios, window_sec, errors), daemon=True).start()
 
     gen_threads = [
         threading.Thread(
             target=_arrival_generator,
-            args=(sc, abandon_rate, purchase_sec, p95_sec, n_customers, arrival_rate),
+            args=(sc, abandon_rate, purchase_sec, p95_sec, n_customers, arrival_rate, errors),
         )
         for sc in scenarios
     ]
@@ -252,8 +256,9 @@ def main():
     print(f"{'T(s)':>6}  {'confirmed':>10} {'exp_during_co':>14} {'lost_sale':>10} {'dead_ratio':>10}")
 
     totals = {T: {"confirmed": 0, "expired_during_checkout": 0, "lost_sale": 0, "dead_ratio": 0.0} for T in T_values}
+    errors = []
     for _ in range(args.runs):
-        res = run_round(T_values, R, args.purchase, P95, args.customers, arrival_rate, args.stock)
+        res = run_round(T_values, R, args.purchase, P95, args.customers, arrival_rate, args.stock, errors)
         for T in T_values:
             for k in totals[T]:
                 totals[T][k] += res[T][k]
@@ -266,6 +271,11 @@ def main():
             f" {totals[T]['lost_sale']/n:>10.1f}"
             f" {totals[T]['dead_ratio']/n:>10.3f}"
         )
+    print(f"errors={len(errors)}")
+    if errors:
+        first = " ".join(f"{type(errors[0]).__name__}: {errors[0]}".split())
+        print(f"RUN INVALID: {len(errors)} errors ({first})")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

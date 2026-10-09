@@ -13,7 +13,7 @@ This measures the throughput of transactions that take a row lock with `SELECT .
 - `for_update`: `SELECT stock ... FOR UPDATE`, `pg_sleep(hold)`, `UPDATE items SET stock = stock - 1`, `INSERT INTO orders`, `COMMIT`
 - `conditional`: `UPDATE items SET stock = stock - 1 WHERE id = 1 AND stock > 0`, `INSERT INTO orders`, `COMMIT`
 
-`count` is the number of commits, `elapsed_s` the time from the start until the last thread stops, and `tps` is `count / elapsed_s`. `p50_ms` and `p99_ms` are the latencies of the committed transactions. With `--observe`, each `lock_waiters` line is the number of active sessions in `pg_stat_activity` with `wait_event_type = 'Lock'` at one sample, with the host CPU use.
+`count` is the number of commits, `elapsed_s` the time from the start until the last thread stops, and `tps` is `count / elapsed_s`. `p50_ms` and `p99_ms` are the latencies of the committed transactions, and `errors` the transactions that raised. A run with errors or with no commits is reported as `RUN INVALID` and fails the job. With `--observe`, each `lock_waiters` line is the number of active sessions in `pg_stat_activity` with `wait_event_type = 'Lock'` at one sample, with the host CPU use.
 
 ## Pinned versions
 

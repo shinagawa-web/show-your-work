@@ -14,6 +14,8 @@ This reproduces a Node.js service whose p99 latency jumps while system CPU stays
 
 `results/<condition>/summary.md` goes to the job summary, and `results/` is uploaded as the `nodejs-eventloop-starvation-p99-<condition>` artifact.
 
+When the measurement did not happen, the summary ends with a `RUN INVALID` line and the job fails: the app did not answer, a step completed no request, `/metrics` could not be read, the baseline got non-2xx responses, or the profile is empty (`scripts/check.js`).
+
 ## CSV columns
 
 `results/<condition>/results.csv` has one row per endpoint (`condition`) and `sync_ms` (`knob`). The load mix, steps, warmup and measurement time are in `loadgen/scenarios/exp01.js`, and the container limits in `docker-compose.yml`.
