@@ -1,0 +1,28 @@
+name: cgroup-v2-scripts-read-wrong-values
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "cgroup-v2-scripts-read-wrong-values/**"
+      - ".github/workflows/cgroup-v2-scripts-read-wrong-values.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: cgroup-v2-scripts-read-wrong-values
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cgroup-v2-scripts-read-wrong-values-results
+          path: cgroup-v2-scripts-read-wrong-values/results/

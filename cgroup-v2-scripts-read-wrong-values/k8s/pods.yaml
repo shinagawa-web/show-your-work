@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: throttle
+spec:
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: app
+      image: busybox:1.37.0
+      imagePullPolicy: Never
+      command: ["sh", "-c", "while :; do :; done"]
+      resources:
+        requests:
+          cpu: 200m
+          memory: 32Mi
+        limits:
+          cpu: 200m
+          memory: 32Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cache
+spec:
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: app
+      image: busybox:1.37.0
+      imagePullPolicy: Never
+      command: ["sh", "-c", "dd if=/dev/zero of=/data/f bs=1M count=100 && cat /data/f > /dev/null && cat /data/f > /dev/null && touch /data/done && exec sleep infinity"]
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          memory: 256Mi
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      emptyDir: {}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom
+spec:
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: app
+      image: busybox:1.37.0
+      imagePullPolicy: Never
+      command: ["sh", "-c", "sleep 10; dd if=/dev/zero of=/dev/null bs=64M count=1; sleep infinity"]
+      resources:
+        requests:
+          cpu: 100m
+          memory: 32Mi
+        limits:
+          memory: 32Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: weight
+spec:
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: app
+      image: busybox:1.37.0
+      imagePullPolicy: Never
+      command: ["sleep", "infinity"]
+      resources:
+        requests:
+          cpu: "1"

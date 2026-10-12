@@ -6,6 +6,7 @@
 
 | 検証 | 記事 |
 |---|---|
+| [cgroup-v2-scripts-read-wrong-values](cgroup-v2-scripts-read-wrong-values/README.md) | — |
 | [chunk-load-heuristic-freshness](chunk-load-heuristic-freshness/README.md) | [週1回のデプロイなら前のバージョンが17時間動く](https://zenn.dev/shinagawa_web/articles/chunk-load-heuristic-freshness) |
 | [cpu-quota-throttling-p99](cpu-quota-throttling-p99/README.md) | [CPU使用率が低いのにp99だけ遅い原因はCPU上限](https://zenn.dev/shinagawa_web/articles/cpu-quota-throttling-p99) |
 | [distroless-ephemeral-debug](distroless-ephemeral-debug/README.md) | — |
