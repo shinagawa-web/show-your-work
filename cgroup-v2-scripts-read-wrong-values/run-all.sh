@@ -80,6 +80,16 @@ for i in $(seq 60); do kubectl exec cache -- test -f /data/done 2>/dev/null && b
   echo "container scope: $cg"
   echo "pod slice: $pcg"
   r kubectl exec cache -- ls -l /data
+  echo "## memory.current of the container scope until it repeats 5 times in a row"
+  prev= same=0
+  for i in $(seq 60); do
+    cur=$(node cat "/sys/fs/cgroup$cg/memory.current")
+    echo "$(ts) $cur"
+    if [ "$cur" = "$prev" ]; then same=$((same + 1)); else same=1; prev=$cur; fi
+    [ "$same" -ge 5 ] && break
+    sleep 1
+  done
+  echo "settled: $([ "$same" -ge 5 ] && echo yes || echo no)"
   echo "## v1 key in memory.stat"
   r node grep -E '^total_' "/sys/fs/cgroup$cg/memory.stat"
   for i in 1 2 3; do
@@ -135,7 +145,7 @@ wait "$p4"
 echo "elapsed $(( $(date +%s) - start ))s" > "$results/elapsed.txt"
 
 status=0
-grep -q '^container scope: ' "$results/p3-working-set.txt" && kubectl exec cache -- test -f /data/done || { echo "cache Pod did not finish reading the file"; status=1; }
+grep -q '^settled: yes' "$results/p3-working-set.txt" && kubectl exec cache -- test -f /data/done || { echo "cache Pod did not finish reading the file or its memory.current did not settle"; status=1; }
 grep -q '^deadline reached' "$results/p4-oom-kill.txt" && { echo "oom Pod did not reach the restart count"; status=1; }
 grep -q '^\$ cat /proc/[0-9]*/cgroup' "$results/p6-node-debug-cgroup.txt" || { echo "node debugger produced no output"; status=1; }
 
