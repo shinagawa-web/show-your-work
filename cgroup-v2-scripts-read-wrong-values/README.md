@@ -6,7 +6,7 @@ This starts four Pods in a kind cluster on a cgroup v2 host (a busy loop under a
 
 `.github/workflows/cgroup-v2-scripts-read-wrong-values.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-`results/summary.md` goes to the job summary, with a table of whether each prediction held (checked by `scripts/checks.py`), and every raw output under `results/` is uploaded as the `cgroup-v2-scripts-read-wrong-values-results` artifact.
+`results/summary.md` goes to the job summary, with a table of whether the data for each prediction was collected and whether the prediction held (checked by `scripts/checks.py`), and every raw output under `results/` is uploaded as the `cgroup-v2-scripts-read-wrong-values-results` artifact. A run that did not collect the data (a command that read a prediction's values exited non-zero or printed nothing, `scripts/p4.sh` exited non-zero, the cache Pod did not finish reading its file or its `memory.current` did not settle, the oom Pod did not reach the restart count, a failed step) fails the job with a `RUN INVALID` line at the top of the summary; a prediction that did not hold never fails it.
 
 ## Outputs
 
@@ -19,9 +19,9 @@ This starts four Pods in a kind cluster on a cgroup v2 host (a busy loop under a
 | `p3-working-set.txt` | `memory.current` and `memory.stat` of the container scope and the Pod slice, then `*_memory_working_set_bytes` from `/metrics/resource` |
 | `p4-oom-kill.txt` | `memory.events`, `memory.events.local` and `memory.oom.group` of the container scope and the Pod slice each time the container state changes, the restart count, and the kernel log of the kills |
 | `p5-cpu-weight.txt` | `cpu.weight` of the Pod slice and the container scope |
-| `p6-node-debug-cgroup.txt` | `/proc/<pid>/cgroup` of a container read from the node and from a `kubectl debug node` Pod, and the container's scope found under `/host/sys/fs/cgroup` by its ID (`scripts/node-debug.sh`) |
+| `p6-node-debug-cgroup.txt` | `/proc/<pid>/cgroup` of a container read from the node and from a `kubectl debug node` Pod, and the container's scope found under `/host/sys/fs/cgroup` by its ID with its `cgroup.procs` (`scripts/node-debug.sh`) |
 
-The Pods are in `k8s/pods.yaml`. The OOM Pod sleeps before it allocates, so its container scope can be read after each restart; `scripts/p4.sh` stops at the restart count set in `RESTARTS`.
+The Pods are in `k8s/pods.yaml`; `run-all.sh` fills in the busybox image from `scripts/versions.env` when it applies them. The OOM Pod sleeps before it allocates, so its container scope can be read after each restart; `scripts/p4.sh` stops at the restart count set in `RESTARTS`.
 
 ## Pinned versions
 

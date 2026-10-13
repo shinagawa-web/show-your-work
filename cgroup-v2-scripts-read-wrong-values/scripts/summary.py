@@ -1,8 +1,10 @@
 import pathlib
-import subprocess
 import sys
 
+import checks
+
 results = pathlib.Path(sys.argv[1])
+invalid = list(sys.argv[2:])
 titles = {
     "00-environment.txt": "Environment",
     "01-symptom.txt": "v1 paths",
@@ -14,8 +16,19 @@ titles = {
     "p6-node-debug-cgroup.txt": "P6: /proc/<pid>/cgroup from kubectl debug node",
     "elapsed.txt": "Elapsed",
 }
+rows = checks.evaluate(results)
+for name, missing, _, _ in rows:
+    invalid += [f"{name}: {m}" for m in missing]
+for x in invalid:
+    print(f"RUN INVALID: {x}")
+if invalid:
+    print()
 print("## Predictions\n")
-print(subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("checks.py")), str(results)], capture_output=True, text=True).stdout)
+print("| | data | holds | observed |")
+print("|---|---|---|---|")
+for name, missing, holds, detail in rows:
+    print(f"| {name} | {'ok' if not missing else 'missing'} | {'-' if missing else 'yes' if holds else 'no'} | {detail} |")
+print()
 for name, title in titles.items():
     f = results / name
     print(f"## {title}\n")

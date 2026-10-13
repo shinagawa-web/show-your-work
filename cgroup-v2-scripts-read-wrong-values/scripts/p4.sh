@@ -5,14 +5,17 @@ here=$(cd "$(dirname "$0")/.." && pwd)
 RESTARTS=${RESTARTS:-3}
 DEADLINE=${DEADLINE:-200}
 
+uid= pcg=
 for i in $(seq 60); do
   uid=$(kubectl get pod oom -o jsonpath='{.metadata.uid}' 2>/dev/null)
-  [ -n "$uid" ] && pcg=$(node sh -c "find /sys/fs/cgroup -type d -name '*pod${uid//-/_}.slice'" | sed 's|^/sys/fs/cgroup||')
-  [ -n "${pcg:-}" ] && break
+  [ -n "$uid" ] && pcg=$(node sh -c "find /sys/fs/cgroup -type d -name '*pod${uid//-/_}.slice'" | head -n1 | sed 's|^/sys/fs/cgroup||')
+  [ -n "$pcg" ] && break
   sleep 1
 done
 echo "pod uid: $uid"
 echo "pod slice: $pcg"
+[ -n "$uid" ] || { echo "no uid of the oom Pod"; exit 1; }
+[ -n "$pcg" ] || { echo "no Pod slice for uid $uid under /sys/fs/cgroup"; exit 1; }
 
 show() {
   local d=$1 f
@@ -53,3 +56,4 @@ echo "sandbox: $(node crictl pods --label io.kubernetes.pod.uid="$uid" -q)"
 echo
 echo "## kernel log"
 sudo dmesg 2>&1 | grep -E 'oom-kill:|Memory cgroup out of memory|memory.oom.group' | grep -B1 -A3 "pod${uid//-/_}"
+exit 0

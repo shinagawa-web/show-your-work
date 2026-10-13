@@ -6,16 +6,18 @@ results=${RESULTS:-$here/results}
 . "$here/scripts/lib.sh"
 export PATH=$here/.bin:$PATH
 start=$(date +%s)
-
-"$here/scripts/setup.sh" || exit 1
 rm -rf "$results"
 mkdir -p "$results"
+abort() { echo "RUN INVALID: $1" | tee "$results/summary.md"; exit 1; }
+pods() { sed "s|@BUSYBOX_TAG@|$BUSYBOX_TAG|g" "$here/k8s/pods.yaml"; }
 
-kubectl delete -f "$here/k8s/pods.yaml" --ignore-not-found --wait=true >/dev/null 2>&1
-kubectl apply -f "$here/k8s/pods.yaml" >/dev/null
+"$here/scripts/setup.sh" || abort "setup.sh failed"
+
+pods | kubectl delete -f - --ignore-not-found --wait=true >/dev/null 2>&1
+pods | kubectl apply -f - >/dev/null || abort "kubectl apply of k8s/pods.yaml failed"
 "$here/scripts/p4.sh" > "$results/p4-oom-kill.txt" 2>&1 &
 p4=$!
-kubectl wait --for=condition=Ready pod/throttle pod/cache pod/weight --timeout=120s >/dev/null || exit 1
+kubectl wait --for=condition=Ready pod/throttle pod/cache pod/weight --timeout=120s >/dev/null || { kill "$p4"; abort "throttle, cache or weight Pod did not become Ready"; }
 
 {
   r uname -r
@@ -77,6 +79,7 @@ for i in $(seq 60); do kubectl exec cache -- test -f /data/done 2>/dev/null && b
 {
   cg=$(scope_of cache)
   pcg=$(dirname "$cg")
+  r kubectl exec cache -- test -f /data/done
   echo "container scope: $cg"
   echo "pod slice: $pcg"
   r kubectl exec cache -- ls -l /data
@@ -141,14 +144,12 @@ for i in $(seq 60); do kubectl exec cache -- test -f /data/done 2>/dev/null && b
   rs "kubectl get $dp -o json | jq -c '{hostPID: .spec.hostPID, hostNetwork: .spec.hostNetwork, hostIPC: .spec.hostIPC, sc: .spec.containers[0].securityContext, mounts: .spec.containers[0].volumeMounts}'"
 } > "$results/p6-node-debug-cgroup.txt"
 
+invalid=()
 wait "$p4"
+rc=$?
+[ "$rc" -eq 0 ] || invalid+=("P4: scripts/p4.sh exited $rc: $(tail -n1 "$results/p4-oom-kill.txt")")
 echo "elapsed $(( $(date +%s) - start ))s" > "$results/elapsed.txt"
 
-status=0
-grep -q '^settled: yes' "$results/p3-working-set.txt" && kubectl exec cache -- test -f /data/done || { echo "cache Pod did not finish reading the file or its memory.current did not settle"; status=1; }
-grep -q '^deadline reached' "$results/p4-oom-kill.txt" && { echo "oom Pod did not reach the restart count"; status=1; }
-grep -q '^\$ cat /proc/[0-9]*/cgroup' "$results/p6-node-debug-cgroup.txt" || { echo "node debugger produced no output"; status=1; }
-
-python3 "$here/scripts/summary.py" "$results" > "$results/summary.md" || { echo "summary.py failed"; status=1; }
+python3 -B "$here/scripts/summary.py" "$results" ${invalid[@]+"${invalid[@]}"} > "$results/summary.md" || abort "summary.py failed"
 cat "$results/summary.md"
-exit "$status"
+! grep -q '^RUN INVALID' "$results/summary.md"
