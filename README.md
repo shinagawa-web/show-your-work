@@ -6,6 +6,7 @@ Each folder is one verification, run by `.github/workflows/<folder>.yml` on GitH
 
 | Verification | Article |
 |---|---|
+| [cgroup-v2-scripts-read-wrong-values](cgroup-v2-scripts-read-wrong-values/README.md) | — |
 | [chunk-load-heuristic-freshness](chunk-load-heuristic-freshness/README.md) | — |
 | [cpu-quota-throttling-p99](cpu-quota-throttling-p99/README.md) | [High p99 latency at low CPU usage is caused by CPU throttling](https://dev.to/shinagawa-web/high-p99-latency-at-low-cpu-usage-is-caused-by-cpu-throttling-gm9) |
 | [distroless-ephemeral-debug](distroless-ephemeral-debug/README.md) | [No shell in a distroless Pod: what kubectl debug can and can't see](https://dev.to/shinagawa-web/no-shell-in-a-distroless-pod-what-kubectl-debug-can-and-cant-see-122o) |
