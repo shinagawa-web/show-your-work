@@ -5,6 +5,7 @@ JITTER = 2
 WINDOW_DEFAULT = 300
 WINDOW_C2 = 120
 STATUS_LAG = 3
+STABLE = 3
 
 
 def sec(t):
@@ -163,6 +164,13 @@ def basic_missing(d, name, ops_ok_codes=(0,)):
     op = d.op(name)
     if op is not None and not d.sync_points(name, op):
         m.append(f"{name}: no HPA sync after the operation in sync.log")
+    if op is not None:
+        before = [(raw, kind) for t, raw, kind, _ in d.syncs[name] if t <= op and kind in ("decided", "rescaled", "error")][-STABLE:]
+        if len(before) < STABLE or any(k != "decided" for _, k in before):
+            m.append(f"{name}: the last {STABLE} HPA syncs before the operation did not all decide from metrics: {before}")
+        errors = [raw for t, raw, kind, _ in d.syncs[name] if t > op and kind == "error"]
+        if errors:
+            m.append(f"{name}: HPA syncs after the operation failed: {errors}")
     return m
 
 
@@ -392,7 +400,9 @@ def p11(d):
     newp = d.new_pods(name, op)
     if not newp:
         missing.append(f"{name}: no new Pod after the operation")
-    remaining = [p for p in newp if not any(q == p and kv.get("deleting") == "True" for _, q, kv in d.pods)]
+    rev = next((p for p in pts[1:] if p["result"] and p["result"][0] == "rescaled"), None)
+    gone_by = rev["t"] if rev else float("inf")
+    remaining = [p for p in newp if not any(q == p and kv.get("deleting") == "True" and t < gone_by for t, q, kv in d.pods)]
     unseen = [p for p in remaining if p not in d.metrics]
     if unseen:
         missing.append(f"{name}: new Pods never in the metrics API: {unseen}")
@@ -401,7 +411,6 @@ def p11(d):
     mraw = max((d.metrics[p][1] for p in remaining if p in d.metrics), default="-")
     first = pts[0]
     to3 = first["result"] is not None and first["result"][0] == "rescaled" and "desired=3" in first["result"][1]
-    rev = next((p for p in pts[1:] if p["result"] and p["result"][0] == "rescaled"), None)
     with_metrics = [p for p in pts if mt is not None and p["t"] > mt and (rev is None or p["t"] < rev["t"])]
     kept = bool(with_metrics) and all(p["result"] == ("decided", "desired=3") and p["able"] == "True/ScaleDownStabilized" for p in with_metrics)
     reverted = bool(rev) and "desired=2" in rev["result"][1]

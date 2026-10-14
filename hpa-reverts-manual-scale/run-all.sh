@@ -29,6 +29,11 @@ for n in "${names[@]}"; do
   done
   kubectl get hpa "$n" -o jsonpath='{.status.currentMetrics[0].resource.current.averageUtilization}' | grep -q . || abort "HPA $n did not read metrics"
 done
+STABLE=${STABLE:-3}
+until python3 -B "$here/scripts/stable.py" "$STABLE" "${names[@]}" >> "$results/stable.txt"; do
+  [ $(( $(date +%s) - start )) -lt 400 ] || abort "HPAs did not compute from the existing Pods for $STABLE syncs in a row (stable.txt)"
+  sleep 5
+done
 echo "ready $(( $(date +%s) - start ))s" > "$results/elapsed.txt"
 
 {
