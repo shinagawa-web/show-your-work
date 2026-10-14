@@ -204,9 +204,11 @@ def held_then_reverted(d, name, window):
         missing.append(f"{name}: new Pods never in the metrics API: {unseen}")
     seen = [d.metrics[p][0] for p in newp if p in d.metrics]
     mt = max(seen) if newp and not unseen else None
+    mt0 = min(seen) if newp and not unseen else None
     rev = first_rescale(pts)
     info = {"op": op, "first": pts[0], "rev": rev, "new": newp}
-    no_metrics = [p for p in pts if mt is not None and p["t"] < mt]
+    no_metrics = [p for p in pts if mt0 is not None and p["t"] < mt0]
+    partial = [p for p in pts if mt0 is not None and mt0 <= p["t"] < mt]
     with_metrics = [p for p in pts if mt is not None and p["t"] > mt and (rev is None or p["t"] < rev["t"])]
     is_hold = lambda p: p["proposing"] is not None and p["proposing"].startswith("desired=4 ") and p["result"] == ("decided", "desired=4")
     held = bool(no_metrics) and all(is_hold(p) for p in no_metrics)
@@ -221,13 +223,15 @@ def held_then_reverted(d, name, window):
     back = next((c for c in chs if c[2].endswith("-> 2")), None)
     s_after = snapshot(after["body"]) if after else None
     mraw = max((d.metrics[p][1] for p in newp if p in d.metrics), default="-")
+    mraw0 = min((d.metrics[p][1] for p in newp if p in d.metrics), default="-")
     detail = (
-        f"op {d.sec_of(name, 'operation')['t']}; new Pods all in metrics API {mraw}; "
-        f"syncs before that [{', '.join(map(sync_str, no_metrics))}]; "
+        f"op {d.sec_of(name, 'operation')['t']}; first new Pod in metrics API {mraw0}; new Pods all in metrics API {mraw}; "
+        f"syncs with no new Pod in metrics API [{', '.join(map(sync_str, no_metrics))}]; "
+        f"syncs with some new Pods in metrics API [{', '.join(map(sync_str, partial))}]; "
         f"AbleToScale after that until revert {sorted({p['able'] for p in with_metrics})}; "
         f"last proposing 4 {last_hold['raw'] if last_hold else '-'}; revert sync {rev['raw'] if rev else '-'} {rev['result'][1] if rev else ''}; "
         f"last proposing 4 -> revert {f'{delta:.1f}s' if delta is not None else '-'}; spec.replicas back to 2 seen {back[1] if back else '-'}; "
-        f"held while no metrics {held}, ScaleDownStabilized after metrics {stabilized}, reverted to 2 {reverted}, last proposing 4 -> revert in range {timed}"
+        f"proposing 4 while no new Pod in metrics API {held}, ScaleDownStabilized after metrics {stabilized}, reverted to 2 {reverted}, last proposing 4 -> revert in range {timed}"
     )
     info.update({"held": held, "stabilized": stabilized, "reverted": reverted, "timed": timed, "delta": delta, "after": s_after, "back": back})
     return missing, held and stabilized and reverted and timed, detail, info
