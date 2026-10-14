@@ -14,14 +14,18 @@ Code style, naming, and design preferences are out of scope. Do not report anyth
 - The article body, with section numbers
 - The slug, i.e. the corresponding folder in the repository
 - The source of the numbers the article cites: GitHub Actions run IDs. If the article's numbers span multiple runs, which number comes from which run
+- The numbers file for the article, and the output of `.claude/scripts/trace-numbers.py` run on the article and that file, with `--runs` or `--repeat`
+- The output of the blind-reader agent for the same slug, commit and runs. It read the code and outputs without the article
 
 If anything is missing, report which checks cannot be done without it. Do not fill gaps by guessing.
 
-## The six places to check
+## The seven places to check
 
 ### 1. Intent vs. design
 
 Does what the article wants to say match what the experiment tries to verify?
+
+Start from blind-reader's output. Statements in the article that it does not list under "What it shows", or that it lists under "What it cannot show", are where to look first.
 
 - Is the measurement method sufficient to establish the article's claim?
 - Is there a control condition? Is it set up so that it can reject the view the article wants to reject?
@@ -40,6 +44,11 @@ Do the conditions described in the article match what the code actually does?
 ### 3. Implementation vs. execution
 
 Can the numbers the article cites be traced back to the specified run?
+
+trace-numbers has checked the run's commit against the code, whether each number is in the run's outputs, numbers without a source, and tables that mix runs. Do not repeat those checks by reading logs. Report each `NG` line it gives. Check what it cannot:
+
+- For every row of the numbers file, is the selected value the quantity the article names? A p95 taken for a p99, an artifact from another condition, a filter that computes something else all pass the script
+- Rows marked `-`: is any of them a measured value that should be traced?
 
 - Does the run's commit match the code you are reading? If not, the code you are reading is not the code that produced those numbers
 - Do the workflow and inputs (inputs, env, matrix) used by the run match the conditions written in the article?
@@ -60,6 +69,8 @@ Is the procedure for deriving the article's numbers from the logs correct?
 
 Do the computed numbers match the numbers written in the article?
 
+trace-numbers has compared every traced number after rounding. Report its mismatches, and check here only what it cannot: whether the same quantity is described the same way where it appears more than once.
+
 - Transcription errors, rounding, numbers from a different condition slipping in
 - When the same quantity appears in multiple places in the article, are the values consistent?
 
@@ -67,23 +78,34 @@ Do the computed numbers match the numbers written in the article?
 
 Assuming the numbers themselves are correct, does the article go beyond what they can support?
 
+Use the spread section of trace-numbers. Each comparison the article makes needs a `vs` row in the numbers file, and the spread gate must pass for it. Values written as fixed facts ("all", "every", "none", an exact count) must hold in every run. If trace-numbers ran without `--runs` or `--repeat`, this item could not be checked: say so and give the command.
+
 - Is a conclusion drawn from a single run?
 - Is the difference between conditions larger than the measurement's variability?
 - Is the sample count sufficient to report the percentile?
 - To say "no change", is the precision sufficient to show there is no change?
 
+### 7. Claims supported by knowledge, not by a run
+
+Statements about how a kernel, runtime, library or protocol behaves, which no number in the runs shows. A reviewer that shares the author's assumptions passes these, so check them against the source, not against what you know.
+
+- List every such statement in the article
+- Each needs a primary source pinned to a version: upstream file and line at a tag or commit, or documentation for a named version. A link to a moving branch or an unversioned page is not pinned
+- Open each source (`gh api` for files at a tag, the page for documentation) and quote the lines that support the statement. If you cannot quote them, the statement is not supported
+- Does the pinned version match the version the runs used?
+
 ## What you return
 
     ## Could it be checked
 
-    (For each of items 1 to 6: checked / could not be checked due to missing information.
+    (For each of items 1 to 7: checked / could not be checked due to missing information.
       For those not checked, state what would be needed to check them)
 
     ## Findings
 
     (Most severe first, one at a time)
 
-    - Broken link: (one of 1 to 6)
+    - Broken link: (one of 1 to 7)
     - Article location: (section number and the relevant statement)
     - Code or log location: (path and line, or the relevant log line)
     - What is not supported:
