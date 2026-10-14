@@ -1,5 +1,5 @@
 #!/bin/sh
 set -eu
-sed "s/__TARGET__/$1/g" /etc/nginx/docs.conf.template > /etc/nginx/conf.d/docs.conf
+render-conf "$1"
 nginx -t
 nginx -s reload

@@ -4,6 +4,7 @@ RUN rm /etc/nginx/conf.d/default.conf \
 COPY server/site/ /usr/share/nginx/html/
 COPY server/links/ /usr/share/nginx/links/
 COPY server/docs.conf.template /etc/nginx/docs.conf.template
+COPY server/render-conf.sh /usr/local/bin/render-conf
 COPY server/set-target.sh /usr/local/bin/set-target
 COPY server/entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

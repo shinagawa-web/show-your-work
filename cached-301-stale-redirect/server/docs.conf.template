@@ -14,6 +14,7 @@ server {
         return 301 /docs/__TARGET__/;
     }
     location = /b5/docs { return 301 /docs/__TARGET__/; }
+    location = /b6/docs { return __B6_STATUS__ /docs/__TARGET__/; }
 }
 
 server {

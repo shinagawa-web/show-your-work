@@ -18,6 +18,7 @@ Each condition has its own entrance path, defined in `server/docs.conf.template`
 - `b3`: `return 301` with `Cache-Control: max-age=60`
 - `b4`: as `b0`, on its own origin (`localhost:18081`) and its own browser profile. That origin's `/docs/v4/` returns `Clear-Site-Data: "cache"`. After the switch, the browser opens the entrance, then opens `/docs/v4/` in a new tab, then opens the entrance again
 - `b5`: as `b0`. After the switch, the entrance is opened with `page.goto` (address bar) instead of the link
+- `b6`: as `b0` while pointed at `/docs/v3/`. The switch to `/docs/v4/` also changes it to `return 302`, set in `server/render-conf.sh`
 
 The link page is served from `http://127.0.0.1:18080/` and the docs from `http://localhost:18080/`, two different sites. Both are potentially trustworthy origins, which `Clear-Site-Data` requires.
 

@@ -12,6 +12,7 @@ export const CONDITIONS = [
   { id: 'b3', entrance: `${DOCS}/b3/docs`, profile: 'main', afterSwitch: 'link' },
   { id: 'b4', entrance: `${DOCS_B4}/b4/docs`, profile: 'b4', afterSwitch: 'link', clearSiteDataPage: `${DOCS_B4}/docs/v4/` },
   { id: 'b5', entrance: `${DOCS}/b5/docs`, profile: 'main', afterSwitch: 'goto' },
+  { id: 'b6', entrance: `${DOCS}/b6/docs`, profile: 'main', afterSwitch: 'link' },
 ];
 
 export const CURL_URLS = [
