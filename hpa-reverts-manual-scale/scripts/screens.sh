@@ -17,7 +17,7 @@ wait_sync() {
   done
   return 1
 }
-new_pods() { kubectl get pods -l "app=$name" -o json | jq -r --arg t "$since" '.items[] | select(.metadata.creationTimestamp >= $t) | .metadata.name'; }
+new_pods() { kubectl get pods -l "app=$name" -o json | jq -r --arg t "$since" '.items[] | select(.metadata.creationTimestamp >= $t and .metadata.deletionTimestamp == null) | .metadata.name'; }
 in_metrics() { kubectl get --raw /apis/metrics.k8s.io/v1beta1/namespaces/default/pods | jq -r '.items[].metadata.name'; }
 
 if [ -n "$opout" ]; then
@@ -28,7 +28,7 @@ if [ -n "$opout" ]; then
 fi
 
 case $name in
-  c1-1)
+  c1-1|c10)
     screen "after kubectl scale" deploy hpa describe
     manfields "after kubectl scale"
     if s=$(wait_sync "$op_ts"); then

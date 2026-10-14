@@ -380,7 +380,50 @@ def p10(d):
     return missing, holds and bool(rows), "; ".join(rows)
 
 
-CHECKS = [("P1", p1), ("P2", p2), ("P3", p3), ("P4", p4), ("P5", p5), ("P6", p6), ("P7", p7), ("P8", p8), ("P9", p9), ("P10", p10)]
+def p11(d):
+    name = "c10"
+    missing = basic_missing(d, name)
+    op = d.op(name)
+    if op is None:
+        return missing, False, "no operation"
+    pts = d.sync_points(name, op)
+    if not pts:
+        return missing, False, "no sync"
+    newp = d.new_pods(name, op)
+    if not newp:
+        missing.append(f"{name}: no new Pod after the operation")
+    remaining = [p for p in newp if not any(q == p and kv.get("deleting") == "True" for _, q, kv in d.pods)]
+    unseen = [p for p in remaining if p not in d.metrics]
+    if unseen:
+        missing.append(f"{name}: new Pods never in the metrics API: {unseen}")
+    seen = [d.metrics[p][0] for p in remaining if p in d.metrics]
+    mt = max(seen) if remaining and not unseen else None
+    mraw = max((d.metrics[p][1] for p in remaining if p in d.metrics), default="-")
+    first = pts[0]
+    to3 = first["result"] is not None and first["result"][0] == "rescaled" and "desired=3" in first["result"][1]
+    rev = next((p for p in pts[1:] if p["result"] and p["result"][0] == "rescaled"), None)
+    with_metrics = [p for p in pts if mt is not None and p["t"] > mt and (rev is None or p["t"] < rev["t"])]
+    kept = bool(with_metrics) and all(p["result"] == ("decided", "desired=3") and p["able"] == "True/ScaleDownStabilized" for p in with_metrics)
+    reverted = bool(rev) and "desired=2" in rev["result"][1]
+    threes = [p for p in pts if p["proposing"] is not None and p["proposing"].startswith("desired=3 ")]
+    last3 = threes[-1] if threes else None
+    delta = rev["t"] - last3["t"] if rev and last3 else None
+    timed = delta is not None and WINDOW_DEFAULT - JITTER <= delta <= WINDOW_DEFAULT + SYNC + JITTER
+    chs = d.changes(name)
+    phases = ", ".join(f"{p} {d.phase_at(p, first['t'])}" for p in newp)
+    ev = [e for e in d.events.get(name, []) if "SuccessfulRescale" in e]
+    before_rev = [p for p in pts if rev is None or p["t"] < rev["t"]]
+    return missing, to3 and kept and reverted and timed, (
+        f"op {d.sec_of(name, 'operation')['t']}; new Pods at first sync [{phases}]; remaining new Pods all in metrics API {mraw}; "
+        f"syncs until revert [{', '.join(map(sync_str, before_rev))}]; "
+        f"AbleToScale after metrics until revert {sorted({p['able'] for p in with_metrics})}; "
+        f"last proposing 3 {last3['raw'] if last3 else '-'}; revert sync {rev['raw'] if rev else '-'} {rev['result'][1] if rev else ''}; "
+        f"last proposing 3 -> revert {f'{delta:.1f}s' if delta is not None else '-'}; spec.replicas changes {[(c[1], c[2]) for c in chs]}; SuccessfulRescale {ev}; "
+        f"first sync to 3 {to3}, 3 kept with ScaleDownStabilized after metrics {kept}, reverted to 2 {reverted}, last proposing 3 -> revert in range {timed}"
+    )
+
+
+CHECKS = [("P1", p1), ("P2", p2), ("P3", p3), ("P4", p4), ("P5", p5), ("P6", p6), ("P7", p7), ("P8", p8), ("P9", p9), ("P10", p10), ("P11", p11)]
 
 
 def evaluate(results, names):

@@ -19,7 +19,7 @@ for name, missing, holds, detail in rows:
 print()
 files = [("00-environment.txt", "Environment"), ("01-timing.txt", "Operation timing"), ("elapsed.txt", "Elapsed")]
 files += [(f"{n}.txt", f"{n}: operation, spec.replicas and managedFields") for n in names]
-files += [(f"screen-{n}.txt", f"{n}: kubectl output") for n in ("c1-1", "c3", "c4", "c7")]
+files += [(f"screen-{n}.txt", f"{n}: kubectl output") for n in ("c1-1", "c3", "c4", "c7", "c10")]
 files += [("sync.log", "HPA syncs (kube-controller-manager log)"), ("hpa.log", "HPA status changes"), ("pods.log", "Pod phase changes"), ("metrics.log", "First appearance in the metrics API"), ("events.txt", "Events")]
 for f, title in files:
     p = results / f

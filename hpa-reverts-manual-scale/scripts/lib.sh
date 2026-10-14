@@ -6,7 +6,7 @@ r() {
 }
 render() { sed -e "s|@NAME@|$2|g" -e "s|@REPLICAS@|${3:-2}|g" -e "s|@BUSYBOX_TAG@|$BUSYBOX_TAG|g" "$here/k8s/$1"; }
 app_of() { [ "$1" = c3 ] && echo app-init.yaml || echo app.yaml; }
-hpa_of() { [ "$1" = c2 ] && echo hpa-window120.yaml || echo hpa.yaml; }
+hpa_of() { case $1 in c2) echo hpa-window120.yaml ;; c10) echo hpa-target80.yaml ;; *) echo hpa.yaml ;; esac; }
 spec_replicas() { kubectl get deploy "$1" -o jsonpath='{.spec.replicas}'; }
 fields() {
   kubectl get deploy "$1" -o json --show-managed-fields | jq -r '"spec.replicas=\(.spec.replicas)", (.metadata.managedFields[] | "\(.manager)\t\(.operation)\t\(.subresource // "-")\t\(.time)\t\(if .fieldsV1["f:spec"]["f:replicas"] then "owns spec.replicas" else "-" end)")'

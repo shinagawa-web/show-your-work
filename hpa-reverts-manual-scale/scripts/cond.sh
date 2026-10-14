@@ -26,7 +26,7 @@ esac)
 echo "$opout"
 case $opout in "unknown operation"*) exit 1 ;; esac
 screens=
-if [ -n "${SCREENS:-}" ] && [[ " c1-1 c3 c4 c7 " == *" $name "* ]]; then
+if [ -n "${SCREENS:-}" ] && [[ " c1-1 c3 c4 c7 c10 " == *" $name "* ]]; then
   "$here/scripts/screens.sh" "$name" "$op_ts" "$(( $(date +%s) + WINDOW ))" "$opout" >> "$SCREENS/screen-$name.txt" 2>&1 &
   screens=$!
 fi

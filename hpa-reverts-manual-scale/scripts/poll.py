@@ -30,6 +30,10 @@ while not stop.exists():
     objs = get(["get", "deploy,hpa,pods", "-o", "json"])
     now = ts()
     if objs:
+        pods_now = {o["metadata"]["name"] for o in objs["items"] if o["kind"] == "Pod"}
+        for name in [n for n in seen_pod if n not in pods_now and seen_pod[n] != "gone"]:
+            seen_pod[name] = "gone"
+            files["pods"].write(f"{now} {name} phase=gone ready=- deleting=True\n")
         for o in objs["items"]:
             name = o["metadata"]["name"]
             if o["kind"] == "Deployment":

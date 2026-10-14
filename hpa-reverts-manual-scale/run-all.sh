@@ -9,7 +9,7 @@ start=$(date +%s)
 rm -rf "$results"
 mkdir -p "$results"
 abort() { echo "RUN INVALID: $1" | tee "$results/summary.md"; exit 1; }
-conds=(c1-1:scale4 c1-2:scale4 c1-3:scale4 c2:scale4 c3:scale4 c4:scale3 c5:scale1 c6:scale7 c7:apply4 c8:minreplicas4 c9:disable-scale4)
+conds=(c1-1:scale4 c1-2:scale4 c1-3:scale4 c2:scale4 c3:scale4 c4:scale3 c5:scale1 c6:scale7 c7:apply4 c8:minreplicas4 c9:disable-scale4 c10:scale4)
 names=("${conds[@]%%:*}")
 OFFSET=${OFFSET:-7}
 kcm=kube-controller-manager-hpa-control-plane
@@ -41,7 +41,7 @@ echo "ready $(( $(date +%s) - start ))s" > "$results/elapsed.txt"
 } > "$results/00-environment.txt"
 
 export SCREENS=$results
-( name=c1-1; screen "before the operation" deploy hpa describe ) > "$results/screen-c1-1.txt" 2>&1
+for n in c1-1 c10; do ( name=$n; screen "before the operation" deploy hpa describe ) > "$results/screen-$n.txt" 2>&1; done
 for n in c3 c4 c7; do : > "$results/screen-$n.txt"; done
 
 last=$(kubectl -n kube-system logs "$kcm" --since=30s | python3 -B "$here/scripts/syncs.py" c1-1 | awk '$3 == "proposing" || $3 == "decided" {t=$1} END {print t}')
