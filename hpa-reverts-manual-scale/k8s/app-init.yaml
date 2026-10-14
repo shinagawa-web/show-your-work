@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "@NAME@"
+spec:
+  replicas: @REPLICAS@
+  selector:
+    matchLabels:
+      app: "@NAME@"
+  template:
+    metadata:
+      labels:
+        app: "@NAME@"
+    spec:
+      terminationGracePeriodSeconds: 0
+      initContainers:
+        - name: wait
+          image: "@BUSYBOX_TAG@"
+          imagePullPolicy: Never
+          command: ["sleep", "20"]
+      containers:
+        - name: app
+          image: "@BUSYBOX_TAG@"
+          imagePullPolicy: Never
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 8Mi
