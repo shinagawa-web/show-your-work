@@ -1,0 +1,35 @@
+log_format probe '$msec pid=$pid $server_port "$request" $status loc="$sent_http_location" cc="$sent_http_cache_control" "$http_user_agent"';
+access_log /var/log/nginx/access.log probe;
+
+server {
+    listen 18080;
+    server_name localhost;
+    root /usr/share/nginx/html;
+
+    location = /b0/docs { return 301 /docs/__TARGET__/; }
+    location = /b1/docs { return 308 /docs/__TARGET__/; }
+    location = /b2/docs { return 302 /docs/__TARGET__/; }
+    location = /b3/docs {
+        add_header Cache-Control "max-age=60";
+        return 301 /docs/__TARGET__/;
+    }
+    location = /b5/docs { return 301 /docs/__TARGET__/; }
+}
+
+server {
+    listen 18081;
+    server_name localhost;
+    root /usr/share/nginx/html;
+
+    location = /b4/docs { return 301 /docs/__TARGET__/; }
+    location /docs/v4/ {
+        add_header Clear-Site-Data '"cache"';
+    }
+}
+
+server {
+    listen 18080;
+    server_name 127.0.0.1;
+    root /usr/share/nginx/links;
+    add_header Cache-Control "no-store";
+}
