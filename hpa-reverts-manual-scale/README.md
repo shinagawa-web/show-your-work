@@ -33,6 +33,9 @@ Each condition is watched for `WINDOW` seconds (`scripts/cond.sh`) after its ope
 | `00-environment.txt` | kind, Kubernetes and metrics-server versions and flags, the kube-controller-manager command line, the HPAs and Deployments before the operations |
 | `01-timing.txt` | The HPA sync the operations were aligned to and the time of the operations |
 | `<name>.txt` | For each condition: `spec.replicas` and `managedFields` (manager, operation, subresource, time, whether the entry owns `spec.replicas`) before the operation, right after it, at every change of `spec.replicas`, after the server-side apply of `c7`, and at the end |
+| `screen-c1-1.txt` | `kubectl get deploy`, `kubectl get hpa` and `kubectl describe hpa` of `c1-1` before the operation, after `kubectl scale`, after the first HPA sync, after the first HPA sync once the new Pods are in the metrics API, and after the HPA sync that follows the revert; then `kubectl events --for` the Deployment and the HPA, and `kubectl get deploy -o yaml --show-managed-fields` after `kubectl scale` and after the revert (`scripts/screens.sh`) |
+| `screen-c3.txt`, `screen-c4.txt` | `kubectl get deploy` and `kubectl describe hpa` after `kubectl scale` and after the first HPA sync |
+| `screen-c7.txt` | `kubectl get deploy -o yaml --show-managed-fields` after the client-side apply |
 | `replicas.log` | `spec.replicas`, `status.replicas` and ready replicas of every Deployment every second (`scripts/poll.py`) |
 | `hpa.log` | The HPA status (`desiredReplicas`, `currentReplicas`, utilization, `AbleToScale`, `ScalingActive`, `ScalingLimited`) each time it changes |
 | `pods.log` | The phase and readiness of each Pod each time they change |

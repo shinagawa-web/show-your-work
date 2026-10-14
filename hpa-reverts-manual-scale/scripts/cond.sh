@@ -8,8 +8,9 @@ WINDOW=${WINDOW:-360}
 python3 -c 'import sys, time; time.sleep(max(0, float(sys.argv[1]) - time.time()))' "$at"
 echo "## before $(ts)"
 fields "$name"
-echo "## operation $(ts)"
-case $op in
+op_ts=$(ts)
+echo "## operation $op_ts"
+opout=$(case $op in
   scale1) r kubectl scale "deploy/$name" --replicas=1 ;;
   scale3) r kubectl scale "deploy/$name" --replicas=3 ;;
   scale4) r kubectl scale "deploy/$name" --replicas=4 ;;
@@ -20,8 +21,15 @@ case $op in
     r kubectl patch hpa "$name" --type=merge -p '{"spec":{"behavior":{"scaleDown":{"selectPolicy":"Disabled"}}}}'
     r kubectl scale "deploy/$name" --replicas=4
     ;;
-  *) echo "unknown operation $op"; exit 1 ;;
-esac
+  *) echo "unknown operation $op" ;;
+esac)
+echo "$opout"
+case $opout in "unknown operation"*) exit 1 ;; esac
+screens=
+if [ -n "${SCREENS:-}" ] && [[ " c1-1 c3 c4 c7 " == *" $name "* ]]; then
+  "$here/scripts/screens.sh" "$name" "$op_ts" "$(( $(date +%s) + WINDOW ))" "$opout" >> "$SCREENS/screen-$name.txt" 2>&1 &
+  screens=$!
+fi
 echo "## after operation $(ts)"
 fields "$name"
 last=$(spec_replicas "$name")
@@ -52,3 +60,5 @@ if [ "$op" = apply4 ] && [ -z "$ss" ]; then
 fi
 echo "## end $(ts)"
 fields "$name"
+[ -n "$screens" ] && wait "$screens"
+exit 0

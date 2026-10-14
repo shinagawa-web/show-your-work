@@ -40,6 +40,10 @@ echo "ready $(( $(date +%s) - start ))s" > "$results/elapsed.txt"
   r kubectl get deploy
 } > "$results/00-environment.txt"
 
+export SCREENS=$results
+( name=c1-1; screen "before the operation" deploy hpa describe ) > "$results/screen-c1-1.txt" 2>&1
+for n in c3 c4 c7; do : > "$results/screen-$n.txt"; done
+
 last=$(kubectl -n kube-system logs "$kcm" --since=30s | python3 -B "$here/scripts/syncs.py" c1-1 | awk '$3 == "proposing" || $3 == "decided" {t=$1} END {print t}')
 [ -n "$last" ] || abort "no HPA sync of c1-1 in the kube-controller-manager log"
 at=$(python3 -c '

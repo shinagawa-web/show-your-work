@@ -11,3 +11,24 @@ spec_replicas() { kubectl get deploy "$1" -o jsonpath='{.spec.replicas}'; }
 fields() {
   kubectl get deploy "$1" -o json --show-managed-fields | jq -r '"spec.replicas=\(.spec.replicas)", (.metadata.managedFields[] | "\(.manager)\t\(.operation)\t\(.subresource // "-")\t\(.time)\t\(if .fieldsV1["f:spec"]["f:replicas"] then "owns spec.replicas" else "-" end)")'
 }
+screen() {
+  local title=$1 what
+  shift
+  echo "## $title $(ts)"
+  echo
+  for what in "$@"; do
+    case $what in
+      deploy) echo "\$ kubectl get deploy $name"; kubectl get deploy "$name" 2>&1 ;;
+      hpa) echo "\$ kubectl get hpa $name"; kubectl get hpa "$name" 2>&1 ;;
+      describe) echo "\$ kubectl describe hpa $name"; kubectl describe hpa "$name" 2>&1 ;;
+    esac
+    echo
+  done
+}
+manfields() {
+  echo "## managedFields $1 $(ts)"
+  echo
+  echo "\$ kubectl get deploy $name -o yaml --show-managed-fields"
+  kubectl get deploy "$name" -o yaml --show-managed-fields 2>&1
+  echo
+}
