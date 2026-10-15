@@ -147,14 +147,14 @@ async function openEntrance(browser, ctx, cond, step, how, clock) {
   return rec;
 }
 
-async function openClearSiteDataPage(browser, ctx, cond, clock) {
-  const rec = { browser, condition: cond.id, step: 'clear-site-data-page', how: 'goto', url: cond.clearSiteDataPage };
+async function openV4Page(browser, ctx, cond, clock) {
+  const rec = { browser, condition: cond.id, step: 'v4-page', how: 'goto', url: cond.v4Page };
   const page = await ctx.newPage();
   const obs = observePage(page);
   const cdp = browser === 'chromium' ? await attachCdp(ctx, page) : null;
   try {
     rec.startedAt = Date.now();
-    const resp = await page.goto(cond.clearSiteDataPage, { waitUntil: 'load', timeout: 15000 });
+    const resp = await page.goto(cond.v4Page, { waitUntil: 'load', timeout: 15000 });
     rec.status = resp?.status() ?? null;
     rec.headers = resp ? resp.headers() : null;
     await sleep(500);
@@ -171,7 +171,7 @@ async function openClearSiteDataPage(browser, ctx, cond, clock) {
     await cdp.session.detach().catch(() => {});
   }
   await page.close();
-  log(`${browser} ${cond.id} clear-site-data-page -> ${rec.version ?? rec.error}`);
+  log(`${browser} ${cond.id} v4-page -> ${rec.version ?? rec.error}`);
   return rec;
 }
 
@@ -186,9 +186,9 @@ async function runBrowser(name, gates, clock, record) {
 
   await gates.switched.promise;
   for (const c of CONDITIONS) {
-    if (c.clearSiteDataPage) {
-      record.push(await openEntrance(name, ctxs[c.profile], c, 'before-clear-site-data', c.afterSwitch, clock));
-      record.push(await openClearSiteDataPage(name, ctxs[c.profile], c, clock));
+    if (c.v4Page) {
+      record.push(await openEntrance(name, ctxs[c.profile], c, 'before-v4-page', c.afterSwitch, clock));
+      record.push(await openV4Page(name, ctxs[c.profile], c, clock));
     }
     record.push(await openEntrance(name, ctxs[c.profile], c, 'immediate', c.afterSwitch, clock));
   }

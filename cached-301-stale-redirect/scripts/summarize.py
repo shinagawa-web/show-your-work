@@ -18,7 +18,7 @@ for i in d["invalid"]:
     print(f"  - {i}")
 print()
 
-STEPS = ["first", "before-clear-site-data", "clear-site-data-page", "immediate", "after-wait", "restart"]
+STEPS = ["first", "before-v4-page", "v4-page", "immediate", "after-wait", "restart"]
 browsers = list(env["browsers"].keys())
 conds = [c["id"] for c in d["conditions"]]
 by = {}
@@ -32,7 +32,7 @@ def cell(o):
     if o.get("error"):
         return "ERROR"
     s = o.get("version") or "-"
-    if o["step"] == "clear-site-data-page":
+    if o["step"] == "v4-page":
         csd = (o.get("headers") or {}).get("clear-site-data")
         if o["browser"] == "chromium":
             ids = {e["requestId"] for e in o.get("cdp", []) if e["event"] == "requestWillBeSent" and e["url"] == o["url"]}

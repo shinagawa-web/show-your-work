@@ -17,6 +17,7 @@ Each condition has its own entrance path, defined in `server/docs.conf.template`
 - `b2`: `return 302`
 - `b3`: `return 301` with `Cache-Control: max-age=60`
 - `b4`: as `b0`, on its own origin (`localhost:18081`) and its own browser profile. That origin's `/docs/v4/` returns `Clear-Site-Data: "cache"`. After the switch, the browser opens the entrance, then opens `/docs/v4/` in a new page in the same browser context, then opens the entrance again
+- `b8`: as `b4` on `localhost:18083` with its own browser profile, without `Clear-Site-Data` on `/docs/v4/`. The control for `b4`
 - `b5`: as `b0`. After the switch, the entrance is opened with `page.goto`, with no link page as the initiator
 - `b6`: as `b0` while pointed at `/docs/v3/`. The switch to `/docs/v4/` also changes it to `return 302`, set in `server/render-conf.sh`
 - `b7`: `return 301` in a `server` block (`localhost:18082`) that sets `expires 30d`. Checked with curl only, no browser
