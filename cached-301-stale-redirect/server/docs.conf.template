@@ -29,6 +29,15 @@ server {
 }
 
 server {
+    listen 18082;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    expires 30d;
+
+    location = /b7/docs { return 301 /docs/__TARGET__/; }
+}
+
+server {
     listen 18080;
     server_name 127.0.0.1;
     root /usr/share/nginx/links;

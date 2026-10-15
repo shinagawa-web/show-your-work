@@ -1,5 +1,6 @@
 export const DOCS = 'http://localhost:18080';
 export const DOCS_B4 = 'http://localhost:18081';
+export const DOCS_B7 = 'http://localhost:18082';
 export const LINKS_URL = 'http://127.0.0.1:18080/';
 export const WAIT_AFTER_SWITCH_SEC = 70;
 export const IMAGE = 'cached-301-site:latest';
@@ -17,6 +18,7 @@ export const CONDITIONS = [
 
 export const CURL_URLS = [
   ...CONDITIONS.map((c) => c.entrance),
+  `${DOCS_B7}/b7/docs`,
   `${DOCS}/docs/v3/`,
   `${DOCS}/docs/v4/`,
   `${DOCS_B4}/docs/v4/`,
