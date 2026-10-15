@@ -14,7 +14,6 @@ Code style, naming, and design preferences are out of scope. Do not report anyth
 - The article body, with section numbers
 - The slug, i.e. the corresponding folder in the repository
 - The source of the numbers the article cites: GitHub Actions run IDs. If the article's numbers span multiple runs, which number comes from which run
-- The numbers file for the article, and the output of `.claude/scripts/trace-numbers.py` run on the article and that file, with `--runs` or `--repeat`
 - The output of the blind-reader agent for the same slug, commit and runs. It read the code and outputs without the article
 
 If anything is missing, report which checks cannot be done without it. Do not fill gaps by guessing.
@@ -45,11 +44,6 @@ Do the conditions described in the article match what the code actually does?
 
 Can the numbers the article cites be traced back to the specified run?
 
-trace-numbers has checked the run's commit against the code, whether each number is in the run's outputs, numbers without a source, and tables that mix runs. Do not repeat those checks by reading logs. Report each `NG` line it gives. Check what it cannot:
-
-- For every row of the numbers file, is the selected value the quantity the article names? A p95 taken for a p99, an artifact from another condition, a filter that computes something else all pass the script
-- Rows marked `-`: is any of them a measured value that should be traced?
-
 - Does the run's commit match the code you are reading? If not, the code you are reading is not the code that produced those numbers
 - Do the workflow and inputs (inputs, env, matrix) used by the run match the conditions written in the article?
 - Do the article's numbers actually appear in that run's logs?
@@ -69,16 +63,12 @@ Is the procedure for deriving the article's numbers from the logs correct?
 
 Do the computed numbers match the numbers written in the article?
 
-trace-numbers has compared every traced number after rounding. Report its mismatches, and check here only what it cannot: whether the same quantity is described the same way where it appears more than once.
-
 - Transcription errors, rounding, numbers from a different condition slipping in
 - When the same quantity appears in multiple places in the article, are the values consistent?
 
 ### 6. Do the numbers support the claim?
 
 Assuming the numbers themselves are correct, does the article go beyond what they can support?
-
-Use the spread section of trace-numbers. Each comparison the article makes needs a `vs` row in the numbers file, and the spread gate must pass for it. Values written as fixed facts ("all", "every", "none", an exact count) must hold in every run. If trace-numbers ran without `--runs` or `--repeat`, this item could not be checked: say so and give the command.
 
 - Is a conclusion drawn from a single run?
 - Is the difference between conditions larger than the measurement's variability?
