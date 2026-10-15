@@ -1,0 +1,28 @@
+name: hpa-reverts-manual-scale
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "hpa-reverts-manual-scale/**"
+      - ".github/workflows/hpa-reverts-manual-scale.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: hpa-reverts-manual-scale
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: hpa-reverts-manual-scale-results
+          path: hpa-reverts-manual-scale/results/
