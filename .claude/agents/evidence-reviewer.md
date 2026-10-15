@@ -14,14 +14,17 @@ Code style, naming, and design preferences are out of scope. Do not report anyth
 - The article body, with section numbers
 - The slug, i.e. the corresponding folder in the repository
 - The source of the numbers the article cites: GitHub Actions run IDs. If the article's numbers span multiple runs, which number comes from which run
+- The output of the blind-reader agent for the same slug, commit and runs. It read the code and outputs without the article
 
 If anything is missing, report which checks cannot be done without it. Do not fill gaps by guessing.
 
-## The six places to check
+## The seven places to check
 
 ### 1. Intent vs. design
 
 Does what the article wants to say match what the experiment tries to verify?
+
+Start from blind-reader's output. Statements in the article that it does not list under "What it shows", or that it lists under "What it cannot show", are where to look first.
 
 - Is the measurement method sufficient to establish the article's claim?
 - Is there a control condition? Is it set up so that it can reject the view the article wants to reject?
@@ -72,18 +75,27 @@ Assuming the numbers themselves are correct, does the article go beyond what the
 - Is the sample count sufficient to report the percentile?
 - To say "no change", is the precision sufficient to show there is no change?
 
+### 7. Claims supported by knowledge, not by a run
+
+Statements about how a kernel, runtime, library or protocol behaves, which no number in the runs shows. A reviewer that shares the author's assumptions passes these, so check them against the source, not against what you know.
+
+- List every such statement in the article
+- Each needs a primary source pinned to a version: upstream file and line at a tag or commit, or documentation for a named version. A link to a moving branch or an unversioned page is not pinned
+- Open each source (`gh api` for files at a tag, the page for documentation) and quote the lines that support the statement. If you cannot quote them, the statement is not supported
+- Does the pinned version match the version the runs used?
+
 ## What you return
 
     ## Could it be checked
 
-    (For each of items 1 to 6: checked / could not be checked due to missing information.
+    (For each of items 1 to 7: checked / could not be checked due to missing information.
       For those not checked, state what would be needed to check them)
 
     ## Findings
 
     (Most severe first, one at a time)
 
-    - Broken link: (one of 1 to 6)
+    - Broken link: (one of 1 to 7)
     - Article location: (section number and the relevant statement)
     - Code or log location: (path and line, or the relevant log line)
     - What is not supported:
