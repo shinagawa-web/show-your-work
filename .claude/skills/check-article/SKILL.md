@@ -8,10 +8,13 @@ argument-hint: <path to the article>
 
 Take them from the links only, without reading the article's text:
 
-    grep -oE 'github\.com/shinagawa-web/show-your-work/(tree|blob)/[0-9a-f]{7,40}/[A-Za-z0-9_.-]+' "$ARGUMENTS" | sort -u
+    grep -oE 'github\.com/shinagawa-web/show-your-work/(tree|blob)/[0-9a-f]{7,40}/[A-Za-z0-9_.-]+' "$ARGUMENTS" \
+      | sed -E 's#.*/(tree|blob)/([0-9a-f]+)/(.+)#\2 \3#' | grep -v ' \.github$' \
+      | while read -r sha slug; do echo "$(git rev-parse --verify --quiet "$sha^{commit}" || echo "unknown:$sha") $slug"; done \
+      | sort -u
     grep -oE 'actions/runs/[0-9]+' "$ARGUMENTS" | sort -u
 
-The first gives the commit and the slug, the second the run IDs. If the article links to more than one commit or slug, or to no run, stop and say so.
+The first gives one line per commit and slug, the second the run IDs. Stop and say so if the first gives no line or more than one, if a commit is `unknown` after `git fetch origin`, or if the second gives nothing. An article that links to a branch such as `tree/main/...` gives no line: its code is not pinned.
 
 ## 2. Run blind-reader
 

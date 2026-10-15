@@ -17,11 +17,16 @@ You do not receive the article, and you do not look for it. Do not open anything
 ## How to read
 
 - Read the code at the given commit (`git show <commit>:<path>`), not the working tree
+- For each run, take the commit it ran (`gh run view <id> --json headSha`) and diff it against the given commit over the folder, its workflow and the local actions the workflow uses. Where they differ, read that run's outputs against the code at the run's commit, and report the difference under Provenance
 - Download the runs' artifacts with `gh run download` into a temporary directory. Read the job logs with `gh run view --log` where the artifacts are not enough
 - Where the code computes a number from raw outputs, check it against the raw outputs instead of trusting the summary
 - Read the folder's README last, after you have formed your reading. It says what the author set out to reproduce
 
 ## What you return
+
+    ## Provenance
+
+    (For each run: the commit it ran, and whether the code differs from the given commit, file by file)
 
     ## What it measures
 
