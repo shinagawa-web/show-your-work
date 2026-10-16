@@ -1,0 +1,56 @@
+name: nginx-accept-queue-overflow
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "nginx-accept-queue-overflow/**"
+      - ".github/workflows/nginx-accept-queue-overflow.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: nginx-accept-queue-overflow
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - baseline
+          - pause-0.3s
+          - backlog-4096
+          - connect-timeout-60s
+          - connect-timeout-60s-linear-0
+          - abort-on-overflow
+          - somaxconn
+    name: run (${{ matrix.target }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh ${{ matrix.target }}
+      - name: summary
+        if: always()
+        run: |
+          {
+            echo "## ${{ matrix.target }}"
+            for f in results/timing.txt results/00-environment.txt results/summary.md; do
+              [ -f "$f" ] || continue
+              echo "### $f"
+              echo '```'
+              cat "$f"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: run-all.sh within 300 s
+        run: |
+          s=$(sed -n 's/^total: \([0-9]*\) s$/\1/p' results/timing.txt)
+          echo "total: ${s} s"
+          [ -n "$s" ] && [ "$s" -le 300 ]
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nginx-accept-queue-overflow-${{ matrix.target }}
+          path: nginx-accept-queue-overflow/results/
