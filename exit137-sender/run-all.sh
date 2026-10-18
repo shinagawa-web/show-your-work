@@ -22,9 +22,22 @@ tar -C "$here" -c guest | "$here/scripts/vm-ssh.sh" 'rm -rf ~/w && mkdir -p ~/w 
 "$here/scripts/vm-ssh.sh" "sudo DEBUG=${DEBUG:-0} TRACE=${TRACE:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/setup.sh" > "$results/setup.txt" 2>&1 || { tail -30 "$results/setup.txt"; exit 1; }
 grep seconds "$results/setup.txt"
 echo "[$(el)s] test VM set up"
-runs_env=$(env | grep -E '^RUNS_C[0-9]+[A-Z]*=[0-9]+$' | tr '\n' ' ')
-"$here/scripts/vm-ssh.sh" "sudo $runs_env PROBE=${PROBE:-0} TRACE=${TRACE:-0} TRACE_SHIM=${TRACE_SHIM:-0} TRACE_NAMES=${TRACE_NAMES:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/${GUEST_SCRIPT:-conditions.sh} $*" > "$results/conditions.txt" 2>&1
-cond_status=$?
+guest=${GUEST_SCRIPT:-conditions.sh}
+if [ "${1:-}" = memory-events ]; then
+  shift
+  guest=memevents.sh
+  cond_status=0
+  for s in ${*:-M1 M2 M3 M4}; do
+    "$here/scripts/vm-reboot.sh" | tee -a "$results/reboot.txt"
+    [ "${PIPESTATUS[0]}" -eq 0 ] || { cp "$here/.vm/serial.log" "$results/" 2>/dev/null; exit 1; }
+    echo "[$(el)s] test VM rebooted"
+    "$here/scripts/vm-ssh.sh" "sudo ~/w/guest/$guest $s" >> "$results/conditions.txt" 2>&1 || cond_status=1
+  done
+else
+  runs_env=$(env | grep -E '^RUNS_C[0-9]+[A-Z]*=[0-9]+$' | tr '\n' ' ')
+  "$here/scripts/vm-ssh.sh" "sudo $runs_env PROBE=${PROBE:-0} TRACE=${TRACE:-0} TRACE_SHIM=${TRACE_SHIM:-0} TRACE_NAMES=${TRACE_NAMES:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/$guest $*" > "$results/conditions.txt" 2>&1
+  cond_status=$?
+fi
 grep -E "seconds|^==|FAILED" "$results/conditions.txt"
 "$here/scripts/vm-ssh.sh" 'sudo python3 ~/w/guest/summarize.py /root/results' > "$results/summarize.txt" 2>&1
 sum_status=$?
@@ -33,7 +46,7 @@ tar_status=("${PIPESTATUS[@]}")
 echo "[$(el)s] done" | tee "$results/total.txt"
 status=0
 [ "$cond_status" -eq 0 ] || { echo "conditions failed (exit $cond_status)"; status=1; }
-[ "${GUEST_SCRIPT:-conditions.sh}" != conditions.sh ] || [ -f "$results/complete" ] || { echo "conditions did not complete"; status=1; }
+[ "$guest" != conditions.sh ] || [ -f "$results/complete" ] || { echo "conditions did not complete"; status=1; }
 [ "$sum_status" -eq 0 ] || { echo "summarize failed (exit $sum_status)"; cat "$results/summarize.txt"; status=1; }
 [ "${tar_status[0]}" -eq 0 ] && [ "${tar_status[1]}" -eq 0 ] || { echo "copying results failed (${tar_status[*]})"; status=1; }
 exit "$status"

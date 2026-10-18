@@ -84,7 +84,7 @@ def run_summary(d):
     s["Running"] = json.dumps(stt.get("Running"))
     r = [l.split(": ", 1)[-1] for l in lines(os.path.join(d, "dockerd.txt")) if "restarting container" in l]
     s["restarting_container_log"] = " | ".join(r) if r else "none"
-    for extra in ("action.txt", "sizing.txt", "notes.txt"):
+    for extra in ("action.txt", "sizing.txt", "notes.txt", "memevents.txt"):
         x = lines(os.path.join(d, extra))
         if x:
             s[extra[:-4]] = " / ".join(x)
@@ -103,15 +103,15 @@ def main():
     out = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
     extras = []
     def order(c):
-        m = re.fullmatch(r"C(\d+)([A-Z]*)", c)
-        return (int(m.group(1)), m.group(2))
-    conds = sorted((c for c in os.listdir(root) if re.fullmatch(r"C\d+[A-Z]*", c)), key=order)
+        m = re.fullmatch(r"([CM])(\d+)([A-Z]*)", c)
+        return (m.group(1), int(m.group(2)), m.group(3))
+    conds = sorted((c for c in os.listdir(root) if re.fullmatch(r"[CM]\d+[A-Z]*", c)), key=order)
     for c in conds:
         for r in sorted(os.listdir(os.path.join(root, c)), key=int):
             s = run_summary(os.path.join(root, c, r))
             s.update(cond=c, run=r)
             out.append("| " + " | ".join(str(s.get(k, "")).replace("|", "\\|") for k in cols) + " |")
-            for extra in ("action", "sizing", "notes"):
+            for extra in ("action", "sizing", "notes", "memevents"):
                 if extra in s:
                     extras.append(f"- {c} run {r} {extra}: {s[extra]}")
     with open(os.path.join(root, "summary.md"), "w") as f:
