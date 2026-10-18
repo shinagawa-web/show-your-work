@@ -17,7 +17,7 @@ record_env() {
 }
 
 run_subject() {
-  cid=$(docker run -d --name "$name" "$@") || return 1
+  cid=$(docker run -d --name "$name" "$@") || { echo "docker run failed" >> "$dir/notes.txt"; return 1; }
   cg=$ss/docker-$cid.scope
   out "container cgroup memory.events right after docker run: $(mev "$cg")"
   out "container cgroup inode right after docker run: $(stat -c %i "$cg")"
@@ -43,7 +43,7 @@ probe_last() {
 
 M1() {
   record_env
-  run_subject --memory 128m "$IMG" alloc 256 16 0 2000 /marker
+  run_subject --memory 128m "$IMG" alloc 256 16 0 2000 /marker || return 1
   wait_started
   at_start
   timeout 30 docker wait "$name" > "$dir/wait.txt"
@@ -55,7 +55,7 @@ M1() {
 
 M2() {
   record_env
-  run_subject --restart on-failure --memory 128m "$IMG" alloc 256 16 0 2000 /marker
+  run_subject --restart on-failure --memory 128m "$IMG" alloc 256 16 0 2000 /marker || return 1
   wait_started
   at_start
   wait_log "$name" exists 30
@@ -74,7 +74,7 @@ M3() {
   avail=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
   alloc=$(( avail * 6 / 10 ))
   echo "MemAvailable=${avail}MiB subject_alloc=${alloc}MiB subject_limit=$((alloc + 128))MiB filler_max=$(( avail * 8 / 10 ))MiB" | tee "$dir/sizing.txt"
-  run_subject --memory "$((alloc + 128))m" "$IMG" alloc "$alloc" 16 0 0
+  run_subject --memory "$((alloc + 128))m" "$IMG" alloc "$alloc" 16 0 0 || return 1
   wait_log "$name" holding 30
   at_start
   docker run -d --name "$name-filler" --entrypoint /filler "$IMG" alloc $(( avail * 8 / 10 )) 4 10 0 >/dev/null
@@ -93,7 +93,7 @@ M3() {
 
 M4() {
   record_env
-  run_subject --memory 128m "$IMG" alloc 16 16 0 2000 /marker
+  run_subject --memory 128m "$IMG" alloc 16 16 0 2000 /marker || return 1
   wait_log "$name" holding 10
   at_start
   echo "\$ kill -9 $pid1" > "$dir/action.txt"
@@ -110,7 +110,10 @@ expect() { grep -qE "$1" "$dir/summary.txt" || fail "summary.txt has no line mat
 
 for c in "$@"; do
   begin "$c" 1
-  "$c"
+  if ! "$c"; then
+    fail "$c stopped before the end: $(tr '\n' ' ' < "$dir/notes.txt" 2>/dev/null)"
+    continue
+  fi
   [ -s "$dir/notes.txt" ] && fail "notes: $(tr '\n' ' ' < "$dir/notes.txt")"
   for x in inspect-start.json inspect-end.json events.jsonl kernel.txt summary.txt memevents.txt; do
     [ -s "$dir/$x" ] || fail "missing $x"
