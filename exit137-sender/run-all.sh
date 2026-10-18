@@ -27,22 +27,33 @@ if [ "${1:-}" = memory-events ]; then
   shift
   guest=memevents.sh
   cond_status=0
+  tar_status=(0 0)
   for s in ${*:-M1 M2 M3 M4}; do
     "$here/scripts/vm-reboot.sh" | tee -a "$results/reboot.txt"
-    [ "${PIPESTATUS[0]}" -eq 0 ] || { cp "$here/.vm/serial.log" "$results/" 2>/dev/null; exit 1; }
+    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+      cp "$here/.vm/serial.log" "$results/" 2>/dev/null
+      echo "reboot before $s failed"; cond_status=1
+      break
+    fi
     echo "[$(el)s] test VM rebooted"
     "$here/scripts/vm-ssh.sh" "sudo ~/w/guest/$guest $s" >> "$results/conditions.txt" 2>&1 || cond_status=1
+    "$here/scripts/vm-ssh.sh" 'sudo tar -C /root/results -c .' | tar -C "$results" -x
+    st=("${PIPESTATUS[@]}")
+    [ "${st[0]}" -eq 0 ] && [ "${st[1]}" -eq 0 ] || tar_status=("${st[@]}")
   done
+  grep -E "seconds|^==|FAILED" "$results/conditions.txt"
+  python3 "$here/guest/summarize.py" "$results" > "$results/summarize.txt" 2>&1
+  sum_status=$?
 else
   runs_env=$(env | grep -E '^RUNS_C[0-9]+[A-Z]*=[0-9]+$' | tr '\n' ' ')
   "$here/scripts/vm-ssh.sh" "sudo $runs_env PROBE=${PROBE:-0} TRACE=${TRACE:-0} TRACE_SHIM=${TRACE_SHIM:-0} TRACE_NAMES=${TRACE_NAMES:-0} LOCKSHIM=${LOCKSHIM:-0} ~/w/guest/$guest $*" > "$results/conditions.txt" 2>&1
   cond_status=$?
+  grep -E "seconds|^==|FAILED" "$results/conditions.txt"
+  "$here/scripts/vm-ssh.sh" 'sudo python3 ~/w/guest/summarize.py /root/results' > "$results/summarize.txt" 2>&1
+  sum_status=$?
+  "$here/scripts/vm-ssh.sh" 'sudo tar -C /root/results -c .' | tar -C "$results" -x
+  tar_status=("${PIPESTATUS[@]}")
 fi
-grep -E "seconds|^==|FAILED" "$results/conditions.txt"
-"$here/scripts/vm-ssh.sh" 'sudo python3 ~/w/guest/summarize.py /root/results' > "$results/summarize.txt" 2>&1
-sum_status=$?
-"$here/scripts/vm-ssh.sh" 'sudo tar -C /root/results -c .' | tar -C "$results" -x
-tar_status=("${PIPESTATUS[@]}")
 echo "[$(el)s] done" | tee "$results/total.txt"
 status=0
 [ "$cond_status" -eq 0 ] || { echo "conditions failed (exit $cond_status)"; status=1; }
