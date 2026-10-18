@@ -43,7 +43,7 @@ probe_last() {
 
 M1() {
   record_env
-  run_subject --memory 128m "$IMG" alloc 256 16 0 300 /marker
+  run_subject --memory 128m "$IMG" alloc 256 16 0 2000 /marker
   wait_started
   at_start
   timeout 30 docker wait "$name" > "$dir/wait.txt"
@@ -55,7 +55,7 @@ M1() {
 
 M2() {
   record_env
-  run_subject --restart on-failure --memory 128m "$IMG" alloc 256 16 0 300 /marker
+  run_subject --restart on-failure --memory 128m "$IMG" alloc 256 16 0 2000 /marker
   wait_started
   at_start
   wait_log "$name" exists 30
@@ -93,7 +93,7 @@ M3() {
 
 M4() {
   record_env
-  run_subject --memory 128m "$IMG" alloc 16 16 0 300 /marker
+  run_subject --memory 128m "$IMG" alloc 16 16 0 2000 /marker
   wait_log "$name" holding 10
   at_start
   echo "\$ kill -9 $pid1" > "$dir/action.txt"
@@ -115,6 +115,9 @@ for c in "$@"; do
   for x in inspect-start.json inspect-end.json events.jsonl kernel.txt summary.txt memevents.txt; do
     [ -s "$dir/$x" ] || fail "missing $x"
   done
+  grep -q 'memory.events right after docker run: .* oom_kill 0 ' "$dir/memevents.txt" || fail "container memory.events was not read before an OOM kill"
+  grep -q '^State.Pid=[1-9]' "$dir/start.txt" || fail "State.Pid was 0 at start"
+  awk 'NR > 1 && $3 == "subject"' "$dir/start.txt" | grep -q . || fail "subject was not running at start"
   case $c in
     M1) expect '^ExitCode: 137$'; expect '^constraint: constraint=CONSTRAINT_MEMCG'; expect '^memcg_vs_container: oom_memcg==container' ;;
     M2) expect '^RestartCount: 1$'; expect '^Running: true$'; expect '^constraint: constraint=CONSTRAINT_MEMCG'; expect '^memcg_vs_container: oom_memcg==container' ;;
