@@ -105,14 +105,16 @@ M4() {
   probe_last
 }
 
-expect() {
-  grep -qE "$1" "$dir/summary.txt" || { echo "FAILED $cond: summary.txt has no line matching '$1'" | tee -a "$results/failures.txt"; failed=$((failed + 1)); }
-}
+fail() { echo "FAILED $cond: $*" | tee -a "$results/failures.txt"; failed=$((failed + 1)); }
+expect() { grep -qE "$1" "$dir/summary.txt" || fail "summary.txt has no line matching '$1'"; }
 
 for c in "$@"; do
   begin "$c" 1
   "$c"
-  [ -s "$dir/notes.txt" ] && { echo "FAILED $cond: $(tr '\n' ' ' < "$dir/notes.txt")" | tee -a "$results/failures.txt"; failed=$((failed + 1)); }
+  [ -s "$dir/notes.txt" ] && fail "notes: $(tr '\n' ' ' < "$dir/notes.txt")"
+  for x in inspect-start.json inspect-end.json events.jsonl kernel.txt summary.txt memevents.txt; do
+    [ -s "$dir/$x" ] || fail "missing $x"
+  done
   case $c in
     M1) expect '^ExitCode: 137$'; expect '^constraint: constraint=CONSTRAINT_MEMCG'; expect '^memcg_vs_container: oom_memcg==container' ;;
     M2) expect '^RestartCount: 1$'; expect '^Running: true$'; expect '^constraint: constraint=CONSTRAINT_MEMCG'; expect '^memcg_vs_container: oom_memcg==container' ;;
