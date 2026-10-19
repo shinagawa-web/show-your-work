@@ -142,6 +142,23 @@ export function buildPlan() {
     }
   }
 
+  for (const f of FRACTIONS) {
+    const point = pct(f);
+    groups.push({
+      id: `keepopen-100m-${point}`,
+      set: 'keepopen',
+      ageName: '100m',
+      ageSec: a,
+      ageHeader: Math.round(f * a),
+      v1: { image: 'v1' },
+      v2: { image: 'v2' },
+      users: [
+        ...users(`keepopen-100m-${point}-newtab`, REPEATS, { method: 'newtab', point }),
+        ...users(`keepopen-100m-${point}-keepopen`, REPEATS, { method: 'keepopen', point }),
+      ],
+    });
+  }
+
   for (const deploy of [false, true]) {
     for (const f of FRACTIONS) {
       const env = { INDEX_CACHE_CONTROL: 'no-cache', LOG_IF_HEADERS: '1' };

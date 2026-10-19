@@ -20,6 +20,13 @@ The sets and the A, r and server settings of each are in `runner/plan.mjs`. A de
 
 The real-wait sets, including the calibration sets `cal-wait` and `cal-age`, run first. If a calibration user boots a version that contradicts its measured r/A, the other sets are not run and the run exits with 2.
 
+## Revisit
+
+- `newtab`: the persistent context (the browser) is closed after the fetch, relaunched on the same profile after the deploy, and the site is opened in a new page
+- `keepopen`: the first page is closed, the persistent context stays open across the deploy, and the site is opened in a new page of the same context
+
+The `keepopen` set puts 3 `newtab` and 3 `keepopen` users in each group, with A = 100 min and the `Age` header at 5%, 9%, 11% and 20% of A. The users do not press the button on the first visit. Only this set uses `keepopen`.
+
 ## Pinned versions
 
 Playwright in `runner/package.json`, the nginx and node images in `server/Dockerfile`, Vite in `app/package.json`. `results.json` `env` records the browser version and image IDs of each run.
