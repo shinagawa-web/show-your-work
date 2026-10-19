@@ -25,6 +25,7 @@ jobs:
           - backlog-4096
           - connect-timeout-60s
           - connect-timeout-60s-linear-0
+          - connect-timeout-60s-backlog-4096
           - abort-on-overflow
           - somaxconn
     name: run (${{ matrix.target }})

@@ -5,3 +5,4 @@ backlog-4096	baseline	4096	3	1500ms	4	0
 connect-timeout-60s	baseline	100	3	60s	4	0
 connect-timeout-60s-linear-0	connect-timeout-60s	100	3	60s	0	0
 abort-on-overflow	baseline	100	3	1500ms	4	1
+connect-timeout-60s-backlog-4096	connect-timeout-60s	4096	3	60s	4	0
