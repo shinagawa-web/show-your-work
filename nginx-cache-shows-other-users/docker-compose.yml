@@ -1,0 +1,23 @@
+services:
+  app:
+    image: python:3.13.15-slim
+    command: ["python3", "-u", "/app/app.py"]
+    environment:
+      APP_PAGES: "${APP_PAGES}"
+      APP_PRIVATE: "${APP_PRIVATE}"
+      APP_VARY: "${APP_VARY}"
+    volumes:
+      - ./app:/app:ro
+      - ${OUT}:/results
+  nginx:
+    image: nginx:1.30.6
+    volumes:
+      - ${OUT}/conf.d:/etc/nginx/conf.d:ro
+      - ${OUT}:/results
+    depends_on: [app]
+  k6:
+    image: grafana/k6:2.3.0
+    entrypoint: ["sleep", "infinity"]
+    volumes:
+      - ./k6:/scripts:ro
+      - ${OUT}:/results

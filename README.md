@@ -12,6 +12,7 @@ Each folder is one verification, run by `.github/workflows/<folder>.yml` on GitH
 | [distroless-ephemeral-debug](distroless-ephemeral-debug/README.md) | [No shell in a distroless Pod: what kubectl debug can and can't see](https://dev.to/shinagawa-web/no-shell-in-a-distroless-pod-what-kubectl-debug-can-and-cant-see-122o) |
 | [exit137-sender](exit137-sender/README.md) | — |
 | [hpa-reverts-manual-scale](hpa-reverts-manual-scale/README.md) | — |
+| [nginx-cache-shows-other-users](nginx-cache-shows-other-users/README.md) | — |
 | [nodejs-eventloop-starvation-p99](nodejs-eventloop-starvation-p99/README.md) | — |
 | [provisional-hold-inventory-stockout](provisional-hold-inventory-stockout/README.md) | — |
 | [rate-limit-cannot-protect](rate-limit-cannot-protect/README.md) | — |
