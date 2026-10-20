@@ -6,7 +6,7 @@ if [ $# -gt 0 ]; then conds=("$@"); else conds=($(ls conditions | sed 's/\.env$/
 now_ms() { date +%s%3N; }
 NGINX_IMAGE=nginx:1.30.6
 RATE=500
-DURATION_SEC=30
+DURATION_SEC=120
 PAGES=100
 USERS=200
 
