@@ -36,4 +36,4 @@ After blind-reader returns, start the evidence-reviewer agent with:
 
 ## 4. Report
 
-Return evidence-reviewer's output as it is. Add the statements blind-reader lists under "What it cannot show" that evidence-reviewer did not take up.
+Return evidence-reviewer's output without changing its content or structure, written in the language the user writes in. Keep code, log lines and quotes from the article untouched. Add the statements blind-reader lists under "What it cannot show" that evidence-reviewer did not take up.
