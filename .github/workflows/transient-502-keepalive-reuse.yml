@@ -15,26 +15,22 @@ defaults:
 jobs:
   run:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        sc:
-          - baseline-concurrent
-          - baseline-concurrent-noturnover
-          - retry-get
-          - retry-post
-          - nonidem-post
-          - ka-timeout
-          - drain
-    name: run (${{ matrix.sc }})
+        condition:
+          - baseline
+          - idle-close
+          - idle-close-nginx-shorter
+    name: run (${{ matrix.condition }})
     steps:
       - uses: actions/checkout@v7
-      - run: ./run-all.sh ${{ matrix.sc }}
+      - run: ./run-all.sh ${{ matrix.condition }}
       - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
         if: always()
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: transient-502-keepalive-reuse-${{ matrix.sc }}
+          name: transient-502-keepalive-reuse-${{ matrix.condition }}
           path: transient-502-keepalive-reuse/results/
