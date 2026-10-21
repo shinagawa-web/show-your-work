@@ -6,10 +6,14 @@ server {
     listen 80;
     access_log /results/access.log cache;
 
-    location / {
+    location /items/ {
         proxy_pass http://app:8080;
         proxy_cache pages;
         proxy_cache_valid 200 @CACHE_VALID@;
         @NGINX_EXTRA@
+    }
+
+    location / {
+        proxy_pass http://app:8080;
     }
 }
