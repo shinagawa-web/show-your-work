@@ -58,10 +58,8 @@ join_sql() { echo "SELECT a.code, b.payload FROM $1 WHERE a.account_id = 42"; }
 setup() {
   heading "setup mysql $MYSQL_IMAGE rows=$rows"
   docker compose --profile php down -v > /dev/null 2>&1
-  local services=(mysql)
-  [ "$version" = 8.4 ] && services+=(restore)
-  docker compose up -d --wait --quiet-pull "${services[@]}"
-  [ "$version" = 8.4 ] && docker compose --profile php build --quiet php
+  docker compose up -d --wait --quiet-pull mysql restore
+  docker compose --profile php build --quiet php
   local start=$SECONDS
   { echo "SET @rows = $rows;"; cat schema.sql; } | docker compose exec -T mysql mysql -uroot --default-character-set=utf8mb4 lab
   echo "load seconds: $(( SECONDS - start ))"
@@ -94,8 +92,6 @@ single() {
   explain "SELECT * FROM members WHERE LOWER(email) = 'user42@example.com'"
   execute "SELECT * FROM members WHERE LOWER(email) = 'user42@example.com'"
 
-  [ "$version" = 8.4 ] || return 0
-
   heading "single: function rewritten as a range on the column"
   explain "SELECT * FROM members WHERE created_at >= '2010-01-01' AND created_at < '2010-01-02'"
   execute "SELECT * FROM members WHERE created_at >= '2010-01-01' AND created_at < '2010-01-02'"
@@ -106,20 +102,22 @@ single() {
   execute "SELECT * FROM members WHERE DATE(created_at) = '2010-01-01'"
   session "ALTER TABLE members DROP INDEX idx_created_date;"
 
-  heading "single: integer column = string"
-  explain "SELECT * FROM members WHERE account_id = '42'"
-  execute "SELECT * FROM members WHERE account_id = '42'"
+  if [ "$version" = 8.4 ]; then
+    heading "single: integer column = string"
+    explain "SELECT * FROM members WHERE account_id = '42'"
+    execute "SELECT * FROM members WHERE account_id = '42'"
 
-  heading "single: only indexed column selected"
-  explain "SELECT code FROM members WHERE code = 1000042"
-  execute "SELECT code FROM members WHERE code = 1000042"
-  explain "SELECT created_at FROM members WHERE DATE(created_at) = '2010-01-01'"
-  execute "SELECT created_at FROM members WHERE DATE(created_at) = '2010-01-01'"
+    heading "single: only indexed column selected"
+    explain "SELECT code FROM members WHERE code = 1000042"
+    execute "SELECT code FROM members WHERE code = 1000042"
+    explain "SELECT created_at FROM members WHERE DATE(created_at) = '2010-01-01'"
+    execute "SELECT created_at FROM members WHERE DATE(created_at) = '2010-01-01'"
 
-  heading "single: utf8mb3 column = string over utf8mb4 connection"
-  session "SELECT @@character_set_connection, @@collation_connection;
+    heading "single: utf8mb3 column = string over utf8mb4 connection"
+    session "SELECT @@character_set_connection, @@collation_connection;
 EXPLAIN SELECT * FROM b_mb3_unicode WHERE member_code = '1000042'; SHOW WARNINGS;"
-  execute "SELECT * FROM b_mb3_unicode WHERE member_code = '1000042'"
+    execute "SELECT * FROM b_mb3_unicode WHERE member_code = '1000042'"
+  fi
 
   heading "single: varchar column = number, executed without EXPLAIN, then SHOW WARNINGS"
   session "SELECT * FROM members WHERE code = 1000042; SHOW WARNINGS;"
@@ -198,16 +196,25 @@ staging_explain() {
   explain "$(join_sql "members a JOIN b_mb3_unicode b ON b.member_code = a.code")" "$1"
 }
 
+converted() {
+  heading "fix: b_mb3_unicode.member_code converted to utf8mb4 on the source server"
+  session "ALTER TABLE b_mb3_unicode MODIFY member_code VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;
+SHOW CREATE TABLE b_mb3_unicode\G"
+  local q
+  q=$(join_sql "members a JOIN b_mb3_unicode b ON b.member_code = a.code")
+  explain "$q"
+  execute "$q"
+}
+
 main() {
   set -e
   local start=$SECONDS
   setup
   single
   joins
-  if [ "$version" = 8.4 ]; then
-    laravel_cases
-    staging
-  fi
+  laravel_cases
+  staging
+  converted
   heading "done"
   echo "total seconds: $(( SECONDS - start ))"
 }
