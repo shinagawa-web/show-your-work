@@ -9,6 +9,11 @@ import { buildPlan, LATE_DEPLOY_LEAD_SEC } from './plan.mjs';
 
 const exec = promisify(execFile);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function deferred() {
+  const d = {};
+  d.promise = new Promise((resolve, reject) => { d.resolve = resolve; d.reject = reject; });
+  return d;
+}
 
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, a, i, all) => {
@@ -16,7 +21,7 @@ const args = Object.fromEntries(
     return acc;
   }, []),
 );
-const ALL_SETS = ['cal-wait', 'cal-age', 'deploytime', 'grid', 'keep', 'spa', 'nocache', 'nocache304', 'maxage', 'maxage300', 'reloadfail', 'pressfirst'];
+const ALL_SETS = ['cal-wait', 'cal-age', 'deploytime', 'grid', 'keep', 'spa', 'nocache', 'nocache304', 'maxage', 'maxage300', 'reloadfail', 'pressfirst', 'keepopen'];
 const REAL_WAIT_SETS = ['cal-wait', 'cal-age', 'deploytime'];
 const isRealWait = (g) => REAL_WAIT_SETS.includes(g.set) || g.users.some((u) => u.realWaitSec != null);
 const sets = args.sets ? String(args.sets).split(',') : ALL_SETS;
@@ -196,7 +201,7 @@ async function runGroup(g, port, record) {
   const v1Env = { AGE_SEC: String(g.ageSec), ...(g.ageHeader != null ? { AGE_HEADER: String(g.ageHeader) } : {}) };
   gr.v1 = await startContainer(v1Name, port, g.v1, v1Env);
 
-  const results = await Promise.all(g.users.map((u) => withContext(u, async (ctx) => {
+  const doFetch = async (u, ctx) => {
     const page = await ctx.newPage();
     const o = observe(page);
     const startedAt = Date.now();
@@ -211,7 +216,53 @@ async function runGroup(g, port, record) {
     }
     await page.close();
     return { user: u, fetch: { startedAt, response: headersOf(resp), state: st, click, afterClick, ...o, load: loadNow() } };
-  })));
+  };
+  const waitRevisitDue = async (r) => {
+    if (r.user.realWaitSec != null) {
+      const due = r.fetch.state.nav.responseStartAbs + r.user.realWaitSec * 1000;
+      const wait = due - Date.now();
+      if (wait > 0) await sleep(wait);
+    }
+  };
+  const doRevisit = async (u, ctx, newTabHow) => {
+    const pagesOpenBefore = ctx.pages().length;
+    const page = await ctx.newPage();
+    const o = observe(page);
+    const rv = { newTabHow, pagesOpenBefore, load: loadNow() };
+    const resp = await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load' });
+    await sleep(100);
+    rv.response = headersOf(resp);
+    rv.state = await pageState(page);
+    if (u.method === 'reload') {
+      const resp2 = await page.reload({ waitUntil: 'load' });
+      await sleep(100);
+      rv.afterReload = { response: headersOf(resp2), state: await pageState(page) };
+    }
+    rv.click = await clickAndObserve(page);
+    rv.finalState = await pageState(page);
+    Object.assign(rv, o);
+    return rv;
+  };
+
+  // keepopen users keep the persistent context (the browser) open from the fetch to the revisit.
+  const deployed = deferred();
+  const keptOpen = new Map();
+  const results = await Promise.all(g.users.map((u) => {
+    if (u.method !== 'keepopen') return withContext(u, (ctx) => doFetch(u, ctx));
+    const fetched = deferred();
+    const p = withContext(u, async (ctx) => {
+      let r;
+      try { r = await doFetch(u, ctx); } catch (e) { fetched.reject(e); throw e; }
+      fetched.resolve(r);
+      await deployed.promise;
+      await waitRevisitDue(r);
+      return doRevisit(u, ctx,
+        'browser kept open after fetch (first page closed); same persistent context; context.newPage(); page.goto(url)');
+    });
+    p.catch(() => {});
+    keptOpen.set(u.id, p);
+    return fetched.promise;
+  }));
   gr.timeline.fetchesDone = Date.now();
 
   gr.deployAt = g.deploy === false ? 'none' : (g.deployAt || 'early');
@@ -235,34 +286,16 @@ async function runGroup(g, port, record) {
     gr.timeline.deployDone = Date.now();
   }
 
+  deployed.resolve();
   await Promise.all(results.map(async (r) => {
     const u = r.user;
-    if (u.realWaitSec != null) {
-      const due = r.fetch.state.nav.responseStartAbs + u.realWaitSec * 1000;
-      const wait = due - Date.now();
-      if (wait > 0) await sleep(wait);
+    if (u.method === 'keepopen') {
+      r.revisit = await keptOpen.get(u.id);
+      return;
     }
-    r.revisit = await withContext(u, async (ctx) => {
-      const page = await ctx.newPage();
-      const o = observe(page);
-      const rv = {
-        newTabHow: 'browser closed after fetch; relaunched persistent context on the same profile; context.newPage(); page.goto(url)',
-        load: loadNow(),
-      };
-      const resp = await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load' });
-      await sleep(100);
-      rv.response = headersOf(resp);
-      rv.state = await pageState(page);
-      if (u.method === 'reload') {
-        const resp2 = await page.reload({ waitUntil: 'load' });
-        await sleep(100);
-        rv.afterReload = { response: headersOf(resp2), state: await pageState(page) };
-      }
-      rv.click = await clickAndObserve(page);
-      rv.finalState = await pageState(page);
-      Object.assign(rv, o);
-      return rv;
-    });
+    await waitRevisitDue(r);
+    r.revisit = await withContext(u, (ctx) => doRevisit(u, ctx,
+      'browser closed after fetch; relaunched persistent context on the same profile; context.newPage(); page.goto(url)'));
   }));
   gr.timeline.revisitsDone = Date.now();
   if (g.deploy === false) {
@@ -365,6 +398,10 @@ async function main() {
   const timings = { start: Date.now() };
   let groups = buildPlan().filter((g) => sets.includes(g.set));
   if (ages) groups = groups.filter((g) => !['grid', 'pressfirst'].includes(g.set) || ages.includes(g.ageName));
+  const keptPerGroup = Math.max(0, ...groups.map((g) => g.users.filter((u) => u.method === 'keepopen').length));
+  if (keptPerGroup * PARALLEL >= MAX_BROWSERS) {
+    throw new Error(`keepopen users hold a browser across the deploy: ${keptPerGroup} x ${PARALLEL} groups needs max-browsers > ${keptPerGroup * PARALLEL}`);
+  }
   const ports = new Map(groups.map((g, i) => [g.id, BASE_PORT + i]));
   const portOf = (g) => ports.get(g.id);
 
