@@ -32,7 +32,7 @@ Every `b` table has one row per member, with `member_code` holding `members.code
 
 `run-all.sh` prints each condition under a `===` heading.
 
-- `single:` queries on `members`, and one on `b_mb3_unicode`, starting from `code = '1000042'`
+- `single:` queries on `members`, and one on `b_mb3_unicode`, starting from `code = '1000042'`. Two of them check fixes for the function on a column: the same date written as a range on `created_at`, and a functional index on `DATE(created_at)`, which is added just before its query and dropped right after
 - `join:` `members a` joined with one `b` table on `b.member_code = a.code`, filtered by `a.account_id`. Each is explained without a hint, with `STRAIGHT_JOIN` from `a`, and with `STRAIGHT_JOIN` from `b`, then executed the same three ways. The join with `b_int` is also explained and executed filtered by `b.batch_id` instead of `a.account_id`
 - `laravel:` `laravel.php` runs one step per invocation: `where('code', '1000042')`, `where('code', 1000042)`, `Store::find(42)->members`, `whereDate`, and the `CREATE TABLE` the schema builder generates for two connection settings (`pretend`, not executed). The statement found in the slow log is then explained as written there
 - `staging:` changes the table default of `b_mb3_unicode` to utf8mb4 without converting its columns, dumps `members` and `b_mb3_unicode` with mysqldump, restores the dump into `restore`, and explains the same queries on both servers, and on `restore` again after `ANALYZE TABLE`

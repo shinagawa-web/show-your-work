@@ -96,6 +96,16 @@ single() {
 
   [ "$version" = 8.4 ] || return 0
 
+  heading "single: function rewritten as a range on the column"
+  explain "SELECT * FROM members WHERE created_at >= '2010-01-01' AND created_at < '2010-01-02'"
+  execute "SELECT * FROM members WHERE created_at >= '2010-01-01' AND created_at < '2010-01-02'"
+
+  heading "single: functional index on DATE(created_at)"
+  session "ALTER TABLE members ADD INDEX idx_created_date ((DATE(created_at)));"
+  explain "SELECT * FROM members WHERE DATE(created_at) = '2010-01-01'"
+  execute "SELECT * FROM members WHERE DATE(created_at) = '2010-01-01'"
+  session "ALTER TABLE members DROP INDEX idx_created_date;"
+
   heading "single: integer column = string"
   explain "SELECT * FROM members WHERE account_id = '42'"
   execute "SELECT * FROM members WHERE account_id = '42'"
