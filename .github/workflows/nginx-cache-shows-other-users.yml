@@ -1,0 +1,43 @@
+name: nginx-cache-shows-other-users
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "nginx-cache-shows-other-users/**"
+      - ".github/workflows/nginx-cache-shows-other-users.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: nginx-cache-shows-other-users
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        condition:
+          - 01-base
+          - 02-login-30
+          - 03-ttl-2s
+          - 04-app-private
+          - 05-nginx-ignores-private
+          - 06-app-vary-cookie
+          - 07-no-cache-only
+          - 08-bypass-only
+          - 09-bypass-and-no-cache
+          - 10-cookie-in-key
+    name: run (${{ matrix.condition }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh ${{ matrix.condition }}
+      - run: cat results/summary.md results/timing.txt >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nginx-cache-shows-other-users-${{ matrix.condition }}
+          path: nginx-cache-shows-other-users/results/

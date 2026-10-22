@@ -13,6 +13,7 @@
 | [distroless-ephemeral-debug](distroless-ephemeral-debug/README.md) | — |
 | [exit137-sender](exit137-sender/README.md) | [Dockerのexit 137の原因をログで見分ける](https://zenn.dev/shinagawa_web/articles/exit137-sender) |
 | [hpa-reverts-manual-scale](hpa-reverts-manual-scale/README.md) | — |
+| [nginx-cache-shows-other-users](nginx-cache-shows-other-users/README.md) | — |
 | [nodejs-eventloop-starvation-p99](nodejs-eventloop-starvation-p99/README.md) | [Node.jsのp99だけ悪化する原因はイベントループ詰まり](https://zenn.dev/shinagawa_web/articles/nodejs-eventloop-starvation-p99) |
 | [provisional-hold-inventory-stockout](provisional-hold-inventory-stockout/README.md) | [仮引当の期限を5分から15分にしたら販売数が3割減った](https://zenn.dev/shinagawa_web/articles/provisional-hold-inventory-stockout) |
 | [rate-limit-cannot-protect](rate-limit-cannot-protect/README.md) | [nginxでlimit_reqの上限内なのに504が増える](https://zenn.dev/shinagawa_web/articles/rate-limit-cannot-protect) |
