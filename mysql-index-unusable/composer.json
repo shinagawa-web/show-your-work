@@ -1,0 +1,12 @@
+{
+    "require": {
+        "illuminate/collections": "12.70.0",
+        "illuminate/conditionable": "12.70.0",
+        "illuminate/container": "12.70.0",
+        "illuminate/contracts": "12.70.0",
+        "illuminate/database": "12.70.0",
+        "illuminate/macroable": "12.70.0",
+        "illuminate/reflection": "12.70.0",
+        "illuminate/support": "12.70.0"
+    }
+}

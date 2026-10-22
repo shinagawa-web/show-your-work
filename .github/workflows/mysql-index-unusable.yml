@@ -1,0 +1,41 @@
+name: mysql-index-unusable
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mysql-index-unusable/**"
+      - ".github/workflows/mysql-index-unusable.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: mysql-index-unusable
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "8.4"
+          - "8.0"
+    name: mysql-${{ matrix.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh ${{ matrix.version }}
+      - run: |
+          { echo "## mysql-${{ matrix.version }}"; echo '```'; cat results/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - name: run-all.sh within 300 s
+        run: |
+          s=$(sed -n 's/^total seconds: \([0-9]*\)$/\1/p' results/output.txt)
+          echo "total: ${s} s"
+          [ -n "$s" ] && [ "$s" -le 300 ]
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mysql-index-unusable-results-${{ matrix.version }}
+          path: mysql-index-unusable/results/
