@@ -1,0 +1,55 @@
+name: cluster-autoscaler-nodes-not-removed
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "cluster-autoscaler-nodes-not-removed/**"
+      - ".github/workflows/cluster-autoscaler-nodes-not-removed.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: cluster-autoscaler-nodes-not-removed
+
+jobs:
+  run:
+    name: run (${{ matrix.cond }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [base, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p19]
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cluster-autoscaler-nodes-not-removed-${{ matrix.cond }}
+          path: cluster-autoscaler-nodes-not-removed/results/
+
+  report:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: cluster-autoscaler-nodes-not-removed-*
+          merge-multiple: true
+          path: cluster-autoscaler-nodes-not-removed/results/
+      - run: |
+          python3 scripts/checks.py results $(./run-all.sh --list) > results/summary.md
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          ! grep -q '^RUN INVALID' results/summary.md
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cluster-autoscaler-nodes-not-removed-summary
+          path: cluster-autoscaler-nodes-not-removed/results/summary.md

@@ -1,0 +1,26 @@
+apiVersion: example.com/v1
+kind: Widget
+metadata:
+  name: @NAME@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: @NAME@
+  labels:
+    app: @NAME@
+  ownerReferences:
+    - apiVersion: example.com/v1
+      kind: Widget
+      name: @NAME@
+      uid: @UID@
+      controller: true
+spec:
+  nodeName: @NODE@
+  containers:
+    - name: @NAME@
+      image: @PAUSE_IMAGE@
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: batch-runner
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: batch-runner
+  template:
+    metadata:
+      labels:
+        app: batch-runner
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: batch-runner
+      containers:
+        - name: batch-runner
+          image: @PAUSE_IMAGE@
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi

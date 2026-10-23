@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: session-cache
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: session-cache
+  template:
+    metadata:
+      labels:
+        app: session-cache
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: session-cache
+      containers:
+        - name: session-cache
+          image: @PAUSE_IMAGE@
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+      volumes:
+        - name: cache
+          emptyDir:
+            medium: Memory

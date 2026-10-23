@@ -9,6 +9,7 @@
 | [cached-301-stale-redirect](cached-301-stale-redirect/README.md) | — |
 | [cgroup-v2-scripts-read-wrong-values](cgroup-v2-scripts-read-wrong-values/README.md) | [Kubernetes 更新でパスが消え、直すと別の値を読む](https://zenn.dev/shinagawa_web/articles/cgroup-v2-scripts-read-wrong-values) |
 | [chunk-load-heuristic-freshness](chunk-load-heuristic-freshness/README.md) | [デプロイ後に一部ユーザーだけボタンが動かない](https://zenn.dev/shinagawa_web/articles/chunk-load-heuristic-freshness) |
+| [cluster-autoscaler-nodes-not-removed](cluster-autoscaler-nodes-not-removed/README.md) | — |
 | [cpu-quota-throttling-p99](cpu-quota-throttling-p99/README.md) | [CPU使用率が低いのにp99だけ遅い原因はCPU上限](https://zenn.dev/shinagawa_web/articles/cpu-quota-throttling-p99) |
 | [distroless-ephemeral-debug](distroless-ephemeral-debug/README.md) | — |
 | [exit137-sender](exit137-sender/README.md) | [Dockerのexit 137の原因をログで見分ける](https://zenn.dev/shinagawa_web/articles/exit137-sender) |
