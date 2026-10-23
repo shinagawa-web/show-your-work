@@ -1,0 +1,64 @@
+name: g1-heap-not-returned
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "g1-heap-not-returned/**"
+      - ".github/workflows/g1-heap-not-returned.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: g1-heap-not-returned
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond:
+          - jdk11
+          - jdk8
+          - jdk17
+          - jdk21
+          - jdk25
+          - jdk25-periodic
+          - jdk25-periodic-idle
+          - jdk11-parallel
+          - jdk25-parallel
+          - jdk25-memory1g
+          - jdk25-cpus1
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: g1-heap-not-returned-${{ matrix.cond }}
+          path: g1-heap-not-returned/results/
+
+  report:
+    needs: [run]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: g1-heap-not-returned-*
+          merge-multiple: true
+          path: g1-heap-not-returned/results/
+      - run: |
+          python3 scripts/summarize.py --md results $(awk -F'\t' 'NR > 1 { print $1 }' conditions.tsv) > results/summary.md
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: g1-heap-not-returned-summary
+          path: g1-heap-not-returned/results/summary.md
