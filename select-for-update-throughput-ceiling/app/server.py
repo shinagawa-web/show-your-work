@@ -54,7 +54,7 @@ def main():
     p.add_argument("--rate", type=float, required=True)
     p.add_argument("--pool", type=int, required=True)
     p.add_argument("--work", type=float, required=True)
-    p.add_argument("--work-at", choices=["inside", "before"], required=True)
+    p.add_argument("--work-at", choices=["inside", "before", "after-commit"], required=True)
     p.add_argument("--plain-rate", type=float, default=0)
     p.add_argument("--duration", type=float, default=30)
     p.add_argument("--seed", type=int, default=1)
@@ -102,12 +102,26 @@ def main():
                         if a.work_at == "inside":
                             time.sleep(a.work)
                         cur.execute("UPDATE items SET stock = stock - 1 WHERE id = 1")
-                        cur.execute("INSERT INTO orders (item_id) VALUES (1)")
+                        if a.work_at == "after-commit":
+                            cur.execute("INSERT INTO orders (item_id, status) VALUES (1, 'pending') RETURNING id")
+                            order_id = cur.fetchone()[0]
+                        else:
+                            cur.execute("INSERT INTO orders (item_id) VALUES (1)")
                     conn.commit()
-                    rec["commit_ns"] = time.time_ns()
+                    rec["hold_commit_ns"] = rec["commit_ns"] = time.time_ns()
+                if a.work_at == "after-commit":
+                    time.sleep(a.work)
+                    rec["start2_ns"] = time.time_ns()
+                    with pool.connection() as conn:
+                        rec["conn2_ns"] = time.time_ns()
+                        with conn.cursor() as cur:
+                            cur.execute("UPDATE orders SET status = 'confirmed' WHERE id = %s", (order_id,))
+                        conn.commit()
+                        rec["commit_ns"] = time.time_ns()
                 rec["status"] = "ok"
             except PoolTimeout:
                 rec["status"] = "pool_timeout"
+                rec["timeout_at"] = "confirm" if "hold_commit_ns" in rec else "reserve"
             except Exception as e:
                 rec["status"] = "error"
                 rec["error"] = repr(e)
@@ -164,7 +178,9 @@ def main():
     done_ns = time.time_ns()
 
     with pool.connection() as conn:
-        stock, orders = conn.execute("SELECT (SELECT stock FROM items WHERE id = 1), (SELECT count(*) FROM orders)").fetchone()
+        stock, orders, confirmed = conn.execute(
+            "SELECT (SELECT stock FROM items WHERE id = 1), (SELECT count(*) FROM orders),"
+            " (SELECT count(*) FROM orders WHERE status = 'confirmed')").fetchone()
     pool.close()
     provider.shutdown()
 
@@ -178,7 +194,7 @@ def main():
             "t0_ns": t0_ns, "done_ns": done_ns,
             "arrivals": {fn.__name__: len(offs) for fn, offs in streams},
             "spans_exported": exporter.count,
-            "db_stock_after": stock, "db_orders_after": orders,
+            "db_stock_after": stock, "db_orders_after": orders, "db_confirmed_after": confirmed,
         }, f, indent=1)
 
 

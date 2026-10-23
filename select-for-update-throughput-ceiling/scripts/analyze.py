@@ -49,7 +49,7 @@ def sql_spans(r):
 
 lines = []
 p = lines.append
-p(f"settings: arrivals {run['rate']:g}/s Poisson for {run['duration']:g}s, pool {run['pool']}, work {run['work']:g}s {run['work_at']} the transaction"
+p(f"settings: arrivals {run['rate']:g}/s Poisson for {run['duration']:g}s, pool {run['pool']}, work {run['work']:g}s {dict(inside='inside the transaction', before='before the transaction', **{'after-commit': 'after the transaction with the lock commits'})[run['work_at']]}"
   + (f", plain SELECT requests {run['plain_rate']:g}/s on the same pool" if run["plain_rate"] else ""))
 p(f"arrivals: {run['arrivals']}")
 
@@ -98,6 +98,9 @@ for kind, root in (("order", "POST /orders"), ("plain", "GET /items")):
     resp = [ms(r["end_ns"] - r["sched_ns"]) for r in ok]
     p(f"response time from scheduled arrival, ms, excluding pool timeouts: p50={f(pct(resp, 0.5))} p99={f(pct(resp, 0.99))} max={f(max(resp) if resp else None)} (n={len(resp)})")
     p(f"requests that hit the pool timeout: {len(timeouts)}")
+    confirm_timeouts = sum(1 for r in timeouts if r.get("timeout_at") == "confirm")
+    if confirm_timeouts:
+        p(f"of which on the connection for the confirming transaction: {confirm_timeouts}")
     if timeouts:
         first = min(timeouts, key=lambda r: r["sched_ns"])
         p(f"first arrival that hit the pool timeout: {(first['sched_ns'] - t0) / 1e9:.2f}s after the arrivals started")
@@ -116,25 +119,30 @@ for kind, root in (("order", "POST /orders"), ("plain", "GET /items")):
     names = defaultdict(list)
     gaps, hold_last, last_to_commit, hold_commit, fu_by_sec, fu_spans = [], [], [], [], defaultdict(list), []
     missing = 0
+    conn2 = []
     for r in ok:
         ss = sql_spans(r)
-        expect = 3 if kind == "order" else 1
+        expect = 1 if kind == "plain" else 4 if run["work_at"] == "after-commit" else 3
         if len(ss) != expect:
             missing += 1
             continue
         for s in ss:
-            key = s["name"] + (" ... FOR UPDATE" if "FOR UPDATE" in s["attributes"].get("db.statement", "") else "")
+            stmt = s["attributes"].get("db.statement", "")
+            key = s["name"] + (" ... FOR UPDATE" if "FOR UPDATE" in stmt else " orders" if stmt.startswith("UPDATE orders") else "")
             names[key].append(ms(s["end_ns"] - s["start_ns"]))
         root_span = next((s for s in by_trace[r["trace_id"]] if s["parent_id"] is None), None)
         if root_span:
             gaps.append(ms(ss[0]["start_ns"] - root_span["start_ns"]))
-        last_end = ss[-1]["end_ns"]
-        last_to_commit.append(ms(r["commit_ns"] - last_end))
+        tx_end = r.get("hold_commit_ns", r["commit_ns"])
+        last_end = [x for x in ss if x["end_ns"] <= tx_end][-1]["end_ns"]
+        last_to_commit.append(ms(tx_end - last_end))
+        if "conn2_ns" in r:
+            conn2.append(ms(r["conn2_ns"] - r["start2_ns"]))
         if kind == "order":
             fu = ss[0]
             fu_spans.append((fu["start_ns"], fu["end_ns"]))
             hold_last.append(ms(last_end - fu["end_ns"]))
-            hold_commit.append(ms(r["commit_ns"] - fu["end_ns"]))
+            hold_commit.append(ms(tx_end - fu["end_ns"]))
             fu_by_sec[(r["sched_ns"] - t0) // 1_000_000_000].append(ms(fu["end_ns"] - fu["start_ns"]))
     if missing:
         invalid.append(f"{kind}: {missing} completed requests without the expected SQL spans")
@@ -143,16 +151,18 @@ for kind, root in (("order", "POST /orders"), ("plain", "GET /items")):
         p(f"  {k}: {dist(names[k])}")
     p(f"trace gap from root span start to the first SQL span start, ms: {dist(gaps)}")
     if kind == "order":
-        p(f"FOR UPDATE span end to last SQL span end, ms: {dist(hold_last)}")
-        p(f"FOR UPDATE span end to conn.commit() returned, ms: {dist(hold_commit)}")
+        p(f"FOR UPDATE span end to the last SQL span end in its transaction, ms: {dist(hold_last)}")
+        p(f"FOR UPDATE span end to conn.commit() of its transaction returned, ms: {dist(hold_commit)}")
         hc = med(hold_commit)
         if hc:
-            p(f"1 / median(FOR UPDATE span end to conn.commit() returned): {1000 / hc:.2f}/s")
+            p(f"1 / median(FOR UPDATE span end to conn.commit() of its transaction returned): {1000 / hc:.2f}/s")
         fu_spans.sort()
         overtaken = [sum(1 for _, e in fu_spans[i + 1:] if e < end) for i, (_, end) in enumerate(fu_spans)]
         p(f"FOR UPDATE spans that ended after a FOR UPDATE span that started later: {sum(1 for k in overtaken if k)} of {len(fu_spans)}; later-started spans that ended first, per span: {dist(overtaken)}")
         p("median FOR UPDATE span per arrival second, ms: " + " ".join(f"{s}:{f(med(fu_by_sec.get(s, [])), 0)}" for s in range(dur)))
-    p(f"last SQL span end to conn.commit() returned, ms: {dist(last_to_commit)}")
+    p(f"last SQL span end to conn.commit() returned{' in the transaction with the lock' if kind == 'order' else ''}, ms: {dist(last_to_commit)}")
+    if conn2:
+        p(f"connection wait for the confirming transaction, after the work, ms: {dist(conn2)}")
 
     summary[kind] = {
         "status": dict(status), "commits_per_sec": per_sec, "commits_after": after,
@@ -166,8 +176,9 @@ for kind, root in (("order", "POST /orders"), ("plain", "GET /items")):
 
 ok_orders = sum(1 for r in reqs if r["kind"] == "order" and r["status"] == "ok")
 p("")
-p(f"database after the run: stock {run['db_stock_after']}, orders {run['db_orders_after']}; completed order requests {ok_orders}")
-if run["db_orders_after"] != ok_orders:
+pending_left = sum(1 for r in reqs if r["kind"] == "order" and r.get("timeout_at") == "confirm")
+p(f"database after the run: stock {run['db_stock_after']}, orders {run['db_orders_after']}, confirmed {run['db_confirmed_after']}; completed order requests {ok_orders}")
+if run["db_orders_after"] != ok_orders + pending_left or run["db_confirmed_after"] != ok_orders:
     invalid.append("orders in the database differ from completed order requests")
 if run["db_stock_after"] <= 0:
     invalid.append("stock ran out")

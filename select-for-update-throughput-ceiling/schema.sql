@@ -6,6 +6,7 @@ CREATE TABLE items (
 CREATE TABLE orders (
   id         bigserial PRIMARY KEY,
   item_id    integer NOT NULL,
+  status     text NOT NULL DEFAULT 'confirmed',
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

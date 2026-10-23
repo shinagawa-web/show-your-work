@@ -14,6 +14,7 @@ Runs PostgreSQL 18 with its default settings behind a Python application server 
 | `p3` | `p1` with longer work inside the transaction |
 | `p4` | `p1` with a second request type, one `SELECT` without a lock, on the same pool |
 | `f1` | `p1` with the work moved before the transaction starts |
+| `f2` | `p1` with the work moved after the transaction commits, and a second transaction that confirms the order |
 
 `results/summary.md` goes to the job summary: the settings, the PostgreSQL version and `max_connections`, and the output of `scripts/analyze.py`. `results/` is uploaded as the `select-for-update-throughput-ceiling-<condition>` artifact. A run that did not happen as set up (requests that started late against their schedule, errors other than the pool timeout, missing spans, orders in the database that differ from the completed requests, stock running out, no CPU samples) fails the job with a `RUN INVALID` line.
 
@@ -29,7 +30,7 @@ INSERT INTO orders (item_id) VALUES (1);
 -- conn.commit()
 ```
 
-psycopg sends `BEGIN` before the first statement. In `f1` the work runs after the connection is taken from the pool and before the first statement.
+psycopg sends `BEGIN` before the first statement. In `f1` the work runs after the connection is taken from the pool and before the first statement. In `f2` the `INSERT` writes the order as `pending`, the connection goes back to the pool after `conn.commit()`, and after the work a second transaction on a connection taken again from the pool runs `UPDATE orders SET status = 'confirmed'` and commits. In `f2` the COMMITs per second count the confirming transactions, and the time from the end of the `SELECT ... FOR UPDATE` span is measured within the first transaction.
 
 The OpenTelemetry psycopg instrumentation writes a span for each statement run through a cursor to `results/<condition>/spans.jsonl`, under a root span that starts before the connection is taken from the pool. It does not make a span for `conn.commit()`, so `results/<condition>/requests.jsonl` records the time `conn.commit()` returned, along with the scheduled arrival, the root span start and the time the connection was taken. `scripts/cpu_sample.py` reads the `cpu.stat` of the PostgreSQL container's cgroup from the host into `results/<condition>/cpu.tsv`.
 
