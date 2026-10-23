@@ -1,0 +1,28 @@
+name: node-exporter-baseline-pod-values
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "node-exporter-baseline-pod-values/**"
+      - ".github/workflows/node-exporter-baseline-pod-values.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: node-exporter-baseline-pod-values
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh
+      - run: if [ -f results/summary.md ]; then cat results/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: node-exporter-baseline-pod-values-results
+          path: node-exporter-baseline-pod-values/results/
