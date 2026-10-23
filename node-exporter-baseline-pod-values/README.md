@@ -10,7 +10,7 @@ This installs the prometheus-node-exporter Helm chart on a one-node k3s cluster 
 
 ## Variants
 
-Each variant is one case in `scripts/render.sh`: the chart default, one value changed at a time (`hostNetwork`, `hostPID`, `hostRootFsMount.enabled`), all three together, and all three with the `/proc` and `/sys` hostPath volumes removed and the arguments pointed at the container's own `/proc` and `/sys`. Variants on the host network use separate ports.
+Each variant is one case in `scripts/render.sh`: the chart default, one value changed at a time (`hostNetwork`, `hostPID`, `hostRootFsMount.enabled`), all three together, and all three with the `/proc` and `/sys` hostPath volumes removed and the arguments pointed at the container's own `/proc` and `/sys`. Variants on the host network use separate ports. `results/daemonset-<variant>.yaml` holds `kubectl get daemonset -o yaml` of each variant after it rolled out.
 
 `k8s/prometheus.yaml` is a Prometheus that scrapes the six variants with the `endpoints` role under the job name `node-exporter`; `run-all.sh` fills in the image from `scripts/versions.env` when it applies it. `scripts/holder.py` holds TCP connections open on the node, and `run-all.sh` lowers `nf_conntrack_max` so that the held count is the share set in `CONNTRACK_RATIO_PERCENT`, then restores it.
 

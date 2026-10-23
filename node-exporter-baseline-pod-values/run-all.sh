@@ -89,6 +89,10 @@ ready_seconds=$(elapsed)
   rs "grep -o 'conntrack-max-per-core=[0-9]*' /etc/systemd/system/k3s.service"
 } > "$results/00-environment.txt"
 
+for c in $CONDS; do
+  r kubectl get daemonset -n "ne-$c" prometheus-node-exporter -o yaml > "$results/daemonset-$c.yaml"
+done
+
 max0=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
 count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
 {
