@@ -1,6 +1,3 @@
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS items;
-
 CREATE TABLE items (
   id    integer PRIMARY KEY,
   stock integer NOT NULL
@@ -9,6 +6,7 @@ CREATE TABLE items (
 CREATE TABLE orders (
   id         bigserial PRIMARY KEY,
   item_id    integer NOT NULL,
-  worker     bigint NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+INSERT INTO items (id, stock) VALUES (1, 1000000);

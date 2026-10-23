@@ -15,30 +15,25 @@ defaults:
 jobs:
   run:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
         condition:
-          - hold-0.1
-          - hold-1.0
-          - hold-5.0
-          - conc-1
-          - conc-5
-          - conc-10
-          - conc-20
-          - conc-50
-          - pattern-for-update
-          - pattern-conditional
+          - baseline
+          - p1
+          - p2
+          - p3
+          - p4
+          - f1
     name: run (${{ matrix.condition }})
     steps:
       - uses: actions/checkout@v7
       - run: ./run-all.sh ${{ matrix.condition }}
-      - run: |
-          { echo '```'; cat results/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
         if: always()
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: select-for-update-throughput-ceiling-results-${{ matrix.condition }}
+          name: select-for-update-throughput-ceiling-${{ matrix.condition }}
           path: select-for-update-throughput-ceiling/results/
