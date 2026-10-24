@@ -22,7 +22,7 @@ for c in "${conds[@]}"; do
   start=$(date +%s)
   out=results/$c
   mkdir -p "$out"
-  read -r rate pool work work_at plain_rate < <(awk -F'\t' -v n="$c" '$1 == n { print $2, $3, $4, $5, $6 }' conditions.tsv)
+  read -r rate pool work work_at plain_rate < <(awk -F'\t' -v n="$c" '$1 == n { print $3, $4, $5, $6, $7 }' conditions.tsv)
   printf 'rate\t%s\npool\t%s\nwork\t%s\nwork_at\t%s\nplain_rate\t%s\n' "$rate" "$pool" "$work" "$work_at" "$plain_rate" > "$out/settings.txt"
   docker compose down -v > /dev/null 2>&1
   docker compose up -d --wait postgres > "$out/compose.log" 2>&1
@@ -42,12 +42,6 @@ for c in "${conds[@]}"; do
   printf 'duration_s\t%s\n' "$(( $(date +%s) - start ))" >> "$out/settings.txt"
 done
 
-{
-  echo '```'; cat results/environment.txt; echo '```'
-  for c in "${conds[@]}"; do
-    echo "# $c"
-    echo '```'; cat "results/$c/settings.txt" "results/$c/postgres.txt"; echo; cat "results/$c/analysis.txt" 2>/dev/null || echo "no analysis"; echo '```'
-  done
-} > results/summary.md
+python3 scripts/summary.py results > results/summary.md || rc=1
 cat results/summary.md
 exit $rc

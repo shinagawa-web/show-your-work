@@ -19,15 +19,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        condition:
-          - baseline
-          - p1
-          - p2
-          - p3
-          - p4
-          - f1
-          - f2
-    name: run (${{ matrix.condition }})
+        include:
+          - { section: "3-4", condition: p1 }
+          - { section: "5", condition: f1 }
+          - { section: "5", condition: f2 }
+          - { section: unused, condition: baseline }
+          - { section: unused, condition: p2 }
+          - { section: unused, condition: p3 }
+          - { section: unused, condition: p4 }
+    name: ${{ matrix.section }} (${{ matrix.condition }})
     steps:
       - uses: actions/checkout@v7
       - run: ./run-all.sh ${{ matrix.condition }}
@@ -37,4 +37,45 @@ jobs:
         if: always()
         with:
           name: select-for-update-throughput-ceiling-${{ matrix.condition }}
+          path: select-for-update-throughput-ceiling/results/
+
+  summary:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: select-for-update-throughput-ceiling-*
+          path: select-for-update-throughput-ceiling/artifacts/
+      - run: |
+          mkdir -p results
+          for d in artifacts/*/*/; do cp -r "${d%/}" results/; done
+          rc=0
+          python3 scripts/summary.py results > results/summary.md || rc=$?
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+      - if: always() && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- select-for-update-throughput-ceiling -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: select-for-update-throughput-ceiling-summary
           path: select-for-update-throughput-ceiling/results/

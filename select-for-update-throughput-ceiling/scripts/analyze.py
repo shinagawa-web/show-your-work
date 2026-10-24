@@ -34,7 +34,7 @@ def f(v, nd=1):
 
 
 def dist(xs):
-    return f"n={len(xs)} mean={f(statistics.fmean(xs) if xs else None)} p50={f(pct(xs, 0.5))} p99={f(pct(xs, 0.99))} max={f(max(xs) if xs else None)}"
+    return f"n={len(xs)} mean={f(statistics.fmean(xs) if xs else None)} p50={f(med(xs))} p99={f(pct(xs, 0.99))} max={f(max(xs) if xs else None)}"
 
 
 by_trace = defaultdict(list)
@@ -92,11 +92,12 @@ for kind, root in (("order", "POST /orders"), ("plain", "GET /items")):
             per_sec[sec] += 1
         elif sec >= dur:
             after += 1
+    commits_mean = sum(per_sec) / dur
     p(f"COMMITs per second during the {dur}s of arrivals: {per_sec}")
-    p(f"COMMITs per second, mean over the {dur}s: {sum(per_sec) / dur:.2f}; COMMITs after the arrivals ended: {after}")
+    p(f"COMMITs per second, mean over the {dur}s: {commits_mean:.2f}; COMMITs after the arrivals ended: {after}")
 
-    resp = [ms(r["end_ns"] - r["sched_ns"]) for r in ok]
-    p(f"response time from scheduled arrival, ms, excluding pool timeouts: p50={f(pct(resp, 0.5))} p99={f(pct(resp, 0.99))} max={f(max(resp) if resp else None)} (n={len(resp)})")
+    resp = [ms(r["commit_ns"] - r["sched_ns"]) for r in ok]
+    p(f"response time from scheduled arrival to the last conn.commit() returned, ms, excluding pool timeouts: p50={f(med(resp))} p99={f(pct(resp, 0.99))} max={f(max(resp) if resp else None)} (n={len(resp)})")
     p(f"requests that hit the pool timeout: {len(timeouts)}")
     confirm_timeouts = sum(1 for r in timeouts if r.get("timeout_at") == "confirm")
     if confirm_timeouts:
@@ -105,19 +106,29 @@ for kind, root in (("order", "POST /orders"), ("plain", "GET /items")):
         first = min(timeouts, key=lambda r: r["sched_ns"])
         p(f"first arrival that hit the pool timeout: {(first['sched_ns'] - t0) / 1e9:.2f}s after the arrivals started")
 
+    resp_at = {}
+    for at in (10, 29):
+        r = min((r for r in rs if r["sched_ns"] - t0 >= at * 1_000_000_000), key=lambda r: r["sched_ns"], default=None)
+        if r:
+            resp_at[at] = {"arrival_s": (r["sched_ns"] - t0) / 1e9, "status": r["status"],
+                           "response_ms": ms(r["commit_ns"] - r["sched_ns"]) if r["status"] == "ok" else None}
+            p(f"first arrival at or after {at}s: arrived {resp_at[at]['arrival_s']:.3f}s after the arrivals started, status {r['status']}, response {f(resp_at[at]['response_ms'])} ms")
+    conn_wait = [ms(r["conn_ns"] - r["start_ns"]) for r in ok]
+    p(f"connection wait from root span start to the connection taken from the pool, ms: {dist(conn_wait)}")
     p("per arrival second: arrived, pool timeouts, median connection wait ms, median response ms (completed only)")
     rows = []
     for sec in range(dur):
         group = [r for r in rs if (r["sched_ns"] - t0) // 1_000_000_000 == sec]
         g_ok = [r for r in group if r["status"] == "ok"]
         cw = med([ms(r["conn_ns"] - r["start_ns"]) for r in g_ok])
-        rt = med([ms(r["end_ns"] - r["sched_ns"]) for r in g_ok])
+        rt = med([ms(r["commit_ns"] - r["sched_ns"]) for r in g_ok])
         to = sum(1 for r in group if r["status"] == "pool_timeout")
         rows.append({"sec": sec, "arrived": len(group), "timeouts": to, "conn_wait_ms": cw, "response_ms": rt})
         p(f"  {sec:>2}s  {len(group):>3}  {to:>3}  {f(cw):>9}  {f(rt):>9}")
 
     names = defaultdict(list)
     gaps, hold_last, last_to_commit, hold_commit, fu_by_sec, fu_spans = [], [], [], [], defaultdict(list), []
+    overtaken = []
     missing = 0
     conn2 = []
     for r in ok:
@@ -165,13 +176,15 @@ for kind, root in (("order", "POST /orders"), ("plain", "GET /items")):
         p(f"connection wait for the confirming transaction, after the work, ms: {dist(conn2)}")
 
     summary[kind] = {
-        "status": dict(status), "commits_per_sec": per_sec, "commits_after": after,
-        "p50_ms": pct(resp, 0.5), "p99_ms": pct(resp, 0.99), "pool_timeouts": len(timeouts),
+        "status": dict(status), "commits_per_sec": per_sec, "commits_mean": commits_mean, "commits_after": after,
+        "p50_ms": med(resp), "p99_ms": pct(resp, 0.99), "pool_timeouts": len(timeouts),
+        "response_at": resp_at, "conn_wait_ms": {"p50": med(conn_wait), "p99": pct(conn_wait, 0.99)},
+        "overtaken": {"spans": sum(1 for k in overtaken if k), "of": len(overtaken)} if overtaken else None,
         "per_arrival_sec": rows,
-        "span_ms": {k: {"p50": pct(v, 0.5), "p99": pct(v, 0.99), "max": max(v)} for k, v in names.items()},
-        "hold_last_sql_ms": {"p50": pct(hold_last, 0.5), "p99": pct(hold_last, 0.99)} if hold_last else None,
-        "hold_commit_ms": {"p50": pct(hold_commit, 0.5), "p99": pct(hold_commit, 0.99)} if hold_commit else None,
-        "last_sql_to_commit_ms": {"p50": pct(last_to_commit, 0.5), "p99": pct(last_to_commit, 0.99)},
+        "span_ms": {k: {"p50": med(v), "p99": pct(v, 0.99), "max": max(v)} for k, v in names.items()},
+        "hold_last_sql_ms": {"p50": med(hold_last), "p99": pct(hold_last, 0.99)} if hold_last else None,
+        "hold_commit_ms": {"p50": med(hold_commit), "p99": pct(hold_commit, 0.99)} if hold_commit else None,
+        "last_sql_to_commit_ms": {"p50": med(last_to_commit), "p99": pct(last_to_commit, 0.99)},
     }
 
 ok_orders = sum(1 for r in reqs if r["kind"] == "order" and r["status"] == "ok")

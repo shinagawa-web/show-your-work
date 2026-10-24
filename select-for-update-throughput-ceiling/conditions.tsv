@@ -1,8 +1,8 @@
-name	rate	pool	work	work_at	plain_rate
-baseline	5	20	0.1	inside	0
-p1	20	20	0.1	inside	0
-p2	20	40	0.1	inside	0
-p3	20	20	0.2	inside	0
-p4	20	20	0.1	inside	5
-f1	20	20	0.1	before	0
-f2	20	20	0.1	after-commit	0
+name	section	rate	pool	work	work_at	plain_rate
+baseline	unused	5	20	0.1	inside	0
+p1	3-4	20	20	0.1	inside	0
+p2	unused	20	40	0.1	inside	0
+p3	unused	20	20	0.2	inside	0
+p4	unused	20	20	0.1	inside	5
+f1	5	20	20	0.1	before	0
+f2	5	20	20	0.1	after-commit	0
