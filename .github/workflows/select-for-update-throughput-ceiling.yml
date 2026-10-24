@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { section: "3-4", condition: p1 }
+          - { section: "3", condition: p1 }
           - { section: "5", condition: f1 }
           - { section: "5", condition: f2 }
           - { section: unused, condition: baseline }

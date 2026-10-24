@@ -7,6 +7,12 @@ import sys
 results = sys.argv[1]
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 conds = list(csv.DictReader(open(os.path.join(here, "conditions.tsv")), delimiter="\t"))
+claims = {
+    "baseline": "With arrivals below the ceiling, completions match arrivals and response time does not grow",
+    "p2": "Adding connections does not raise COMMITs per second",
+    "p3": "The ceiling is 1 / lock hold: doubling the hold halves the ceiling",
+    "p4": "Other requests that use the same connection pool slow down too",
+}
 work_at = {"inside": "inside the transaction", "before": "before the transaction",
            "after-commit": "after the transaction with the lock commits"}
 
@@ -58,27 +64,12 @@ for r in invalid:
 if "p1" in runs:
     c, a = runs["p1"]
     o = a["order"]
-    hold = o["hold_commit_ms"]["p50"]
-    at = o["response_at"]
     lines += ["## 3. Completions and response time at the peak", "", job_line(c), ""]
     lines += table([
         ("COMMITs per second, mean over the 30 s of arrivals", f(o["commits_mean"], 2)),
-        ("Lock hold, `SELECT ... FOR UPDATE` span end to `conn.commit()` returned, median", f"{f(hold)} ms"),
-        ("1 / median lock hold", f"{f(1000 / hold, 2)}/s"),
-        *[(f"Response time of the first order that arrived at or after {s} s (arrived at {at[str(s)]['arrival_s']:.2f} s)",
-           f"{f(at[str(s)]['response_ms'])} ms") for s in (10, 29) if str(s) in at],
+        ("Lock hold, `SELECT ... FOR UPDATE` span end to `conn.commit()` returned, median",
+         f"{f(o['hold_commit_ms']['p50'])} ms"),
         ("Response time p99", f"{f(o['p99_ms'])} ms"),
-    ])
-    sp = o["span_ms"]
-    lines += ["", "## 4. Telling it apart in your own environment", "", job_line(c), ""]
-    lines += table([
-        ("`SELECT ... FOR UPDATE` span, median", f"{f(sp['SELECT ... FOR UPDATE']['p50'])} ms"),
-        ("`UPDATE` span, median", f"{f(sp['UPDATE']['p50'])} ms"),
-        ("`INSERT` span, median", f"{f(sp['INSERT']['p50'])} ms"),
-        ("Lock hold, `SELECT ... FOR UPDATE` span end to the last SQL span end in the same transaction, median",
-         f"{f(o['hold_last_sql_ms']['p50'])} ms"),
-        ("Same lock hold, p99", f"{f(o['hold_last_sql_ms']['p99'])} ms"),
-        ("Connection wait, median", f"{f(o['conn_wait_ms']['p50'])} ms"),
     ])
     lines.append("")
 
@@ -101,13 +92,14 @@ if unused:
                 continue
             o = a[kind]
             hold = (o.get("hold_commit_ms") or {}).get("p50")
-            rows.append((f"`{c['job']}`", settings(c), kind, f(o["commits_mean"], 2),
-                         f"{f(hold)} ms" if hold else "-", f"{f(1000 / hold, 2)}/s" if hold else "-",
-                         f"{f(o['p99_ms'])} ms", o["pool_timeouts"]))
-    lines += table(rows, ("Job", "Settings", "Requests", "COMMITs per second, mean", "Lock hold to `conn.commit()`, median",
-                          "1 / median lock hold", "Response time p99", "Pool timeouts"))
+            rows.append((f"`{c['job']}`", settings(c), claims.get(c["name"], "-"), kind, f(o["commits_mean"], 2),
+                         f"{f(hold)} ms" if hold else "-", f"{f(o['p99_ms'])} ms", o["pool_timeouts"]))
+    lines += table(rows, ("Job", "Settings", "Claim checked", "Requests", "COMMITs per second, mean",
+                          "Lock hold to `conn.commit()`, median", "Response time p99", "Pool timeouts"))
     lines.append("")
 if runs:
+    lines += ["The CPU columns check the claim that the ceiling appears while the database CPU usage stays low. "
+              "The last column checks the claim that locks are not granted in arrival order.", ""]
     rows = []
     for c, a in runs.values():
         ov = a["order"].get("overtaken")

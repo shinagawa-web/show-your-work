@@ -4,7 +4,7 @@ Runs PostgreSQL 18 with its default settings behind a Python application server 
 
 ## Run
 
-`.github/workflows/select-for-update-throughput-ceiling.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. Each `run` job runs one condition from `conditions.tsv` and is named after the article section that uses it (the `section` column), followed by the condition: `3-4 (p1)`, `5 (f1)`, `5 (f2)`, and `unused (<condition>)` for the conditions whose numbers the article does not use.
+`.github/workflows/select-for-update-throughput-ceiling.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. Each `run` job runs one condition from `conditions.tsv` and is named after the article section that uses it (the `section` column), followed by the condition: `3 (p1)`, `5 (f1)`, `5 (f2)`, and `unused (<condition>)` for the conditions whose numbers the article does not use.
 
 | Condition | What changes from `baseline` |
 |---|---|
