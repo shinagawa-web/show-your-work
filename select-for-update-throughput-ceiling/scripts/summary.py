@@ -4,9 +4,18 @@ import json
 import os
 import sys
 
+# Usage: summary.py RESULTS [CONDITION ...]
+# Every named condition, or every condition in conditions.tsv when none is named, must have
+# RESULTS/<condition>/analysis.json; otherwise the missing conditions are named and the exit code is 1.
 results = sys.argv[1]
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 conds = list(csv.DictReader(open(os.path.join(here, "conditions.tsv")), delimiter="\t"))
+names = [c["name"] for c in conds]
+expected = sys.argv[2:] or names
+unknown = [n for n in expected if n not in names]
+if unknown:
+    sys.exit(f"unknown condition: {' '.join(unknown)} (one of: {' '.join(names)})")
+conds = [c for c in conds if c["name"] in expected]
 claims = {
     "baseline": "With arrivals below the ceiling, completions match arrivals and response time does not grow",
     "p2": "Adding connections does not raise COMMITs per second",
@@ -16,15 +25,18 @@ claims = {
 work_at = {"inside": "inside the transaction", "before": "before the transaction",
            "after-commit": "after the transaction with the lock commits"}
 
-runs, invalid = {}, []
+runs, invalid, missing = {}, [], []
 for c in conds:
     c["job"] = f"{c['section']} ({c['name']})"
     d = os.path.join(results, c["name"])
     if not os.path.isdir(d):
+        missing.append(c["name"])
+        invalid.append(f"job `{c['job']}`: no {d}/")
         continue
     path = os.path.join(d, "analysis.json")
     if not os.path.exists(path):
-        invalid.append(f"job `{c['job']}`: no analysis")
+        missing.append(c["name"])
+        invalid.append(f"job `{c['job']}`: no {path}")
         continue
     a = json.load(open(path))
     invalid += [f"job `{c['job']}`: {r}" for r in a["invalid"]]
@@ -111,4 +123,6 @@ if runs:
     lines.append("")
 
 print("\n".join(lines).rstrip())
+if missing:
+    print(f"missing conditions: {' '.join(missing)}", file=sys.stderr)
 sys.exit(1 if invalid or not runs else 0)

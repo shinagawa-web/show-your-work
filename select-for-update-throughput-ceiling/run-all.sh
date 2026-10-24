@@ -42,6 +42,6 @@ for c in "${conds[@]}"; do
   printf 'duration_s\t%s\n' "$(( $(date +%s) - start ))" >> "$out/settings.txt"
 done
 
-python3 scripts/summary.py results > results/summary.md || rc=1
+python3 scripts/summary.py results "${conds[@]}" > results/summary.md || rc=1
 cat results/summary.md
 exit $rc
