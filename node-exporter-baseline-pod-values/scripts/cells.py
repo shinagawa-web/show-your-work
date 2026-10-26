@@ -193,6 +193,7 @@ def cmd_cells(outdir, *conds):
     print(f"node / statfs size: {root_size}")
     print()
     table = {}
+    fs_seen = {}
     base = None
     for cond in conds:
         p = pod_info(cond)
@@ -313,6 +314,7 @@ def cmd_cells(outdir, *conds):
         else:
             fv = "other"
         same_root = all(int(sizes[m]) == root_size for m in listed if m in sizes)
+        fs_seen[cond] = (fv, listed, [m for m in listed if errs[m] == 1], [m for m in listed if m not in sizes], cont_mounts)
         print(f"  list matches: {fv}  sizes equal node statfs at the same path: {size_ok}  sizes all equal node / size: {same_root}")
         row["filesystem"] = fv
 
@@ -325,9 +327,10 @@ def cmd_cells(outdir, *conds):
         print("[udev]")
         print(f"  node_disk_info{{device=\"{dev}\"}} udev labels: {udev}")
         print(f"  node_disk_*_info families absent vs base: {','.join(sorted(bfams - fams)) or '-'}")
-        has = any(udev.values())
-        if not has and any(budev.values()):
-            uv = "gone"
+        if not di:
+            uv = "absent"
+        elif not any(udev.values()) and any(budev.values()):
+            uv = "labels-empty"
         elif udev == budev and fams == bfams:
             uv = "node"
         else:
@@ -353,6 +356,48 @@ def cmd_cells(outdir, *conds):
     print("|---|" + "---|" * len(conds))
     for r in rows:
         print(f"| {r} | " + " | ".join(table[c][r] for c in conds) + " |")
+    print()
+    checked = {
+        "cpu-mem-disk": f'`node_cpu_seconds_total{{cpu="0",mode="user"}}`, `node_memory_MemTotal_bytes`, `node_disk_read_bytes_total{{device="{dev}"}}`, `node_boot_time_seconds`',
+        "netdev": 'the set of label `device` on `node_network_receive_bytes_total`, and `node_network_receive_bytes_total{device="eth0"}`',
+        "netstat-sockstat": "`node_netstat_Tcp_CurrEstab`, `node_sockstat_TCP_inuse`, `node_sockstat_sockets_used`, `node_sockstat_TCP_tw`, `node_sockstat_UDP_inuse`",
+        "sockstat-global": "`node_sockstat_TCP_alloc`, `node_sockstat_UDP_mem`, `node_sockstat_TCP_orphan`",
+        "conntrack-entries": "`node_nf_conntrack_entries`",
+        "conntrack-limit": "`node_nf_conntrack_entries_limit`",
+        "netclass": 'the set of label `device` on `node_network_info`, and label `address` on `node_network_info{device="eth0"}`',
+        "filesystem": f"the set of label `mountpoint` on `node_filesystem_device_error` (`{K3S_RUN.pattern}` set aside), and the value of `node_filesystem_device_error`",
+        "udev": f'labels `{"`, `".join(UDEV_KEYS)}` on `node_disk_info{{device="{dev}"}}`, and the set of `node_disk_*_info` series names, against base',
+        "nodename": "label `nodename` on `node_uname_info`",
+    }
+    print("| series group | checked with |")
+    print("|---|---|")
+    for r in rows:
+        print(f"| {r} | {checked[r]} |")
+    print()
+    meaning = {
+        "node": "matched what the run read on the node itself (the node's /proc, /sys and network namespace); for sockstat-global within 1% or 1; for filesystem, the node's mountpoints with node_filesystem_device_error 0 on all; for udev, the same labels and series names as base",
+        "pod": "matched what the run read inside the Pod's own network namespace, and not the node's",
+        "node=pod": "as close to the node's value as to the Pod's",
+        "differs": "not within the check's tolerance of the node's value, or not the same as base",
+        "other": "matched neither the node's nor the Pod's",
+        "mixed": "the series of the group disagreed; the result of each is listed in order",
+        "partial-error": "the node's mountpoints, but node_filesystem_device_error is 1 on some of them",
+        "container-list": "not the node's mountpoints but the container's own mount table (/proc/<pid>/mountinfo with the chart's excludes), without /",
+        "labels-empty": f"node_disk_info{{device=\"{dev}\"}} is reported, but its labels {', '.join(UDEV_KEYS)} are all empty, while base has them",
+        "absent": f"no node_disk_info{{device=\"{dev}\"}} series",
+        "node-name": "label nodename equals the node's hostname",
+        "pod-name": "label nodename equals the Pod's name",
+    }
+    print("| value | meaning |")
+    print("|---|---|")
+    for k, v in meaning.items():
+        print(f"| {k} | {v} |")
+    print()
+    print("| condition | filesystem | mountpoints | device_error 1 | no size_bytes | container mountpoints |")
+    print("|---|---|---|---|---|---|")
+    for c in conds:
+        fv, listed, err1, nosize, cont = fs_seen[c]
+        print(f"| {c} | {fv} | " + " | ".join(",".join(x) or "-" for x in (listed, err1, nosize, cont)) + " |")
 
 
 def prom(query):
@@ -409,6 +454,16 @@ def cmd_labels(*conds):
         nn = m.get("nodename", "-")
         nv = "node-name" if nn == hostname else "pod-name" if nn == p["name"] else "other"
         print(f"| {c} | {p['ip']} | {inst} | {iv} | {nn} | {nv} |")
+    print()
+    print("| series group | checked with |")
+    print("|---|---|")
+    print('| instance | label `instance` that Prometheus puts on every series, read on `node_uname_info{job="node-exporter"}` |')
+    print()
+    print("| value | meaning |")
+    print("|---|---|")
+    print("| node-ip | the host part of label instance equals the node's InternalIP |")
+    print("| pod-ip | the host part of label instance equals the Pod's IP |")
+    print("| other | matched neither |")
 
 
 def main():

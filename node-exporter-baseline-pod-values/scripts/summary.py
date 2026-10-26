@@ -52,6 +52,10 @@ def dry_run(src, ns):
     return m.group(1).rstrip() if m else None
 
 
+def mountlist(x):
+    return ", ".join(f"`{m}`" for m in x.split(",")) if x and x != "-" else "none"
+
+
 def block(body):
     return "```\n" + body + "\n```\n"
 
@@ -120,8 +124,19 @@ if "s1" in sections:
     out.append(block(d or "(missing)"))
 
 if "s2" in sections:
-    cells_rows = table(text("cells.txt", "s2"), "| row |")
-    labels_rows = table(text("labels.txt", "s2"), "| condition | pod IP |")
+    cells_src = text("cells.txt", "s2")
+    labels_src = text("labels.txt", "s2")
+    cells_rows = table(cells_src, "| row |")
+    labels_rows = table(labels_src, "| condition | pod IP |")
+    checked = {}
+    meaning = {}
+    for src in (cells_src, labels_src):
+        for k, v in table(src, "| series group | checked with |").items():
+            checked.setdefault(k, v[0])
+        for k, v in table(src, "| value | meaning |").items():
+            meaning.setdefault(k, v[0])
+    fs_seen = table(cells_src, "| condition | filesystem |")
+    node_mounts = re.search(r"^node mountpoints \(.*?\): (.*)$", cells_src, re.M)
     alert_src = text("alert.txt", "s2")
     alert_rows = table(alert_src, "| condition | entries |")
     dry = text("dryrun.txt", "s2")
@@ -146,8 +161,37 @@ if "s2" in sections:
     out.append("|---|" + "---|" * len(S2))
     for row, vals in cells_rows.items():
         out.append(f"| {row} | " + " | ".join(vals) + " |")
-    out.append("| instance | " + " | ".join(labels_rows.get(c, ["-"] * 4)[2] for c in S2) + " |")
+    instance = [labels_rows.get(c, ["-"] * 4)[2] for c in S2]
+    out.append("| instance | " + " | ".join(instance) + " |")
     out.append("")
+    out.append("Series checked for each group:\n")
+    for row in [*cells_rows, "instance"]:
+        if row not in checked:
+            invalid.append(f"s2: no series listed for group {row} in cells.txt or labels.txt")
+        out.append(f"- {row}: {checked.get(row, '(missing)')}")
+    out.append("")
+    seen = [v for vals in cells_rows.values() for v in vals] + instance
+    keys = {v.split("(", 1)[0] for v in seen}
+    for k in sorted(keys - set(meaning)):
+        invalid.append(f"s2: no meaning for cell value {k} in cells.txt or labels.txt")
+    out.append("Cell values:\n")
+    for k, v in meaning.items():
+        if k in keys:
+            out.append(f"- {k}: {v}")
+    out.append("")
+    shown = [c for c in S2 if fs_seen.get(c, [""])[0] in ("partial-error", "container-list")]
+    if shown:
+        if not node_mounts:
+            invalid.append("s2: no node mountpoints in cells.txt")
+        out.append("### Filesystem mountpoints behind partial-error and container-list\n")
+        out.append("From `node_filesystem_device_error` and `node_filesystem_size_bytes` on each variant's `/metrics`. The node's own mountpoints were " + (mountlist(node_mounts.group(1)) if node_mounts else "(missing)") + ".\n")
+        for c in shown:
+            fv, listed, err1, nosize, cont = fs_seen[c]
+            if fv == "partial-error":
+                out.append(f"- {c} (partial-error): mountpoints {mountlist(listed)}; node_filesystem_device_error 1 on {mountlist(err1)}; no node_filesystem_size_bytes on {mountlist(nosize)}")
+            else:
+                out.append(f"- {c} (container-list): mountpoints {mountlist(listed)}; the container's own mountpoints {mountlist(cont)}")
+        out.append("")
     out.append("### Conntrack alert expression\n")
     out.append("`(node_nf_conntrack_entries{job=\"node-exporter\"} / node_nf_conntrack_entries_limit) > 0.75`, queried while the node's conntrack table is filled above the threshold.\n")
     out.append("| variant | node_nf_conntrack_entries | node_nf_conntrack_entries_limit | expression |")
