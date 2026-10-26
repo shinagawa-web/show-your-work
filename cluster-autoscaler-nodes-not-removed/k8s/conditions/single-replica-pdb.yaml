@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: single-a
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: single-a
+  template:
+    metadata:
+      labels:
+        app: single-a
+        tier: single
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    tier: single
+      containers:
+        - name: single-a
+          image: @PAUSE_IMAGE@
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: single-a
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: single-a
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: single-b
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: single-b
+  template:
+    metadata:
+      labels:
+        app: single-b
+        tier: single
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    tier: single
+      containers:
+        - name: single-b
+          image: @PAUSE_IMAGE@
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: single-b
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: single-b
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: single-c
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: single-c
+  template:
+    metadata:
+      labels:
+        app: single-c
+        tier: single
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    tier: single
+      containers:
+        - name: single-c
+          image: @PAUSE_IMAGE@
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: single-c
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: single-c

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: @NAME@
+  labels:
+    app: @NAME@
+spec:
+  nodeName: @NODE@
+  containers:
+    - name: @NAME@
+      image: @PAUSE_IMAGE@
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
