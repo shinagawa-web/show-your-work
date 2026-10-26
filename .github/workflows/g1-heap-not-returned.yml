@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cond: [jdk25-memory1g, jdk25-cpus1]
+        cond: [jdk25-memory1g, jdk25-cpus1, jdk25-flags, jdk11-periodic]
     name: s2 (${{ matrix.cond }})
     steps:
       - uses: actions/checkout@v7

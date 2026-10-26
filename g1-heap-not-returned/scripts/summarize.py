@@ -53,6 +53,10 @@ def main(d):
     using = re.search(r"\] Using (\w+)", log)
     r["using_line"] = using.group(1) if using else None
     r["java_exit"] = (re.search(r"java exit (\d+)", stdout) or [None, None])[1]
+    flag_line = re.search(r"^.*\bG1PeriodicGCInterval\b.*=.*$", stdout, re.M)
+    r["periodic_interval_flag_line"] = flag_line.group(0).strip() if flag_line else None
+    err = re.search(r"^(?:Unrecognized VM option|Error: ).*$", stdout, re.M)
+    r["startup_error_line"] = err.group(0).strip() if err else None
     if after is not None:
         in_peak = [x for x in g if x[0] < after]
         in_after = [x for x in g if x[0] >= after]
@@ -144,6 +148,12 @@ def main(d):
             aft = [x for x in mxs if x[0] > tp]
             r["periodic_mx_committed_mb_before"] = before[-1][1] if before else None
             r["periodic_mx_committed_mb_after"] = aft[0][1] if aft else None
+            remark = [x for x in g if x[0] >= tp and x[1] == "Remark" and re.search(r"\]\[gc *\] ", x[4])]
+            if remark:
+                r["periodic_remark_line"] = remark[0][4]
+                gid = re.search(r"GC\((\d+)\)", remark[0][4]).group(1)
+                sh = [l for l in log.splitlines() if "GC(%s) Shrink the heap" % gid in l]
+                r["periodic_remark_shrink_line"] = sh[0] if sh else None
     return r
 
 
@@ -226,8 +236,14 @@ def md(root, conds):
             rows.append(r)
             with open(os.path.join(cdir, run, "summary.json"), "w") as f:
                 json.dump(r, f, indent=1)
+            if c == "jdk11-periodic":
+                if not r["startup_error_line"] or r["java_exit"] in (None, "0"):
+                    bad.append("%s/%s: the JVM did not refuse the option" % (c, run))
+                continue
             if not r["gc_flag"]:
                 bad.append("%s/%s: no GC flag in the output" % (c, run))
+            if c == "jdk25-flags" and not r["periodic_interval_flag_line"]:
+                bad.append("%s/%s: no G1PeriodicGCInterval in the flags" % (c, run))
             if r.get("gc_count_after") is not None and not r["phase_end"]:
                 bad.append("%s/%s: the program did not finish" % (c, run))
     print("# g1-heap-not-returned\n")
@@ -236,9 +252,22 @@ def md(root, conds):
     if section("1. Opening", s):
         table(["memory.current change MB, end of peak to last"],
               [(r, [diff(r.get("memory_current_mb_end_of_peak"), r.get("memory_current_mb_last"))]) for r in s])
-    s = pick(rows, ["jdk25-memory1g", "jdk25-cpus1"])
-    if section("2. What changed", s):
-        lines(s, "using_line_text")
+    s1 = pick(rows, ["jdk8"])
+    s2 = pick(rows, ["jdk11", "jdk25"])
+    s3 = pick(rows, ["jdk8", "jdk11"])
+    s4 = pick(rows, ["jdk25-periodic-idle"])
+    s5 = pick(rows, ["jdk25-flags"])
+    s6 = pick(rows, ["jdk11-periodic"])
+    s7 = pick(rows, ["jdk25-memory1g", "jdk25-cpus1"])
+    if section("2. What changed", s1 + s2 + s3 + s4 + s5 + s6 + s7):
+        lines(s1, "gc_flag")
+        lines(s2, "using_line_text")
+        table(COMMITTED, [(r, committed(r)) for r in s3])
+        lines(s4, "periodic_remark_line")
+        lines(s4, "periodic_remark_shrink_line")
+        lines(s5, "periodic_interval_flag_line")
+        lines(s6, "startup_error_line")
+        lines(s7, "using_line_text")
     s1 = pick(rows, ["jdk25-periodic"])
     s2 = pick(rows, ["jdk25-periodic-idle"])
     if section("3. Periodic GC", s1 + s2):
@@ -254,7 +283,7 @@ def md(root, conds):
     s = pick(rows, ["jdk11-parallel"])
     if section("5. Countermeasure", s):
         table(COMMITTED, [(r, committed(r)) for r in s])
-    s1 = pick(rows, ["jdk8", "jdk11", "jdk17", "jdk21", "jdk25"])
+    s1 = pick(rows, ["jdk17", "jdk21", "jdk25"])
     s2 = pick(rows, ["jdk11", "jdk17", "jdk21", "jdk25", "jdk25-periodic", "jdk25-periodic-idle"])
     s3 = pick(rows, ["jdk8"])
     s4 = pick(rows, ["jdk25-periodic-idle"])

@@ -1,6 +1,8 @@
 name	jdk	docker_opts	java_opts	after_peak	length	section
 jdk25-memory1g	25	--memory=1g --memory-swap=1g	-	alloc	select	s2
 jdk25-cpus1	25	--cpus=1	-	alloc	select	s2
+jdk25-flags	25	-	-XX:+PrintFlagsFinal	alloc	select	s2
+jdk11-periodic	11	-	-XX:G1PeriodicGCInterval=10000	alloc	select	s2
 jdk8	8	-	-	alloc	full	s1
 jdk11	11	-	-	alloc	full	s1
 jdk17	17	-	-	alloc	full	s1
