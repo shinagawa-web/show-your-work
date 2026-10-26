@@ -252,8 +252,8 @@ def cmd_cells(outdir, *conds):
 
         print("[sockstat-global]")
         vs = []
-        for metric, key in (("node_sockstat_TCP_alloc", "TCP_alloc"), ("node_sockstat_TCP_mem", "TCP_mem"),
-                            ("node_sockstat_UDP_mem", "UDP_mem"), ("node_sockstat_TCP_orphan", "TCP_orphan")):
+        for metric, key in (("node_sockstat_TCP_alloc", "TCP_alloc"), ("node_sockstat_UDP_mem", "UDP_mem"),
+                            ("node_sockstat_TCP_orphan", "TCP_orphan")):
             v = one(ms, metric)
             nn = (n0["sockstat"][key], n1["sockstat"][key])
             pp = (p0["sockstat"][key], p1["sockstat"][key])
@@ -371,16 +371,23 @@ def cmd_query(query):
 
 def cmd_alert(*conds):
     expr = '(node_nf_conntrack_entries{job="node-exporter"} / node_nf_conntrack_entries_limit) > 0.75'
-    cmd_query('node_nf_conntrack_entries{job="node-exporter"}')
-    cmd_query('node_nf_conntrack_entries_limit{job="node-exporter"}')
-    cmd_query('node_nf_conntrack_entries{job="node-exporter"} / node_nf_conntrack_entries_limit')
-    cmd_query(expr)
-    fired = {s["metric"].get("namespace") for s in prom(expr)}
+    queries = {
+        "entries": 'node_nf_conntrack_entries{job="node-exporter"}',
+        "limit": 'node_nf_conntrack_entries_limit{job="node-exporter"}',
+        "ratio": 'node_nf_conntrack_entries{job="node-exporter"} / node_nf_conntrack_entries_limit',
+        "expression": expr,
+    }
+    got = {}
+    for key, q in queries.items():
+        cmd_query(q)
+        got[key] = {s["metric"].get("namespace"): s["value"][1] for s in prom(q)}
     print()
-    print("| condition | expression |")
-    print("|---|---|")
+    print("| condition | entries | limit | ratio | expression |")
+    print("|---|---|---|---|---|")
     for c in conds:
-        print(f"| {c} | {'true' if f'ne-{c}' in fired else 'false'} |")
+        ns = f"ne-{c}"
+        e = got["expression"].get(ns)
+        print(f"| {c} | {got['entries'].get(ns, '-')} | {got['limit'].get(ns, '-')} | {got['ratio'].get(ns, '-')} | {'returned ' + e if e else 'empty'} |")
 
 
 def cmd_labels(*conds):
