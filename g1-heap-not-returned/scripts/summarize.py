@@ -259,7 +259,7 @@ def md(root, conds):
     s5 = pick(rows, ["jdk25-flags"])
     s6 = pick(rows, ["jdk11-periodic"])
     s7 = pick(rows, ["jdk25-memory1g", "jdk25-cpus1"])
-    if section("2. What changed", s1 + s2 + s3 + s4 + s5 + s6 + s7):
+    if section("3. What changed", s1 + s2 + s3 + s4 + s5 + s6 + s7):
         lines(s1, "gc_flag")
         lines(s2, "using_line_text")
         table(COMMITTED, [(r, committed(r)) for r in s3])
@@ -270,18 +270,18 @@ def md(root, conds):
         lines(s7, "using_line_text")
     s1 = pick(rows, ["jdk25-periodic"])
     s2 = pick(rows, ["jdk25-periodic-idle"])
-    if section("3. Periodic GC", s1 + s2):
+    if section("4. Periodic GC", s1 + s2):
         lines(s1, "skipping_line_after_peak")
         lines(s2, "periodic_gc_line")
         table(["heap committed MB, before", "heap committed MB, after"],
               [(r, [r.get("periodic_mx_committed_mb_before"), r.get("periodic_mx_committed_mb_after")]) for r in s2])
     s1 = pick(rows, ["jdk11"])
     s2 = pick(rows, ["jdk8", "jdk11", "jdk17", "jdk21", "jdk25"])
-    if section("4. Telling it apart in your environment", s1 + s2):
+    if section("5. Telling it apart in your environment", s1 + s2):
         lines(s1, "young_gc_line_after_peak")
         table(["heap memory pools"], [(r, [r.get("pools")]) for r in s2])
     s = pick(rows, ["jdk11-parallel"])
-    if section("5. Countermeasure", s):
+    if section("6. Countermeasure", s):
         table(COMMITTED, [(r, committed(r)) for r in s])
     s1 = pick(rows, ["jdk17", "jdk21", "jdk25"])
     s2 = pick(rows, ["jdk11", "jdk17", "jdk21", "jdk25", "jdk25-periodic", "jdk25-periodic-idle"])
