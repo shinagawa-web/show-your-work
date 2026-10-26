@@ -7,22 +7,119 @@ on:
       - "node-exporter-baseline-pod-values/**"
       - ".github/workflows/node-exporter-baseline-pod-values.yml"
 
+permissions:
+  contents: read
+
 defaults:
   run:
     shell: bash
     working-directory: node-exporter-baseline-pod-values
 
 jobs:
-  run:
+  s1:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - run: ./run-all.sh
-      - run: if [ -f results/summary.md ]; then cat results/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - run: ./run-all.sh s1
+      - uses: actions/upload-artifact@v7
         if: always()
+        with:
+          name: node-exporter-baseline-pod-values-s1
+          path: node-exporter-baseline-pod-values/results/
+
+  s2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh s2
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: node-exporter-baseline-pod-values-s2
+          path: node-exporter-baseline-pod-values/results/
+
+  s3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh s3
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: node-exporter-baseline-pod-values-s3
+          path: node-exporter-baseline-pod-values/results/
+
+  s4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh s4
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: node-exporter-baseline-pod-values-s4
+          path: node-exporter-baseline-pod-values/results/
+
+  summary:
+    needs: [s1, s2, s3, s4]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: node-exporter-baseline-pod-values-s1
+          path: node-exporter-baseline-pod-values/results/s1/
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: node-exporter-baseline-pod-values-s2
+          path: node-exporter-baseline-pod-values/results/s2/
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: node-exporter-baseline-pod-values-s3
+          path: node-exporter-baseline-pod-values/results/s3/
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: node-exporter-baseline-pod-values-s4
+          path: node-exporter-baseline-pod-values/results/s4/
+      - run: |
+          mkdir -p results
+          python3 -B scripts/summary.py --merged results "s1 s2 s3 s4" > results/summary.md ||
+            echo "RUN INVALID: scripts/summary.py failed" > results/summary.md
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          marker="<!-- node-exporter-baseline-pod-values summary -->"
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number')
+          if [ -z "$pr" ]; then
+            echo "no open pull request for $GITHUB_REF_NAME"
+            exit 0
+          fi
+          { echo "$marker"; echo; cat results/summary.md; } > "$RUNNER_TEMP/comment.md"
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@"$RUNNER_TEMP/comment.md" --jq .html_url
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$pr/comments" -F body=@"$RUNNER_TEMP/comment.md" --jq .html_url
+          fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: node-exporter-baseline-pod-values-results
           path: node-exporter-baseline-pod-values/results/
+      - run: "! grep -q '^RUN INVALID' results/summary.md"

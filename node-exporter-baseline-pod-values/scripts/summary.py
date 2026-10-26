@@ -2,9 +2,13 @@ import pathlib
 import re
 import sys
 
-results = pathlib.Path(sys.argv[1])
-sections = sys.argv[2].split()
-invalid = list(sys.argv[3:])
+args = sys.argv[1:]
+merged = args[0] == "--merged"
+if merged:
+    args = args[1:]
+results = pathlib.Path(args[0])
+sections = args[1].split()
+invalid = list(args[2:])
 S2 = "base h1 h2 r1 v1 b1".split()
 ALERT_ROWS = "base h1 v1 b1".split()
 WARN_ROWS = "h1 v1 b1".split()
@@ -19,7 +23,7 @@ TITLES = {
 
 
 def text(name, section):
-    f = results / name
+    f = (results / section if merged else results) / name
     if not f.exists():
         invalid.append(f"{section}: {name} is missing")
         return ""
@@ -89,6 +93,20 @@ def excerpt(lines, keep):
     out.append("      ...")
     return "\n".join(out)
 
+
+if merged:
+    present = []
+    for s in sections:
+        own = results / s / "summary.md"
+        if not own.exists():
+            invalid.append(f"{s}: job results are missing")
+            continue
+        present.append(s)
+        for l in own.read_text().splitlines():
+            if l.startswith("RUN INVALID: "):
+                x = l[len("RUN INVALID: "):]
+                invalid.append(x if x.startswith(f"{s}: ") else f"{s}: {x}")
+    sections = present
 
 out = []
 late = []
@@ -201,12 +219,16 @@ if "s4" in sections:
     late.append("### s4: where the node-exporter Pod ran\n")
     late.append(block("\n".join(where) or "(missing)"))
 
-env = [l.split("=", 1) for l in text("versions.txt", "all").splitlines() if "=" in l]
+env = []
+for s in sections if merged else ["all"]:
+    for l in text("versions.txt", s).splitlines():
+        if "=" in l and l.split("=", 1) not in env:
+            env.append(l.split("=", 1))
 late.append("### Versions\n")
 late.append("| | |\n|---|---|")
 late += [f"| {k} | {v} |" for k, v in env]
 
-for x in invalid:
+for x in dict.fromkeys(invalid):
     print(f"RUN INVALID: {x}")
 if invalid:
     print()
