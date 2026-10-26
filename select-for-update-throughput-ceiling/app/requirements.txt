@@ -1,0 +1,7 @@
+psycopg[binary]==3.3.6
+psycopg-pool==3.3.3
+opentelemetry-api==1.45.1
+opentelemetry-sdk==1.45.1
+opentelemetry-instrumentation==0.66b1
+opentelemetry-instrumentation-dbapi==0.66b1
+opentelemetry-instrumentation-psycopg==0.66b1

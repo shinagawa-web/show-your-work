@@ -21,7 +21,7 @@ provision:
       #!/bin/bash
       set -eux
       apt-get update
-      apt-get install -y docker.io docker-compose-v2 python3 curl
+      apt-get install -y docker.io docker-compose-v2 python3
       systemctl enable --now docker
       LIMA_USER=$(getent passwd | awk -F: '$6 ~ /\.guest$/ {print $1; exit}')
       usermod -aG docker "$LIMA_USER"
