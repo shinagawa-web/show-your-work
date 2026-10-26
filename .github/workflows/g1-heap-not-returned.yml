@@ -13,52 +13,122 @@ defaults:
     working-directory: g1-heap-not-returned
 
 jobs:
-  run:
+  s2:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        cond:
-          - jdk11
-          - jdk8
-          - jdk17
-          - jdk21
-          - jdk25
-          - jdk25-periodic
-          - jdk25-periodic-idle
-          - jdk11-parallel
-          - jdk25-parallel
-          - jdk25-memory1g
-          - jdk25-cpus1
+        cond: [jdk25-memory1g, jdk25-cpus1]
+    name: s2 (${{ matrix.cond }})
     steps:
       - uses: actions/checkout@v7
-      - run: ./run-all.sh "${{ matrix.cond }}"
+      - run: ./run-all.sh "s2:${{ matrix.cond }}"
       - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
         if: always()
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: g1-heap-not-returned-${{ matrix.cond }}
+          name: g1-heap-not-returned-s2-${{ matrix.cond }}
+          path: g1-heap-not-returned/results/
+
+  s1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [jdk8, jdk11, jdk17, jdk21, jdk25]
+    name: s1 (${{ matrix.cond }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "s1:${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: g1-heap-not-returned-s1-${{ matrix.cond }}
+          path: g1-heap-not-returned/results/
+
+  s3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [jdk25-periodic, jdk25-periodic-idle]
+    name: s3 (${{ matrix.cond }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "s3:${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: g1-heap-not-returned-s3-${{ matrix.cond }}
+          path: g1-heap-not-returned/results/
+
+  s5:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [jdk11-parallel]
+    name: s5 (${{ matrix.cond }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "s5:${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: g1-heap-not-returned-s5-${{ matrix.cond }}
           path: g1-heap-not-returned/results/
 
   report:
-    needs: [run]
+    needs: [s1, s2, s3, s5]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
-          pattern: g1-heap-not-returned-*
+          pattern: g1-heap-not-returned-s*
           merge-multiple: true
           path: g1-heap-not-returned/results/
-      - run: |
-          python3 scripts/summarize.py --md results $(awk -F'\t' 'NR > 1 { print $1 }' conditions.tsv) > results/summary.md
+      - id: summary
+        run: |
+          rc=0
+          scripts/summary.sh results || rc=$?
           cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- g1-heap-not-returned -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: g1-heap-not-returned-summary
           path: g1-heap-not-returned/results/summary.md
+      - env:
+          RC: ${{ steps.summary.outputs.rc }}
+        run: exit "${RC:-1}"

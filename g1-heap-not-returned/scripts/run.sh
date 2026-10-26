@@ -5,8 +5,8 @@ here=$(cd "$(dirname "$0")/.." && pwd)
 out=$1 jdk=$2 docker_extra=$3 java_extra=$4 after=$5
 peak_rate=${PEAK_RATE:-1000}
 after_rate=${AFTER_RATE:-200}
-peak_s=${PEAK_S:-20}
-after_s=${AFTER_S:-60}
+peak_s=${PEAK_S:-5}
+after_s=${AFTER_S:-45}
 obj=${OBJ_SIZE:-64}
 lifetime_ms=${LIFETIME_MS:-10}
 [ "$after" = idle ] && after_rate=0

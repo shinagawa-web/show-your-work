@@ -118,6 +118,32 @@ def main(d):
     r["alloc_mb_per_s_median"] = {k: sorted(v)[len(v) // 2] for k, v in rates.items() if len(v) > 2}
     cg = read(os.path.join(d, "cgroup.txt"))
     r["cgroup"] = dict(l.split(" ", 1) for l in cg.splitlines() if " " in l)
+    using_full = re.search(r"^\[[^\]]*\]\[[^\]]*\]\[gc *\] (Using \w+)", log, re.M)
+    r["using_line_text"] = using_full.group(0) if using_full else None
+    first_mx = next((l for l in stdout.splitlines() if l.startswith("mx ")), None)
+    r["pools"] = re.findall(r'"([^"]+)"=', first_mx) if first_mx else []
+    mxs = []
+    for l in stdout.splitlines():
+        if l.startswith("mx "):
+            m = re.search(r"heap_committed_mb=([\d.]+)", l)
+            mxs.append((float(l.split()[1]), float(m.group(1))))
+    if after is not None:
+        mx_peak = [x for x in mxs if x[0] < after]
+        r["mx_committed_mb_end_of_peak"] = mx_peak[-1][1] if mx_peak else None
+        r["mx_committed_mb_last"] = mxs[-1][1] if mxs else None
+        young_after = [x for x in g if x[0] >= after and x[1] == "Young" and re.search(r"\]\[gc *\] ", x[4])]
+        r["young_gc_line_after_peak"] = young_after[0][4] if young_after else None
+        skip = [l for l in log.splitlines() if "Skipping" in l and UL_TS.match(l) and float(UL_TS.match(l).group(1)) >= after]
+        r["skipping_line_after_peak"] = skip[0] if skip else None
+        pgc = [x for x in g if x[1] == "Young" and "(G1 Periodic Collection)" in x[4] and re.search(r"\]\[gc *\] ", x[4])]
+        if pgc:
+            tp = pgc[0][0]
+            r["periodic_gc_line"] = pgc[0][4]
+            r["periodic_first_s_after_peak"] = round(tp - after, 1)
+            before = [x for x in mxs if x[0] < tp]
+            aft = [x for x in mxs if x[0] > tp]
+            r["periodic_mx_committed_mb_before"] = before[-1][1] if before else None
+            r["periodic_mx_committed_mb_after"] = aft[0][1] if aft else None
     return r
 
 
@@ -126,24 +152,65 @@ def fmt(v):
         return "-"
     if isinstance(v, float):
         return "%.1f" % v
-    if isinstance(v, list):
-        return "<br>".join(v) or "-"
+    if isinstance(v, (list, tuple)):
+        return ", ".join(fmt(x) for x in v) or "-"
     return str(v)
 
 
-COLS = [
-    ("Java", lambda r: r.get("java_version")),
-    ("GC", lambda r: (r["gc_flag"] or "").replace("-XX:+Use", "").replace("GC", "") or "-"),
-    ("heap committed MB, end of peak", lambda r: r.get("heap_committed_mb_end_of_peak")),
-    ("heap committed MB, last GC", lambda r: r.get("heap_committed_mb_last_gc")),
-    ("PS Eden committed MB, end of peak", lambda r: r.get("ps_eden_committed_mb_end_of_peak")),
-    ("PS Eden committed MB, last", lambda r: r.get("ps_eden_committed_mb_last")),
-    ("memory.current MB, end of peak", lambda r: r.get("memory_current_mb_end_of_peak")),
-    ("memory.current MB, last", lambda r: r.get("memory_current_mb_last")),
-    ("GC time % after peak", lambda r: r.get("gc_time_pct_after")),
-    ("concurrent starts (after peak)", lambda r: "%s (%s)" % (r.get("concurrent_start_count"), r.get("concurrent_start_after_peak"))),
-    ("Skipping lines / periodic GCs", lambda r: "%s / %s" % (r.get("periodic_skipping"), r.get("periodic_gc"))),
-]
+def sections():
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "conditions.tsv")) as f:
+        rows = [l.rstrip("\n").split("\t") for l in f][1:]
+    return {r[0]: r[6] for r in rows}
+
+
+SECTION = sections()
+
+
+def job_name(r):
+    return "%s (%s)" % (SECTION.get(r["cond"], "-"), r["cond"])
+
+
+def job(r):
+    return "%s %s" % (job_name(r), r["runname"])
+
+
+def table(heads, rows):
+    if not rows:
+        return
+    print("| job | run | " + " | ".join(heads) + " |")
+    print("|---|---|" + "---|" * len(heads))
+    for r, cells in rows:
+        print("| %s | %s | " % (job_name(r), r["runname"]) + " | ".join(fmt(c) for c in cells) + " |")
+    print()
+
+
+def lines(rows, key):
+    out = [(r, r.get(key)) for r in rows]
+    for r, l in out:
+        print("- %s: `%s`" % (job(r), l if l else "-"))
+    if out:
+        print()
+
+
+def section(title, rows):
+    if rows:
+        print("## %s\n" % title)
+    return bool(rows)
+
+
+def pick(rows, conds):
+    return [r for c in conds for r in rows if r["cond"] == c]
+
+
+def diff(a, b):
+    return b - a if a is not None and b is not None else None
+
+
+def committed(r):
+    return [r.get("mx_committed_mb_end_of_peak"), r.get("mx_committed_mb_last")]
+
+
+COMMITTED = ["heap committed MB, end of peak", "heap committed MB, last"]
 
 
 def md(root, conds):
@@ -152,6 +219,8 @@ def md(root, conds):
     for c in conds:
         cdir = os.path.join(root, c)
         for run in sorted(os.listdir(cdir)) if os.path.isdir(cdir) else []:
+            if not os.path.isdir(os.path.join(cdir, run)):
+                continue
             r = main(os.path.join(cdir, run))
             r["cond"], r["runname"] = c, run
             rows.append(r)
@@ -162,13 +231,40 @@ def md(root, conds):
             if r.get("gc_count_after") is not None and not r["phase_end"]:
                 bad.append("%s/%s: the program did not finish" % (c, run))
     print("# g1-heap-not-returned\n")
-    print("| condition | run | " + " | ".join(h for h, _ in COLS) + " |")
-    print("|---|---|" + "---|" * len(COLS))
-    for r in rows:
-        print("| %s | %s | " % (r["cond"], r["runname"]) + " | ".join(fmt(f(r)) for _, f in COLS) + " |")
-    print("\nJava versions: " + ", ".join(sorted({r["java_version"] or "-" for r in rows})))
+    print("Heap committed is the sum of the committed sizes of the heap memory pools (MemoryPoolMXBean).\n")
+    s = pick(rows, ["jdk8", "jdk11", "jdk25"])
+    if section("1. Opening", s):
+        table(["memory.current change MB, end of peak to last"],
+              [(r, [diff(r.get("memory_current_mb_end_of_peak"), r.get("memory_current_mb_last"))]) for r in s])
+    s = pick(rows, ["jdk25-memory1g", "jdk25-cpus1"])
+    if section("2. What changed", s):
+        lines(s, "using_line_text")
+    s1 = pick(rows, ["jdk25-periodic"])
+    s2 = pick(rows, ["jdk25-periodic-idle"])
+    if section("3. Periodic GC", s1 + s2):
+        lines(s1, "skipping_line_after_peak")
+        lines(s2, "periodic_gc_line")
+        table(["heap committed MB, before", "heap committed MB, after"],
+              [(r, [r.get("periodic_mx_committed_mb_before"), r.get("periodic_mx_committed_mb_after")]) for r in s2])
+    s1 = pick(rows, ["jdk11"])
+    s2 = pick(rows, ["jdk8", "jdk11", "jdk17", "jdk21", "jdk25"])
+    if section("4. Telling it apart in your environment", s1 + s2):
+        lines(s1, "young_gc_line_after_peak")
+        table(["heap memory pools"], [(r, [r.get("pools")]) for r in s2])
+    s = pick(rows, ["jdk11-parallel"])
+    if section("5. Countermeasure", s):
+        table(COMMITTED, [(r, committed(r)) for r in s])
+    s1 = pick(rows, ["jdk8", "jdk11", "jdk17", "jdk21", "jdk25"])
+    s2 = pick(rows, ["jdk11", "jdk17", "jdk21", "jdk25", "jdk25-periodic", "jdk25-periodic-idle"])
+    s3 = pick(rows, ["jdk8"])
+    s4 = pick(rows, ["jdk25-periodic-idle"])
+    if section("Numbers not used", s1 + s2 + s3 + s4):
+        table(COMMITTED, [(r, committed(r)) for r in s1])
+        table(["concurrent starts after peak"], [(r, [r.get("concurrent_start_after_peak")]) for r in s2])
+        table(["reduced footprint lines after peak"], [(r, [r.get("reduced_footprint_after")]) for r in s3])
+        table(["periodic GC, s after end of peak"], [(r, [r.get("periodic_first_s_after_peak")]) for r in s4])
     if bad:
-        print("\n## Invalid runs\n")
+        print("## Invalid runs\n")
         for b in bad:
             print("- " + b)
         return 1

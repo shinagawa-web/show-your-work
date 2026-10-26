@@ -1,19 +1,22 @@
 # g1-heap-not-returned
 
-Runs the same Java program on Eclipse Temurin JDK 8, 11, 17, 21 and 25 with the default garbage collector, in a container limited to 2 GB of memory and 2 CPUs, and records how much heap the JVM keeps committed and how much memory the container holds after a load peak. The program allocates short-lived objects at a high rate for the first 20 seconds (the peak) and then either keeps allocating at a lower rate or stops allocating for 60 seconds.
+Runs the same Java program on Eclipse Temurin JDK 8, 11, 17, 21 and 25 with the default garbage collector, in a container limited to 2 GB of memory and 2 CPUs, and records how much heap the JVM keeps committed and how much memory the container holds after a load peak. The program allocates short-lived objects at a high rate for a fixed time (the peak) and then, for a fixed time, either keeps allocating at a lower rate or stops allocating.
 
-The conditions are in `conditions.tsv`: the JDK version, extra `docker run` and `java` options, what the program does after the peak, and whether a run is the full 80 seconds or only long enough to read the GC the JVM selected at startup.
+The conditions are in `conditions.tsv`: the JDK version, extra `docker run` and `java` options, what the program does after the peak, whether a run is the full length or only long enough to read the GC the JVM selected at startup, and the job that runs it.
 
 ## Run
 
-`.github/workflows/g1-heap-not-returned.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
+`.github/workflows/g1-heap-not-returned.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. Each job is named after the section of the article it supplies, and runs one condition from `conditions.tsv` three times with `./run-all.sh <section>:<name>`.
 
 | Job | What it runs |
 |---|---|
-| `run (<name>)` | `./run-all.sh <name>`: one condition from `conditions.tsv`, three runs |
+| `s1 (<name>)` | Sections 1 and 4: JDK 8, 11, 17, 21 and 25 with the default GC |
+| `s2 (<name>)` | Section 2: the GC selected at startup with 1 GB of memory or 1 CPU |
+| `s3 (<name>)` | Section 3: JDK 25 with a periodic GC interval, with and without load after the peak |
+| `s5 (<name>)` | Section 5: JDK 11 with `-XX:+UseParallelGC` |
 | `report` | Merges the results of the other jobs into `results/summary.md` |
 
-`results/summary.md` goes to the job summary of each job and is uploaded with `results/` as an artifact named `g1-heap-not-returned-<name>`. The `report` job uploads the merged summary as `g1-heap-not-returned-summary`. A job fails when a run did not produce what the condition needs (no GC selection in the output, or the program did not finish).
+`results/summary.md` goes to the job summary of each job, with one part per section and each value labelled with the job that produced it. Each job uploads `results/` as an artifact named `g1-heap-not-returned-<section>-<name>`, and the `report` job writes the merged summary to its job summary, to a comment on the open pull request for the branch (the same comment is overwritten on every run), and to the `g1-heap-not-returned-summary` artifact. A job fails when a run did not produce what the condition needs (no GC selection in the output, or the program did not finish).
 
 ## What is recorded
 

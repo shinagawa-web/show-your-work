@@ -2,14 +2,23 @@
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-$here/results}
-runs=${RUNS:-3}
+runs=3
 start=$(date +%s.%N)
 el() { awk -v a="$(date +%s.%N)" -v b="$start" 'BEGIN{printf "%.1f", a-b}'; }
-all=$(awk -F'\t' 'NR > 1 { print $1 }' "$here/conditions.tsv")
-conds=("$@")
-[ ${#conds[@]} -gt 0 ] || conds=($all)
-for c in "${conds[@]}"; do
-  grep -qx "$c" <<< "$all" || { echo "unknown condition: $c (one of: $(echo $all))" >&2; exit 2; }
+sections=$(awk -F'\t' 'NR > 1 { print $7 }' "$here/conditions.tsv" | awk '!s[$0]++')
+targets=()
+while [ $# -gt 0 ]; do
+  case $1 in
+    -n) [ $# -ge 2 ] && [[ $2 =~ ^[1-9][0-9]*$ ]] || { echo "-n needs a positive count" >&2; exit 2; }; runs=$2; shift 2 ;;
+    *) targets+=("$1"); shift ;;
+  esac
+done
+[ ${#targets[@]} -gt 0 ] || targets=($sections)
+conds=()
+for t in "${targets[@]}"; do
+  found=$(awk -F'\t' -v s="${t%%:*}" -v n="${t#*:}" -v one="$([[ $t == *:* ]] && echo 1)" 'NR > 1 && $7 == s && (one == "" || $1 == n) { print $1 }' "$here/conditions.tsv")
+  [ -n "$found" ] || { echo "unknown target: $t (a section: $(echo $sections), or <section>:<condition>)" >&2; exit 2; }
+  conds+=($found)
 done
 mkdir -p "$results"
 results=$(cd "$results" && pwd)
@@ -25,7 +34,7 @@ for img in $(printf '%s\n' "${imgs[@]}" | sort -u); do docker pull -q "$img" > /
 echo "[$(el)s] images pulled, program built"
 status=0
 for c in "${conds[@]}"; do
-  IFS=$'\t' read -r name jdk dopts jopts after length < <(awk -F'\t' -v n="$c" '$1 == n' "$here/conditions.tsv")
+  IFS=$'\t' read -r name jdk dopts jopts after length section < <(awk -F'\t' -v n="$c" '$1 == n' "$here/conditions.tsv")
   for k in $(seq "$runs"); do
     if [ "$length" = select ]; then
       PEAK_S=2 AFTER_S=1 "$here/scripts/run.sh" "$results/$name/run$k" "$jdk" "$dopts" "$jopts" "$after" || status=1
@@ -35,6 +44,6 @@ for c in "${conds[@]}"; do
     echo "[$(el)s] $name run$k"
   done
 done
-python3 "$here/scripts/summarize.py" --md "$results" "${conds[@]}" > "$results/summary.md" || status=1
+"$here/scripts/summary.sh" "$results" "${conds[@]}" || status=1
 echo "[$(el)s] done" | tee "$results/total.txt"
 exit "$status"

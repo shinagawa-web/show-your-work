@@ -1,12 +1,11 @@
-name	jdk	docker_opts	java_opts	after_peak	length
-jdk11	11	-	-	alloc	full
-jdk8	8	-	-	alloc	full
-jdk17	17	-	-	alloc	full
-jdk21	21	-	-	alloc	full
-jdk25	25	-	-	alloc	full
-jdk25-periodic	25	-	-XX:G1PeriodicGCInterval=10000	alloc	full
-jdk25-periodic-idle	25	-	-XX:G1PeriodicGCInterval=10000	idle	full
-jdk11-parallel	11	-	-XX:+UseParallelGC	alloc	full
-jdk25-parallel	25	-	-XX:+UseParallelGC	alloc	full
-jdk25-memory1g	25	--memory=1g --memory-swap=1g	-	alloc	select
-jdk25-cpus1	25	--cpus=1	-	alloc	select
+name	jdk	docker_opts	java_opts	after_peak	length	section
+jdk25-memory1g	25	--memory=1g --memory-swap=1g	-	alloc	select	s2
+jdk25-cpus1	25	--cpus=1	-	alloc	select	s2
+jdk8	8	-	-	alloc	full	s1
+jdk11	11	-	-	alloc	full	s1
+jdk17	17	-	-	alloc	full	s1
+jdk21	21	-	-	alloc	full	s1
+jdk25	25	-	-	alloc	full	s1
+jdk25-periodic	25	-	-XX:G1PeriodicGCInterval=10000	alloc	full	s3
+jdk25-periodic-idle	25	-	-XX:G1PeriodicGCInterval=10000	idle	full	s3
+jdk11-parallel	11	-	-XX:+UseParallelGC	alloc	full	s5
