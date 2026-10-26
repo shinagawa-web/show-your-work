@@ -53,13 +53,17 @@ jobs:
         with:
           pattern: select-for-update-throughput-ceiling-*
           path: select-for-update-throughput-ceiling/artifacts/
-      - run: |
+      - id: summary
+        run: |
           mkdir -p results
           for d in artifacts/*/*/; do cp -r "${d%/}" results/; done
           rc=0
           python3 scripts/summary.py results > results/summary.md || rc=$?
+          if [ "$rc" -ne 0 ] && ! grep -q '^RUN INVALID' results/summary.md; then
+            printf '\nRUN INVALID: scripts/summary.py exited with %s\n' "$rc" >> results/summary.md
+          fi
           cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
-          exit "$rc"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -79,3 +83,6 @@ jobs:
         with:
           name: select-for-update-throughput-ceiling-summary
           path: select-for-update-throughput-ceiling/results/
+      - env:
+          RC: ${{ steps.summary.outputs.rc }}
+        run: exit "${RC:-1}"

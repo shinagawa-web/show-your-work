@@ -4,9 +4,6 @@ import json
 import os
 import sys
 
-# Usage: summary.py RESULTS [CONDITION ...]
-# Every named condition, or every condition in conditions.tsv when none is named, must have
-# RESULTS/<condition>/analysis.json; otherwise the missing conditions are named and the exit code is 1.
 results = sys.argv[1]
 here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 conds = list(csv.DictReader(open(os.path.join(here, "conditions.tsv")), delimiter="\t"))
