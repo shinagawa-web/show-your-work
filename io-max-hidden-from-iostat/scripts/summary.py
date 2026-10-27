@@ -66,7 +66,13 @@ def order(n):
 
 def names(sec):
     d = root / sec
-    return sorted((p.name for p in d.iterdir() if (p / "analysis.json").exists()), key=order) if d.exists() else []
+    if not d.exists():
+        return []
+    return sorted((p.name for p in d.iterdir() if usable(load(sec, p.name))), key=order)
+
+
+def usable(a):
+    return bool(a) and a.get("p50_ms") is not None and bool(a.get("iostat"))
 
 
 def f(x, nd=3):
@@ -150,7 +156,7 @@ if c4:
             out.append(f"| {d} | {f(v['r_s'], 1)} | {f(v['r_await_ms'])} | {f(v['util_pct'], 2)} |")
         out.append("")
     d = root / "s4" / "p1"
-    if (d / "ftrace_commands.txt").exists() and load("s4", "p1"):
+    if (d / "ftrace_commands.txt").exists() and "p1" in c4 and (d / "ftrace_extract.txt").exists():
         a = load("s4", "p1")
         out.append(f"{load_desc('s4', 'p1')}, set with {how_limited('s4', 'p1')}. While fio ran, the blk tracer in tracefs was enabled on the limited loop device as root; it writes a `throtl [R] bio.` line for each read held by io.max (p1):")
         out.append("")
@@ -159,7 +165,7 @@ if c4:
         out.append(f"- fio reads over 50 ms in the same run: {a['stopped_count']} of {a['hist_total']}")
         out.append("")
     d = root / "s4" / "p1_blktrace"
-    if (d / "blktrace_commands.txt").exists():
+    if "p1_blktrace" in c4 and (d / "blktrace_throtl_count.txt").exists():
         cmds = (d / "blktrace_commands.txt").read_text().strip().splitlines()
         cnt = (d / "blktrace_throtl_count.txt").read_text().strip()
         out.append(f"The same load and limit with the blktrace command at its defaults instead (`{cmds[0]}`, then `{cmds[1]}`): {cnt} (p1_blktrace)")
@@ -239,8 +245,8 @@ for sec, n in conditions:
     a = load(sec, n)
     if a is None:
         invalid.append(f"RUN INVALID: {sec}/{n}: no results/{sec}/{n}/analysis.json")
-    elif a["invalid"]:
-        invalid.append(f"RUN INVALID: {sec}/{n}: {'; '.join(a['invalid'])}")
+    elif a["invalid"] or not usable(a):
+        invalid.append(f"RUN INVALID: {sec}/{n}: {'; '.join(a['invalid']) or 'no fio or iostat values in analysis.json'}")
 if invalid:
     out[2:2] = invalid + [""]
 print("\n".join(out))

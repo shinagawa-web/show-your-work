@@ -35,9 +35,16 @@ label=$(printf '%s_' "${targets[@]}" | tr ':' '-')
 host=$results/host/${label%_}
 mkdir -p "$host"
 start_all=$(date +%s)
-if ! command -v fio iostat pidstat blktrace blkparse > /dev/null 2>&1; then
-  { apt-get update -q && DEBIAN_FRONTEND=noninteractive apt-get install -y -q fio sysstat blktrace; } > "$host/install.log" 2>&1 ||
-    { tail -20 "$host/install.log"; echo "RUN INVALID: apt-get install failed" > "$results/summary.md"; exit 1; }
+tools=(fio iostat pidstat blktrace blkparse)
+missing() { local c; for c in "${tools[@]}"; do command -v "$c" > /dev/null || printf '%s ' "$c"; done; }
+if [ -n "$(missing)" ]; then
+  echo "missing before install: $(missing)" > "$host/install.log"
+  { apt-get update -q && DEBIAN_FRONTEND=noninteractive apt-get install -y -q fio sysstat blktrace; } >> "$host/install.log" 2>&1
+  if [ -n "$(missing)" ]; then
+    tail -20 "$host/install.log"
+    echo "RUN INVALID: still missing after apt-get install: $(missing)" | tee "$results/summary.md"
+    exit 1
+  fi
 fi
 {
   echo "kernel: $(uname -r)"

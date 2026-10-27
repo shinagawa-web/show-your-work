@@ -155,7 +155,11 @@ if s.get("trace") in ("tool", "ftrace"):
     res["slice_jiffies"] = sorted(set(slices))
     res["slice_ms_measured"] = sorted(set(j * 1000 / hz for j in slices)) if hz else None
     res["new_slice_example"] = next((x.strip() for x in lines if "new slice start=" in x), "")
+    if s["trace"] == "tool" and not res.get("blktrace_actions", [""])[0]:
+        invalid.append("blkparse produced no events")
     if s["trace"] == "ftrace":
+        if not (out / "qc_times.txt").exists() or not read("qc_times.txt").strip():
+            invalid.append("the blk tracer recorded no Q or C events")
         if not hz:
             invalid.append("CONFIG_HZ not found in /boot/config-$(uname -r), so the slice length is unknown")
         if riops != "max" and not slices:
