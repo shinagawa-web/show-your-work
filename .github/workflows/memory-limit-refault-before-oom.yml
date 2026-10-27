@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        condition: [p1, p3, r1]
+        condition: [n1, p3, p3b, f1]
     name: s3-${{ matrix.condition }}
     steps:
       - uses: actions/checkout@v7

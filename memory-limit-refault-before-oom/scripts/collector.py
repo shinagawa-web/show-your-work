@@ -3,6 +3,8 @@ import os
 import sys
 import time
 
+STAT = ("anon", "file", "file_mapped", "pgmajfault")
+
 
 def read(p):
     try:
@@ -12,11 +14,11 @@ def read(p):
         return None
 
 
-def kv(text):
+def kv(text, keys):
     out = {}
     for line in (text or "").splitlines():
         k, _, v = line.partition(" ")
-        if v.strip().lstrip("-").isdigit():
+        if k in keys and v.strip().lstrip("-").isdigit():
             out[k] = int(v)
     return out
 
@@ -45,15 +47,12 @@ def sample(cg, parent):
     if cur is not None:
         s["current"] = num(cur)
         s["max"] = num(read(os.path.join(cg, "memory.max")))
-        s["stat"] = kv(read(os.path.join(cg, "memory.stat")))
-        s["events"] = kv(read(os.path.join(cg, "memory.events")))
+        s["stat"] = kv(read(os.path.join(cg, "memory.stat")), STAT)
+        s["events"] = kv(read(os.path.join(cg, "memory.events")), ("oom_kill",))
         s["mem_psi"] = psi(read(os.path.join(cg, "memory.pressure")))
-        s["io_psi"] = psi(read(os.path.join(cg, "io.pressure")))
-        s["cpu_psi"] = psi(read(os.path.join(cg, "cpu.pressure")))
-        s["cpu"] = kv(read(os.path.join(cg, "cpu.stat")))
         s["swap_max"] = num(read(os.path.join(cg, "memory.swap.max")))
         s["swap_current"] = num(read(os.path.join(cg, "memory.swap.current")))
-    s["parent_events"] = kv(read(os.path.join(parent, "memory.events")))
+    s["parent_events"] = kv(read(os.path.join(parent, "memory.events")), ("oom_kill",))
     return s
 
 

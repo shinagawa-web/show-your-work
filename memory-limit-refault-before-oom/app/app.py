@@ -15,7 +15,7 @@ SIZE = int(os.environ.get("WORK_N", "64"))
 EXTRA = [x for x in os.environ.get("EXTRA", "").split(",") if x]
 
 cache = {}
-grow_state = {"task": None, "rate": 0.0, "started": None}
+grow_state = {"task": None, "rate": 0.0, "started": None, "per_requests": 0, "served": 0}
 rng = np.random.default_rng(0)
 base = rng.standard_normal((SIZE, SIZE))
 payload = rng.bytes(16384)
@@ -30,7 +30,13 @@ if "orjson" in EXTRA:
 
 def fill(target):
     while len(cache) * ELEM < target:
-        cache[len(cache)] = b"x" * ELEM
+        add()
+
+
+def add():
+    cache[len(cache)] = b"x" * ELEM
+    if grow_state["started"] is not None:
+        print(f"GROW t={time.time():.6f} elements={len(cache)}", flush=True)
 
 
 def work():
@@ -68,16 +74,25 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
-    return {"v": work()}
+    v = work()
+    n = grow_state["per_requests"]
+    if n:
+        grow_state["served"] += 1
+        if grow_state["served"] % n == 0:
+            add()
+    return {"v": v}
 
 
 @app.post("/grow")
-async def start_grow(kbps: float):
-    if grow_state["task"] is None:
-        grow_state["rate"] = kbps * 1024
+async def start_grow(kbps: float = 0, per_requests: int = 0):
+    if grow_state["started"] is None:
         grow_state["started"] = time.time()
-        grow_state["task"] = asyncio.create_task(grow(kbps * 1024))
-    return {"rate_bytes_per_s": grow_state["rate"], "started": grow_state["started"]}
+        if per_requests > 0:
+            grow_state["per_requests"] = per_requests
+        else:
+            grow_state["rate"] = kbps * 1024
+            grow_state["task"] = asyncio.create_task(grow(kbps * 1024))
+    return {"rate_bytes_per_s": grow_state["rate"], "per_requests": grow_state["per_requests"], "elem_bytes": ELEM, "elements": len(cache), "started": grow_state["started"]}
 
 
 @app.get("/info")
