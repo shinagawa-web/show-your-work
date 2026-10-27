@@ -9,6 +9,8 @@ J8_GC = re.compile(r"\[PSYoungGen: (\d+)K->(\d+)K\((\d+)K\)\] (\d+)K->(\d+)K\((\
 J8_FULL = re.compile(r"\] (\d+)K->(\d+)K\((\d+)K\), \[Metaspace: [^\]]*\], ([\d.]+) secs\]")
 UL_GC = re.compile(r"^\[([\d.]+)s\].*GC\(\d+\) Pause (Young|Remark|Cleanup|Full)\b(.*?) (\d+)M->(\d+)M\((\d+)M\) ([\d.]+)ms")
 UL_TS = re.compile(r"^\[([\d.]+)s\]")
+# a complete mx line; the last one can be cut off when the JVM exits
+MX_LINE = re.compile(r'^mx \d+\.\d \S+ alloc_mb=\d+\.\d heap_committed_mb=\d+\.\d heap_used_mb=\d+\.\d pools_committed_mb:( "[^"]+"=\d+\.\d)+$')
 
 
 def read(path, default=""):
@@ -93,7 +95,7 @@ def main(d):
         r["periodic_checks_after_peak"] = sum(1 for t, l in periodic if t >= after and "Checking for periodic GC." in l)
         r["periodic_skipped_after_peak"] = sum(1 for t, l in periodic if t >= after and l.endswith("Skipping."))
         r["periodic_gc_after_peak"] = sum(1 for x in g if x[0] >= after and x[1] == "Young" and re.search(r"\]\[gc *\] ", x[4]) and "(G1 Periodic Collection)" in x[4])
-        mx = [l for l in stdout.splitlines() if l.startswith("mx ")]
+        mx = [l for l in stdout.splitlines() if MX_LINE.match(l)]
         def eden(l):
             m = re.search(r'"PS Eden Space"=([\d.]+)', l)
             return float(m.group(1)) if m else None
@@ -119,7 +121,7 @@ def main(d):
     jv = re.search(r'version "([^"]+)"', read(os.path.join(d, "java-version.txt")))
     r["java_version"] = jv.group(1) if jv else None
     r["phase_end"] = end is not None
-    mx = [l for l in stdout.splitlines() if l.startswith("mx ")]
+    mx = [l for l in stdout.splitlines() if MX_LINE.match(l)]
     rates = {}
     for l in mx[1:]:
         ph = l.split()[2]
@@ -130,11 +132,11 @@ def main(d):
     r["cgroup"] = dict(l.split(" ", 1) for l in cg.splitlines() if " " in l)
     using_full = re.search(r"^\[[^\]]*\]\[[^\]]*\]\[gc *\] (Using \w+)", log, re.M)
     r["using_line_text"] = using_full.group(0) if using_full else None
-    first_mx = next((l for l in stdout.splitlines() if l.startswith("mx ")), None)
+    first_mx = next((l for l in stdout.splitlines() if MX_LINE.match(l)), None)
     r["pools"] = re.findall(r'"([^"]+)"=', first_mx) if first_mx else []
     mxs = []
     for l in stdout.splitlines():
-        if l.startswith("mx "):
+        if MX_LINE.match(l):
             m = re.search(r"heap_committed_mb=([\d.]+)", l)
             mxs.append((float(l.split()[1]), float(m.group(1))))
     if after is not None:
