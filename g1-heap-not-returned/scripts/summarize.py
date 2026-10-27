@@ -89,6 +89,10 @@ def main(d):
         r["reduced_footprint_after"] = rf
         r["periodic_skipping"] = len(re.findall(r"Last GC occurred .* Skipping", log))
         r["periodic_gc"] = sum(1 for x in g if x[1] == "Young" and re.search(r"\]\[gc *\] ", x[4]) and "(G1 Periodic Collection)" in x[4])
+        periodic = [(float(UL_TS.match(l).group(1)), l) for l in log.splitlines() if "][gc,periodic" in l and UL_TS.match(l)]
+        r["periodic_checks_after_peak"] = sum(1 for t, l in periodic if t >= after and "Checking for periodic GC." in l)
+        r["periodic_skipped_after_peak"] = sum(1 for t, l in periodic if t >= after and l.endswith("Skipping."))
+        r["periodic_gc_after_peak"] = sum(1 for x in g if x[0] >= after and x[1] == "Young" and re.search(r"\]\[gc *\] ", x[4]) and "(G1 Periodic Collection)" in x[4])
         mx = [l for l in stdout.splitlines() if l.startswith("mx ")]
         def eden(l):
             m = re.search(r'"PS Eden Space"=([\d.]+)', l)
@@ -98,12 +102,14 @@ def main(d):
             r["ps_eden_committed_mb_end_of_peak"] = eden(mx_peak[-1])
             r["ps_eden_committed_mb_max"] = max(eden(l) for l in mx)
             r["ps_eden_committed_mb_last"] = eden(mx[-1])
+    mem = []
     js = read(os.path.join(d, "java-start.txt")).strip()
     settings = read(os.path.join(d, "t0.txt")).strip()
     if js and settings:
         off = float(js) - float(settings)
         rows = [l.split("\t") for l in read(os.path.join(d, "memory.tsv")).splitlines()[1:]]
         rows = [(float(a[0]) - off, float(a[1])) for a in rows]
+        mem = rows
         if after is not None and rows:
             before_after = [x for x in rows if x[0] < after]
             r["memory_current_mb_end_of_peak"] = before_after[-1][1] if before_after else None
@@ -148,6 +154,8 @@ def main(d):
             aft = [x for x in mxs if x[0] > tp]
             r["periodic_mx_committed_mb_before"] = before[-1][1] if before else None
             r["periodic_mx_committed_mb_after"] = aft[0][1] if aft else None
+            mem_before = [x for x in mem if x[0] < tp]
+            r["periodic_memory_current_mb_before"] = mem_before[-1][1] if mem_before else None
             remark = [x for x in g if x[0] >= tp and x[1] == "Remark" and re.search(r"\]\[gc *\] ", x[4])]
             if remark:
                 r["periodic_remark_line"] = remark[0][4]
@@ -255,43 +263,49 @@ def md(root, conds):
     s1 = pick(rows, ["jdk8"])
     s2 = pick(rows, ["jdk11", "jdk25"])
     s3 = pick(rows, ["jdk8", "jdk11"])
-    s4 = pick(rows, ["jdk25-periodic-idle"])
-    s5 = pick(rows, ["jdk25-flags"])
-    s6 = pick(rows, ["jdk11-periodic"])
-    s7 = pick(rows, ["jdk25-memory1g", "jdk25-cpus1"])
-    if section("3. What changed", s1 + s2 + s3 + s4 + s5 + s6 + s7):
+    s4 = pick(rows, ["jdk11", "jdk17", "jdk21", "jdk25"])
+    if section("3. What changed", s1 + s2 + s3 + s4):
         lines(s1, "gc_flag")
         lines(s2, "using_line_text")
         table(COMMITTED, [(r, committed(r)) for r in s3])
-        lines(s4, "periodic_remark_line")
-        lines(s4, "periodic_remark_shrink_line")
-        lines(s5, "periodic_interval_flag_line")
-        lines(s6, "startup_error_line")
-        lines(s7, "using_line_text")
+        table(["concurrent starts after peak"], [(r, [r.get("concurrent_start_after_peak")]) for r in s4])
     s1 = pick(rows, ["jdk25-periodic"])
     s2 = pick(rows, ["jdk25-periodic-idle"])
     if section("4. Periodic GC", s1 + s2):
         lines(s1, "skipping_line_after_peak")
+        table(["periodic GC checks after peak", "skipped", "periodic GCs after peak"],
+              [(r, [r.get("periodic_checks_after_peak"), r.get("periodic_skipped_after_peak"), r.get("periodic_gc_after_peak")]) for r in s1])
+        table(COMMITTED, [(r, committed(r)) for r in s1])
         lines(s2, "periodic_gc_line")
+        lines(s2, "periodic_remark_line")
+        lines(s2, "periodic_remark_shrink_line")
         table(["heap committed MB, before", "heap committed MB, after"],
               [(r, [r.get("periodic_mx_committed_mb_before"), r.get("periodic_mx_committed_mb_after")]) for r in s2])
+        table(["memory.current MB, last sample before periodic GC", "memory.current MB, last"],
+              [(r, [r.get("periodic_memory_current_mb_before"), r.get("memory_current_mb_last")]) for r in s2])
+        table(["concurrent starts after peak"], [(r, [r.get("concurrent_start_after_peak")]) for r in s1 + s2])
     s1 = pick(rows, ["jdk11"])
     s2 = pick(rows, ["jdk8", "jdk11", "jdk17", "jdk21", "jdk25"])
-    if section("5. Telling it apart in your environment", s1 + s2):
+    s3 = pick(rows, ["jdk25-flags"])
+    if section("5. Telling it apart in your environment", s1 + s2 + s3):
         lines(s1, "young_gc_line_after_peak")
         table(["heap memory pools"], [(r, [r.get("pools")]) for r in s2])
-    s = pick(rows, ["jdk11-parallel"])
-    if section("6. Countermeasure", s):
-        table(COMMITTED, [(r, committed(r)) for r in s])
-    s1 = pick(rows, ["jdk17", "jdk21", "jdk25"])
-    s2 = pick(rows, ["jdk11", "jdk17", "jdk21", "jdk25", "jdk25-periodic", "jdk25-periodic-idle"])
-    s3 = pick(rows, ["jdk8"])
-    s4 = pick(rows, ["jdk25-periodic-idle"])
-    if section("Numbers not used", s1 + s2 + s3 + s4):
+        lines(s3, "periodic_interval_flag_line")
+    s1 = pick(rows, ["jdk11-parallel"])
+    s2 = pick(rows, ["jdk11-periodic"])
+    if section("6. Countermeasure", s1 + s2):
         table(COMMITTED, [(r, committed(r)) for r in s1])
-        table(["concurrent starts after peak"], [(r, [r.get("concurrent_start_after_peak")]) for r in s2])
-        table(["reduced footprint lines after peak"], [(r, [r.get("reduced_footprint_after")]) for r in s3])
-        table(["periodic GC, s after end of peak"], [(r, [r.get("periodic_first_s_after_peak")]) for r in s4])
+        lines(s2, "startup_error_line")
+    s = pick(rows, ["jdk25-memory1g", "jdk25-cpus1"])
+    if section("7. Scope", s):
+        lines(s, "using_line_text")
+    s1 = pick(rows, ["jdk17", "jdk21", "jdk25"])
+    s2 = pick(rows, ["jdk8"])
+    s3 = pick(rows, ["jdk25-periodic-idle"])
+    if section("Numbers not used", s1 + s2 + s3):
+        table(COMMITTED, [(r, committed(r)) for r in s1])
+        table(["reduced footprint lines after peak"], [(r, [r.get("reduced_footprint_after")]) for r in s2])
+        table(["periodic GC, s after end of peak"], [(r, [r.get("periodic_first_s_after_peak")]) for r in s3])
     if bad:
         print("## Invalid runs\n")
         for b in bad:

@@ -10,10 +10,11 @@ The conditions are in `conditions.tsv`: the JDK version, extra `docker run` and 
 
 | Job | What it runs |
 |---|---|
-| `s1 (<name>)` | Sections 1 and 5: JDK 8, 11, 17, 21 and 25 with the default GC |
-| `s3 (<name>)` | Section 3: the GC selected at startup with 1 GB of memory or 1 CPU, the value of `G1PeriodicGCInterval` on JDK 25 (`-XX:+PrintFlagsFinal`), and JDK 11 started with `-XX:G1PeriodicGCInterval` |
+| `s1 (<name>)` | Sections 1, 3 and 5: JDK 8, 11, 17, 21 and 25 with the default GC |
 | `s4 (<name>)` | Section 4: JDK 25 with a periodic GC interval, with and without load after the peak |
-| `s6 (<name>)` | Section 6: JDK 11 with `-XX:+UseParallelGC` |
+| `s5 (<name>)` | Section 5: the value of `G1PeriodicGCInterval` on JDK 25 (`-XX:+PrintFlagsFinal`) |
+| `s6 (<name>)` | Section 6: JDK 11 with `-XX:+UseParallelGC`, and JDK 11 started with `-XX:G1PeriodicGCInterval` |
+| `s7 (<name>)` | Section 7: the GC selected at startup with 1 GB of memory or 1 CPU |
 | `report` | Merges the results of the other jobs into `results/summary.md` |
 
 `results/summary.md` goes to the job summary of each job, with one part per section and each value labelled with the job that produced it. Each job uploads `results/` as an artifact named `g1-heap-not-returned-<section>-<name>`, and the `report` job writes the merged summary to its job summary, to a comment on the open pull request for the branch (the same comment is overwritten on every run), and to the `g1-heap-not-returned-summary` artifact. A job fails when a run did not produce what the condition needs (no GC selection in the output, the program did not finish, no `G1PeriodicGCInterval` in the flags printed by JDK 25, or JDK 11 started with `-XX:G1PeriodicGCInterval` without an error).
