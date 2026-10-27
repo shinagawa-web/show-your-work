@@ -286,15 +286,15 @@ def md(root, conds):
         table(["concurrent starts after peak"], [(r, [r.get("concurrent_start_after_peak")]) for r in s1 + s2])
     s1 = pick(rows, ["jdk11"])
     s2 = pick(rows, ["jdk8", "jdk11", "jdk17", "jdk21", "jdk25"])
-    s3 = pick(rows, ["jdk25-flags"])
-    if section("5. Telling it apart in your environment", s1 + s2 + s3):
+    if section("5. Telling it apart in your environment", s1 + s2):
         lines(s1, "young_gc_line_after_peak")
         table(["heap memory pools"], [(r, [r.get("pools")]) for r in s2])
-        lines(s3, "periodic_interval_flag_line")
     s1 = pick(rows, ["jdk11-parallel"])
     s2 = pick(rows, ["jdk11-periodic"])
     if section("6. Countermeasure", s1 + s2):
         table(COMMITTED, [(r, committed(r)) for r in s1])
+        table(["memory.current change MB, end of peak to last"],
+              [(r, [diff(r.get("memory_current_mb_end_of_peak"), r.get("memory_current_mb_last"))]) for r in s1])
         lines(s2, "startup_error_line")
     s = pick(rows, ["jdk25-memory1g", "jdk25-cpus1"])
     if section("7. Scope", s):
@@ -302,10 +302,12 @@ def md(root, conds):
     s1 = pick(rows, ["jdk17", "jdk21", "jdk25"])
     s2 = pick(rows, ["jdk8"])
     s3 = pick(rows, ["jdk25-periodic-idle"])
-    if section("Numbers not used", s1 + s2 + s3):
+    s4 = pick(rows, ["jdk25-flags"])
+    if section("Numbers not used", s1 + s2 + s3 + s4):
         table(COMMITTED, [(r, committed(r)) for r in s1])
         table(["reduced footprint lines after peak"], [(r, [r.get("reduced_footprint_after")]) for r in s2])
         table(["periodic GC, s after end of peak"], [(r, [r.get("periodic_first_s_after_peak")]) for r in s3])
+        lines(s4, "periodic_interval_flag_line")
     if bad:
         print("## Invalid runs\n")
         for b in bad:

@@ -32,6 +32,25 @@ jobs:
           name: g1-heap-not-returned-s1-${{ matrix.cond }}
           path: g1-heap-not-returned/results/
 
+  s3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [jdk25-flags]
+    name: s3 (${{ matrix.cond }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "s3:${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: g1-heap-not-returned-s3-${{ matrix.cond }}
+          path: g1-heap-not-returned/results/
+
   s4:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -49,25 +68,6 @@ jobs:
         if: always()
         with:
           name: g1-heap-not-returned-s4-${{ matrix.cond }}
-          path: g1-heap-not-returned/results/
-
-  s5:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        cond: [jdk25-flags]
-    name: s5 (${{ matrix.cond }})
-    steps:
-      - uses: actions/checkout@v7
-      - run: ./run-all.sh "s5:${{ matrix.cond }}"
-      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
-        if: always()
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: g1-heap-not-returned-s5-${{ matrix.cond }}
           path: g1-heap-not-returned/results/
 
   s6:
@@ -109,7 +109,7 @@ jobs:
           path: g1-heap-not-returned/results/
 
   report:
-    needs: [s1, s4, s5, s6, s7]
+    needs: [s1, s3, s4, s6, s7]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

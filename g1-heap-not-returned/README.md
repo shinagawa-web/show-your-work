@@ -11,8 +11,8 @@ The conditions are in `conditions.tsv`: the JDK version, extra `docker run` and 
 | Job | What it runs |
 |---|---|
 | `s1 (<name>)` | Sections 1, 3 and 5: JDK 8, 11, 17, 21 and 25 with the default GC |
+| `s3 (<name>)` | Section 3, as support only: the default of `G1PeriodicGCInterval` on JDK 25 (`-XX:+PrintFlagsFinal`), shown under Numbers not used |
 | `s4 (<name>)` | Section 4: JDK 25 with a periodic GC interval, with and without load after the peak |
-| `s5 (<name>)` | Section 5: the value of `G1PeriodicGCInterval` on JDK 25 (`-XX:+PrintFlagsFinal`) |
 | `s6 (<name>)` | Section 6: JDK 11 with `-XX:+UseParallelGC`, and JDK 11 started with `-XX:G1PeriodicGCInterval` |
 | `s7 (<name>)` | Section 7: the GC selected at startup with 1 GB of memory or 1 CPU |
 | `report` | Merges the results of the other jobs into `results/summary.md` |
