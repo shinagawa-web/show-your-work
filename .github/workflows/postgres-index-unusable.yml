@@ -1,0 +1,83 @@
+name: postgres-index-unusable
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "postgres-index-unusable/**"
+      - ".github/workflows/postgres-index-unusable.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: postgres-index-unusable
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { section: "2", part: explain }
+          - { section: "3", part: causes }
+    name: ${{ matrix.section }} (${{ matrix.part }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh ${{ matrix.part }}
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: postgres-index-unusable-${{ matrix.part }}
+          path: postgres-index-unusable/results/
+
+  summary:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: postgres-index-unusable-*
+          path: postgres-index-unusable/artifacts/
+      - id: summary
+        run: |
+          mkdir -p results
+          for d in artifacts/*/*/; do cp -r "${d%/}" results/; done
+          rc=0
+          python3 scripts/summary.py results > results/summary.md || rc=$?
+          if [ "$rc" -ne 0 ] && ! grep -q '^RUN INVALID' results/summary.md; then
+            printf '\nRUN INVALID: scripts/summary.py exited with %s\n' "$rc" >> results/summary.md
+          fi
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- postgres-index-unusable -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: postgres-index-unusable-summary
+          path: postgres-index-unusable/results/
+      - env:
+          RC: ${{ steps.summary.outputs.rc }}
+        run: exit "${RC:-1}"
