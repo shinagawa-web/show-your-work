@@ -9,6 +9,7 @@ s3	p8_rot0	psync	16	1	1000	cgroup	rot0	steady	ftrace
 s3	p8_rot1	psync	16	1	1000	cgroup	rot1	steady	ftrace
 s4	p1	psync	16	1	1000	cgroup	main	steady	ftrace
 s4	p1_blktrace	psync	16	1	1000	cgroup	main	steady	tool
+s4	p1_window	psync	16	1	1000	cgroup	main	steady	ftrace_window
 s4	p5_systemd	psync	16	1	1000	systemd	main	steady	0
 s4	p6_docker	psync	16	1	1000	docker	main	steady	0
 s4	p7_libaio	libaio	1	16	1000	cgroup	main	steady	0

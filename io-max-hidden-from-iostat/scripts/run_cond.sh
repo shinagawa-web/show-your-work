@@ -25,20 +25,41 @@ logged() {
   printf '%s\n' "$2" >> "$out/$1"
   (cd "$out" && bash -c "$2")
 }
+shown() {
+  printf '$ %s\n' "$2" >> "$out/$1"
+  (cd "$out" && bash -c "$2") >> "$out/$1" 2>&1
+}
+trace_on() {
+  : > "$out/ftrace_commands.txt"
+  logged ftrace_commands.txt "echo blk > /sys/kernel/tracing/current_tracer"
+  logged ftrace_commands.txt "echo queue,complete,notify > /sys/block/$tdn/trace/act_mask"
+  logged ftrace_commands.txt "echo 1 > /sys/block/$tdn/trace/enable"
+  logged ftrace_commands.txt "echo 1 > /sys/kernel/tracing/tracing_on"
+  printf '%s\n' "cat /sys/kernel/tracing/trace_pipe > ftrace.txt &" >> "$out/ftrace_commands.txt"
+  (cd "$out" && exec cat /sys/kernel/tracing/trace_pipe > ftrace.txt) &
+  btpid=$!
+}
+trace_off() {
+  logged ftrace_commands.txt "echo 0 > /sys/block/$tdn/trace/enable"
+  mark "tracer off"
+  sleep 0.5
+  kill "$btpid"; wait "$btpid" 2>/dev/null
+  logged ftrace_commands.txt "echo nop > /sys/kernel/tracing/current_tracer"
+}
+t0=
+mark() {
+  [ "$trace" = ftrace_window ] && printf '%s\t%s\n' "$1" "$(awk -v a="$t0" -v b="$(date +%s.%N)" 'BEGIN { printf "%.3f", b - a }')" >> "$out/window_times.txt"
+}
+sleep_until() {
+  sleep "$(awk -v a="$t0" -v b="$(date +%s.%N)" -v s="$1" 'BEGIN { d = a + s - b; printf "%.3f", (d > 0 ? d : 0) }')"
+}
 if [ "$trace" = tool ]; then
   printf '%s\n' "blktrace -d $tdev -o trace" > "$out/blktrace_commands.txt"
   (cd "$out" && exec blktrace -d "$tdev" -o trace > blktrace.log 2>&1) &
   btpid=$!
   sleep 1
 elif [ "$trace" = ftrace ]; then
-  : > "$out/ftrace_commands.txt"
-  logged ftrace_commands.txt "echo blk > /sys/kernel/tracing/current_tracer"
-  logged ftrace_commands.txt "echo queue,complete,notify > /sys/block/$tdn/trace/act_mask"
-  logged ftrace_commands.txt "echo 1 > /sys/block/$tdn/trace/enable"
-  logged ftrace_commands.txt "echo 1 > /sys/kernel/tracing/tracing_on"
-  printf '%s\n' "cat /sys/kernel/tracing/trace_pipe > ftrace.txt" >> "$out/ftrace_commands.txt"
-  (cd "$out" && exec cat /sys/kernel/tracing/trace_pipe > ftrace.txt) &
-  btpid=$!
+  trace_on
   sleep 0.5
 fi
 
@@ -46,6 +67,7 @@ unit=iomax-$name
 case "$via" in
   cgroup)
     echo "$majmin riops=$riops" > "$cgdir/io.max"
+    t0=$(date +%s.%N)
     bash -c 'echo $$ > "$1/cgroup.procs"; shift; exec fio "$@"' sh "$cgdir" "${fio_args[@]}" --output="$out/fio.json" &
     fpid=$!
     cg=$cgdir
@@ -63,13 +85,13 @@ case "$via" in
       [ -n "$c" ] && [ -d "/sys/fs/cgroup$c" ] && { cg=/sys/fs/cgroup$c; break; }
       sleep 0.1
     done
-    systemctl show -p IOReadIOPSMax "$unit.service" >> "$out/limit_source.txt"
+    shown limit_setting.txt "systemctl show -p IOReadIOPSMax $unit.service"
     ;;
   docker)
     cid=$(docker run -d --name "$unit" --device "$tdev" --device-read-iops "$tdev:$riops" iomax-fio "${fio_args[@]}")
     fpid=
     printf -- '--device-read-iops %s:%s\n' "$tdev" "$riops" > "$out/limit_source.txt"
-    docker inspect -f 'BlkioDeviceReadIOps={{json .HostConfig.BlkioDeviceReadIOps}}' "$cid" >> "$out/limit_source.txt"
+    shown limit_setting.txt "docker inspect -f '{{json .HostConfig.BlkioDeviceReadIOps}}' $unit"
     cg=
     for _ in $(seq 50); do
       [ -d "/sys/fs/cgroup/system.slice/docker-$cid.scope" ] && { cg=/sys/fs/cgroup/system.slice/docker-$cid.scope; break; }
@@ -83,6 +105,12 @@ if [ -z "$cg" ]; then
 fi
 printf '%s\n' "${cg#/sys/fs/cgroup}" > "$out/cgroup_path.txt"
 cat "$cg/io.max" > "$out/io.max.txt" 2>&1
+shown lsblk.txt "lsblk -o NAME,KNAME,MAJ:MIN $tdev"
+pid=$(head -n 1 "$cg/cgroup.procs" 2>/dev/null)
+if [ -n "$pid" ]; then
+  shown proc_cgroup.txt "cat /proc/$pid/cgroup"
+  shown proc_cgroup.txt "cat /sys/fs/cgroup$(sed -n 's/^0:://p' "/proc/$pid/cgroup")/io.max"
+fi
 devnames=$(for d in $iodevs; do printf '%s ' "$d"; done)
 iostat -dxy $devnames 1 9 > "$out/iostat.txt" 2>&1 &
 ipid=$!
@@ -90,6 +118,18 @@ pidstat -d -C '^fio$' 1 9 > "$out/pidstat.txt" 2>&1 &
 ppid_=$!
 python3 "$here/sample_cg.py" "$cg" "$majmin" 9 > "$out/cg_samples.tsv" 2> "$out/cg_samples.err" &
 spid=$!
+
+if [ "$trace" = ftrace_window ]; then
+  sleep_until 2
+  trace_on
+  mark "tracer on"
+  mark "first io.stat"
+  shown io.stat_trace.txt "grep '^$majmin ' $cgdir/io.stat"
+  sleep_until 8
+  mark "second io.stat"
+  shown io.stat_trace.txt "grep '^$majmin ' $cgdir/io.stat"
+  trace_off
+fi
 
 if [ -n "$fpid" ]; then
   wait "$fpid"; echo "fio_rc	$?" >> "$out/settings.txt"
@@ -111,11 +151,8 @@ if [ "$trace" = tool ]; then
   grep -a 'throtl' "$out/parsed.txt" > "$out/throtl.txt" || true
   awk '$6 == "Q" || $6 == "C" { print $4, $6 }' "$out/parsed.txt" > "$out/qc_times.txt"
   rm -f "$out"/trace.blktrace.* "$out/parsed.txt"
-elif [ "$trace" = ftrace ]; then
-  logged ftrace_commands.txt "echo 0 > /sys/block/$tdn/trace/enable"
-  sleep 0.5
-  kill "$btpid"; wait "$btpid" 2>/dev/null
-  logged ftrace_commands.txt "echo nop > /sys/kernel/tracing/current_tracer"
+elif [ "$trace" = ftrace ] || [ "$trace" = ftrace_window ]; then
+  [ "$trace" = ftrace ] && trace_off
   cat /sys/kernel/tracing/per_cpu/cpu*/stats | awk '/overrun/ { s += $2 } END { print "overrun", s }' > "$out/ftrace_stats.txt"
   : > "$out/ftrace_extract.txt"
   for c in "grep 'throtl \[R\] bio\.' ftrace.txt | head -n 2" "grep -c 'throtl \[R\] bio\.' ftrace.txt"; do

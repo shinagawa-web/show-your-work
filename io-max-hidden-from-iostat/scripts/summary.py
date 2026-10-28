@@ -97,6 +97,34 @@ def measured_slices():
     return seen
 
 
+def text(sec, name, fn):
+    p = root / sec / name / fn
+    return p.read_text().rstrip("\n").splitlines() if p.exists() else []
+
+
+def runs(lines):
+    out, cur = [], []
+    for x in lines:
+        if x.startswith("$ ") and cur:
+            out.append(cur)
+            cur = []
+        cur.append(x)
+    return out + ([cur] if cur else [])
+
+
+def block(lines):
+    return ["```"] + lines + ["```", ""]
+
+
+def rios_of(cmd_run):
+    for x in cmd_run[1:]:
+        for kv in x.split()[1:]:
+            k, _, v = kv.partition("=")
+            if k == "rios":
+                return int(v)
+    return 0
+
+
 out = ["# io-max-hidden-from-iostat", ""]
 env = {}
 for envf in (h / "environment.txt" for h in hosts):
@@ -133,21 +161,23 @@ if s3_rows:
     out.append("")
 
 c4 = names("s4")
+
 if c4:
     out += ["## Section 4 (job s4)", ""]
     for n in c4:
         if n.startswith(("p5", "p6")):
-            a = load("s4", n)
-            out += [f"{load_desc('s4', n)}, set with {how_limited('s4', n)}. cgroup of fio and its io.max ({n}):", "", "```", f"cgroup: {a['cgroup']}", f"io.max: {a['io_max']}", "```", ""]
+            out.append(f"{load_desc('s4', n)}, set with {how_limited('s4', n)} ({n}). The cgroup of one fio process (PID as seen from the host) and the io.max of that cgroup:")
+            out.append("")
+            out += block(text("s4", n, "proc_cgroup.txt"))
+            out.append(f"The limit as held where it was set ({n}):")
+            out.append("")
+            out += block(text("s4", n, "limit_setting.txt"))
     p9 = next((n for n in c4 if n.startswith("p9")), None)
     if p9:
         a = load("s4", p9)
-        out += [f"{load_desc('s4', p9)}, set with {how_limited('s4', p9)}. cgroup of fio, its io.max and the device numbers ({p9}):", "", "```", f"cgroup: {a['cgroup']}", f"io.max: {a['io_max']}"]
-        for line in (ln for h in hosts if (h / "devices.tsv").exists() for ln in (h / "devices.tsv").read_text().splitlines()[1:]):
-            x = line.split("\t")
-            if x[0] in ("dm", "dm-dm"):
-                out.append(f"{x[1]} is {x[2]}")
-        out += ["```", ""]
+        out.append(f"{load_desc('s4', p9)}, set with {how_limited('s4', p9)} ({p9}). The io.max of the cgroup of fio, and the device names for the device numbers:")
+        out.append("")
+        out += block(runs(text("s4", p9, "proc_cgroup.txt"))[-1] + text("s4", p9, "lsblk.txt"))
         out.append(f"iostat rows during the same run ({p9}):")
         out.append("")
         out.append("| iostat row | r/s | r_await (ms) | %util |")
@@ -156,13 +186,36 @@ if c4:
             out.append(f"| {d} | {f(v['r_s'], 1)} | {f(v['r_await_ms'])} | {f(v['util_pct'], 2)} |")
         out.append("")
     d = root / "s4" / "p1"
-    if (d / "ftrace_commands.txt").exists() and "p1" in c4 and (d / "ftrace_extract.txt").exists():
+    if "p1" in c4 and (d / "ftrace_commands.txt").exists() and (d / "ftrace_extract.txt").exists():
         a = load("s4", "p1")
-        out.append(f"{load_desc('s4', 'p1')}, set with {how_limited('s4', 'p1')}. While fio ran, the blk tracer in tracefs was enabled on the limited loop device as root; it writes a `throtl [R] bio.` line for each read held by io.max (p1):")
+        out.append(f"{load_desc('s4', 'p1')}, set with {how_limited('s4', 'p1')} (p1). The device name for the device number:")
         out.append("")
-        out += ["```"] + (d / "ftrace_commands.txt").read_text().strip().splitlines() + ["```", ""]
-        out += ["```"] + [x.strip() if not x.startswith("$") else x for x in (d / "ftrace_extract.txt").read_text().strip().splitlines()] + ["```", ""]
+        out += block(text("s4", "p1", "lsblk.txt"))
+        out.append("While fio ran, the blk tracer in tracefs was enabled on the limited loop device as root; it writes a `throtl [R] bio.` line for each read held by io.max (p1):")
+        out.append("")
+        out += block(["$ " + x for x in text("s4", "p1", "ftrace_commands.txt")])
+        out += block([x.strip() if not x.startswith("$") else x for x in text("s4", "p1", "ftrace_extract.txt")])
         out.append(f"- fio reads over 50 ms in the same run: {a['stopped_count']} of {a['hist_total']}")
+        out.append("")
+    d = root / "s4" / "p1_window"
+    if "p1_window" in c4 and (d / "ftrace_commands.txt").exists() and (d / "io.stat_trace.txt").exists():
+        cmds = ["$ " + x for x in text("s4", "p1_window", "ftrace_commands.txt")]
+        cut = next(i for i, x in enumerate(cmds) if x.startswith("$ echo 0 >"))
+        reads = runs(text("s4", "p1_window", "io.stat_trace.txt"))
+        tm = dict(x.split("\t") for x in text("s4", "p1_window", "window_times.txt"))
+        extract = text("s4", "p1_window", "ftrace_extract.txt")
+        held = int(extract[-1].strip())
+        out.append(f"{load_desc('s4', 'p1_window')}, set with {how_limited('s4', 'p1_window')}, fio reading for {fio_arg('s4', 'p1_window', 'runtime')} s. The blk tracer is started while fio is running, and the io.stat of the cgroup of fio is read right after. Seconds after fio started: tracer on at {tm.get('tracer on')}, io.stat read at {tm.get('first io.stat')} (p1_window):")
+        out.append("")
+        out += block(cmds[:cut] + reads[0])
+        out.append(f"The tracer records while fio keeps reading. io.stat is read again right before the tracer is turned off. Seconds after fio started: io.stat read at {tm.get('second io.stat')}, tracer off at {tm.get('tracer off')} (p1_window):")
+        out.append("")
+        out += block((reads[1] if len(reads) > 1 else []) + cmds[cut:])
+        out += block([x.strip() if not x.startswith("$") else x for x in extract[-2:]])
+        if len(reads) > 1:
+            r0, r1 = rios_of(reads[0]), rios_of(reads[1])
+            share = f"{held / (r1 - r0) * 100:.1f}" if r1 > r0 else "-"
+            out.append(f"- rios between the two io.stat reads: {r1} - {r0} = {r1 - r0}; `throtl [R] bio.` lines / that difference: {held} / {r1 - r0} = {share} %")
         out.append("")
     d = root / "s4" / "p1_blktrace"
     if "p1_blktrace" in c4 and (d / "blktrace_throtl_count.txt").exists():

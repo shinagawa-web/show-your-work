@@ -140,7 +140,7 @@ def ev_time(line):
     return float(line.split()[3])
 
 
-if s.get("trace") in ("tool", "ftrace"):
+if s.get("trace") in ("tool", "ftrace", "ftrace_window"):
     res["trace"] = s["trace"]
     if (out / "blktrace_actions.txt").exists():
         res["blktrace_actions"] = read("blktrace_actions.txt").split("\n")
@@ -157,12 +157,12 @@ if s.get("trace") in ("tool", "ftrace"):
     res["new_slice_example"] = next((x.strip() for x in lines if "new slice start=" in x), "")
     if s["trace"] == "tool" and not res.get("blktrace_actions", [""])[0]:
         invalid.append("blkparse produced no events")
-    if s["trace"] == "ftrace":
+    if s["trace"] in ("ftrace", "ftrace_window"):
         if not (out / "qc_times.txt").exists() or not read("qc_times.txt").strip():
             invalid.append("the blk tracer recorded no Q or C events")
         if not hz:
             invalid.append("CONFIG_HZ not found in /boot/config-$(uname -r), so the slice length is unknown")
-        if riops != "max" and not slices:
+        if riops != "max" and not slices and s["trace"] == "ftrace":
             invalid.append("no `throtl [R] new slice` line from the blk tracer")
         if hz and any(j * 1000 / hz != slice_ms for j in slices):
             invalid.append(f"throttle slice {res['slice_ms_measured']} ms, but stopped and predicted assume {slice_ms} ms")
