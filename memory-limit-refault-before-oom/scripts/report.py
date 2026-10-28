@@ -52,14 +52,14 @@ for job in ("p3", "p3b"):
     picks = [0]
     if x["stop_s"] is not None:
         k = x["stop_s"]
-        picks += [k - 5, k] + list(range(k + 10, end_s, 10))
+        picks += [k - 5, k, k + 10]
     picks.append(end_s)
     picks = sorted({p for p in picks if 0 <= p <= last})
     rows = [[p, series[p]["completed"], series[p]["p99_ms"], series[p].get("anon_mib"), series[p].get("file_mib"), series[p].get("pgmajfault_per_s"), series[p].get("oom_kill")] for p in picks]
     how = f"{fmt(o['grow_kbps'])} KiB/s added by a timer task" if job == "p3" else f"One {o['elem_kb']} KiB element added every {o['grow_per_requests']} requests"
     if not stops:
-        lines += ["## Section 3", ""]
-    lines += [f"### {NAMES[job]}", "", f"Job `s3-{job}`. {how}, {fmt(o['rps'], 0)} requests/s, from {BASE}.", "",
+        lines += ["## Section 3", "", "A request that timed out counts as 5000 ms, the client timeout, in p99.", ""]
+    lines += [f"### {NAMES[job]}", "", f"{how}, {fmt(o['rps'], 0)} requests/s, from {BASE}.", "",
               table(["t (s)", "completed (/s)", "p99 (ms)", "anon (MiB)", "file (MiB)", "pgmajfault (/s)", "oom_kill"], rows), ""]
     oom = fmt(x["oom_kill_at_s"]) if x["oom_kill_at_s"] is not None else f"none (cut off at {x['load_s']})"
     stops.append([NAMES[job], x["stop_s"], x["headroom_at_stop_mib"], x["file_mapped_at_stop_mib"], oom, x["mem_psi_some_median_while_stalled"]])
@@ -79,7 +79,7 @@ if o:
         if v:
             rows.append([f"{NAMES['p3']}, {what} ({v['from_s']}-{v['to_s']} s)", v["usage_pct_of_limit"], v["anon_pct_of_limit"], v["pgmajfault_per_s"], v["p99_ms"]])
 if rows:
-    lines += ["## Section 4", "", "Jobs `s3-n1` and `s3-p3`.", "", table(["condition", "memory.current (% of limit)", "anon (% of limit)", "pgmajfault (/s)", "p99 (ms)"], rows), ""]
+    lines += ["## Section 4", "", table(["condition", "memory.current (% of limit)", "anon (% of limit)", "pgmajfault (/s)", "p99 (ms)"], rows), ""]
 
 rows = []
 for name, run in ((BASE, "base"), (NAMES["f1"], "f1")):
@@ -87,7 +87,7 @@ for name, run in ((BASE, "base"), (NAMES["f1"], "f1")):
     if o:
         rows.append([name, fmt(o.get("limit_mib"), 2), fmt(o["cache_mib"], 2), o["p99_ms"], o.get("pgmajfault_per_s")])
 if rows:
-    lines += ["## Section 5", "", "Job `s3-f1`.", "", table(["condition", "--memory (MiB)", "in-process cache (MiB)", "p99 (ms)", "pgmajfault (/s)"], rows), ""]
+    lines += ["## Section 5", "", table(["condition", "--memory (MiB)", "in-process cache (MiB)", "p99 (ms)", "pgmajfault (/s)"], rows), ""]
 
 lines += ["## Numbers not for the article", ""]
 summaries = sorted(glob.glob(os.path.join(S3, "*", "*", "summary.json")))
