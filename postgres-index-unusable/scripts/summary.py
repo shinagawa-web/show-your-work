@@ -1,5 +1,4 @@
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -56,11 +55,6 @@ def result(c):
 
 def node(c):
     return " / ".join(c["nodes"]) if c["nodes"] else "-"
-
-
-def estimated(c):
-    m = re.search(r"\(cost=[^)]* rows=(\d+)", c["output"])
-    return m.group(1) if m else "-"
 
 
 def plan_row(c):
@@ -158,27 +152,10 @@ if d and not d["invalid"]:
     j = JOBS["not-reproduced"]
     w("## 4. When it does not reproduce")
     w()
-    w(f"Job `{j}`: one connection with the default cursor, `SELECT * FROM members WHERE status = %s` "
-      "10 times with `'active'`, then with `'locked'`; `pg_prepared_statements` read after each execution")
-    w()
-    rows = []
-    for r in d["p12"]:
-        ps = r["prepared"][0] if r["prepared"] else None
-        rows.append([str(r["n"]), code(r["value"]), code(r["name"]), str(ps[2]) if ps else "-", str(ps[3]) if ps else "-",
-                     " / ".join(r["auto"]["nodes"]) if r["auto"] else "-", cell(r["auto"]["conds"]) if r["auto"] else "-"])
-    table(["Execution", "Value", "Name after `execute`", "`generic_plans`", "`custom_plans`", "auto_explain node", "auto_explain condition line"], rows)
-    w(f"Job `{j}`: the logged values run in psql")
-    w()
-    table(["Statement", "Node", "Condition line", "Execution Time"], [plan_row(d["cases"][k]) for k in ["p12-psql active", "p12-psql locked"]])
     w(f"Job `{j}`: the logged value `'42'` of a `Decimal` or `float` parameter, through `PREPARE` with the type psycopg sent")
     w()
     table(["Statement", "Node", "Condition line", "Execution Time"],
           [[cell([d["cases"][k]["pre"], "EXPLAIN (ANALYZE) " + d["cases"][k]["sql"]])] + plan_row(d["cases"][k])[1:] for k in ["p11-numeric", "p11-double"]])
-    w(f"Job `{j}`: `PREPARE q(varchar) AS SELECT * FROM members WHERE status = $1;` then `EXPLAIN (ANALYZE) EXECUTE q('locked')`")
-    w()
-    table(["`plan_cache_mode`", "Node", "Estimated rows", "Condition line", "Execution Time"],
-          [[mode, node(d["cases"][k]), estimated(d["cases"][k]), cell(d["cases"][k]["conds"]), result(d["cases"][k])]
-           for mode, k in [("`auto` (default)", "p13-default"), ("`force_generic_plan`", "p13-generic")]])
 
 d = parts.get("types")
 if d and not d["invalid"]:
@@ -213,6 +190,19 @@ if parts:
     w()
     table(["Statement"] + [f"`{JOBS[k]}`" for k in keys],
           [[code(sql)] + [node(parts[k]["cases"]["base " + label]) for k in keys] for label, sql, _ in first.get("base", [])])
+d = parts.get("not-reproduced")
+if d and "p12" in d:
+    w(f"Generic plan, job `{JOBS['not-reproduced']}`: on one connection psycopg names the statement from the 6th execution, "
+      "and the server switches to the generic plan at the 11th (backs the footnote of section 4). "
+      "One connection with the default cursor, `SELECT * FROM members WHERE status = %s` 10 times with `'active'`, then with `'locked'`; "
+      "`pg_prepared_statements` read after each execution")
+    w()
+    rows = []
+    for r in d["p12"]:
+        ps = r["prepared"][0] if r["prepared"] else None
+        rows.append([str(r["n"]), code(r["value"]), code(r["name"]), str(ps[2]) if ps else "-", str(ps[3]) if ps else "-",
+                     " / ".join(r["auto"]["nodes"]) if r["auto"] else "-", cell(r["auto"]["conds"]) if r["auto"] else "-"])
+    table(["Execution", "Value", "Name after `execute`", "`generic_plans`", "`custom_plans`", "auto_explain node", "auto_explain condition line"], rows)
 d = parts.get("reproduced")
 if d and "pg_collation" in d["text"]:
     w(f"`pg_collation`, job `{JOBS['reproduced']}`: the collations the indexes of section 3 use exist, with their provider")

@@ -240,12 +240,6 @@ def part_not_reproduced():
             rec = read_app_log(app)
             rec.update(n=n, value=value, rows=rows, prepared=ps)
             data["p12"].append(rec)
-    explain("p12-psql active", "SELECT * FROM members WHERE status = 'active'")
-    explain("p12-psql locked", "SELECT * FROM members WHERE status = 'locked'")
-
-    pre = "PREPARE q(varchar) AS SELECT * FROM members WHERE status = $1;"
-    explain("p13-default", "EXECUTE q('locked')", pre=pre)
-    explain("p13-generic", "EXECUTE q('locked')", pre=pre + "\nSET plan_cache_mode = force_generic_plan;")
 
 
 def part_types():

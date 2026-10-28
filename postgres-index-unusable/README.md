@@ -10,7 +10,7 @@ This reproduces, on PostgreSQL 18 with the official Docker image's default local
 |---|---|---|
 | `2 (log)` | `log` | Statements from psycopg run again in psql with the logged values, and the pg_dump restore |
 | `3 (reproduced)` | `reproduced` | `\d members`, the reproduced statements with `enable_seqscan = off`, a `varchar` column compared with a `text` value, `LIKE` with each kind of index on `code`, and the Django DDL |
-| `4 (not-reproduced)` | `not-reproduced` | `PREPARE` with the types psycopg sends for `Decimal` and `float`, one connection running the same statement 11 times, and a `PREPARE` with `plan_cache_mode = force_generic_plan` |
+| `4 (not-reproduced)` | `not-reproduced` | `PREPARE` with the types psycopg sends for `Decimal` and `float`, and one connection running the same statement 11 times |
 | `5 (types)` | `types` | `PREPARE` with each pair of column type and parameter type, and the parameter types psycopg sends with `prepare=True` |
 
 Each `run` job writes `results/summary.md` to its job summary and uploads `results/` as the `postgres-index-unusable-<part>` artifact. The `summary` job merges the results of all `run` jobs with `scripts/summary.py` into one `results/summary.md`, grouped by article section with the job name on each result and a section for the results the article does not use, and writes it to its job summary, to a comment on the open pull request for the branch (the same comment is overwritten on every run), and to the `postgres-index-unusable-summary` artifact.
