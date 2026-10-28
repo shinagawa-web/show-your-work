@@ -1,0 +1,11 @@
+name	job	after	setup	change	mode	app_mode	target	label
+P1	s3-deps	-	-	b_self	pr	old	uses-a	b's own TS
+P2	s3-deps	-	-	a_src	pr	old	uses-a	a's TS only, test has no dependsOn
+P3	s3-deps	-	transit	a_src	pr	old	uses-a	a's TS, test dependsOn transit
+P4	s3-main	P2	-	-	main	old	uses-a	P2 merged, main runs with the cache
+P5	s3-main	P4	-	-	main-cleared	old	uses-a	P4, cache deleted
+P6	s3-main	P4	-	root_devdep	pr	old	uses-a	P4, root devDependency bumped
+P7	s3-files	-	-	root_fixture	pr	old	fixture-root	root fixtures/ only
+P8	s3-files	-	inputs_root	root_fixture	pr	old	fixture-root	root fixtures/, inputs has $TURBO_ROOT$/fixtures/**
+P9	s3-env	-	passthrough	none	pr-force	new	env-mode	APP_MODE old to new, in passThroughEnv
+P10	s3-env	-	env_declared	none	pr	new	env-mode	APP_MODE old to new, in env
