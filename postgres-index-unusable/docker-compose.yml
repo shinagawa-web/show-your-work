@@ -10,6 +10,10 @@ services:
       - log_min_duration_statement=0
       - -c
       - "log_line_prefix=%m [%p] app=%a "
+      - -c
+      - shared_preload_libraries=auto_explain
+      - -c
+      - auto_explain.log_min_duration=0
     shm_size: 256m
     ports:
       - "127.0.0.1:15432:5432"

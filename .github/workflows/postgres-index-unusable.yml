@@ -15,13 +15,15 @@ defaults:
 jobs:
   run:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { section: "2", part: explain }
-          - { section: "3", part: causes }
+          - { section: "2", part: log }
+          - { section: "3", part: reproduced }
+          - { section: "4", part: not-reproduced }
+          - { section: "5", part: types }
     name: ${{ matrix.section }} (${{ matrix.part }})
     steps:
       - uses: actions/checkout@v7

@@ -2,7 +2,7 @@
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 cd "$here"
-all=(explain causes)
+all=(log reproduced not-reproduced types)
 rows=300000
 if [ $# -gt 0 ]; then parts=("$@"); else parts=("${all[@]}"); fi
 for p in "${parts[@]}"; do
@@ -16,6 +16,7 @@ rm -rf results; mkdir -p results
   docker compose version
   python3 --version
 } > results/environment.txt 2>&1
+start_all=$(date +%s)
 venv=$(mktemp -d)
 { python3 -m venv "$venv" && "$venv/bin/pip" install -q -r requirements.txt && docker compose pull -q postgres; } > results/setup.log 2>&1 || {
   tail -30 results/setup.log; echo "RUN INVALID: setup failed" > results/summary.md; exit 1; }
@@ -40,6 +41,7 @@ for p in "${parts[@]}"; do
   printf 'duration_s\t%s\n' "$(( $(date +%s) - start ))" >> "$out/settings.txt"
 done
 
+printf 'total_s\t%s\n' "$(( $(date +%s) - start_all ))" >> results/environment.txt
 "$venv/bin/python" scripts/summary.py results "${parts[@]}" > results/summary.md || rc=1
 rm -rf "$venv"
 cat results/summary.md
