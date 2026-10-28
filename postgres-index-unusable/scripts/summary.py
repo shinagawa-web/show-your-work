@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 SLUG = "postgres-index-unusable"
-JOBS = {"log": "2 (log)", "reproduced": "3 (reproduced)", "not-reproduced": "4 (not-reproduced)", "types": "5 (types)"}
+JOBS = {"explain": "2 (explain)", "causes": "3 (causes)", "log": "4 (log)"}
 
 root = Path(sys.argv[1])
 wanted = sys.argv[2:] or list(JOBS)
@@ -80,18 +80,56 @@ if invalid:
     w()
 if parts:
     first = next(iter(parts.values()))
-    django = parts.get("reproduced", {}).get("django", {}).get("django")
+    django = parts.get("causes", {}).get("django", {}).get("django")
     env = f"PostgreSQL {first['server_version']}, database `lab` libc en_US.utf8, psycopg {first['psycopg']}"
     if django:
         env += f", Django {django}"
     w(env + f", `members` {rows_setting()} rows")
     w()
 
+d = parts.get("explain")
+if d and not d["invalid"]:
+    j = JOBS["explain"]
+    w("## 2. Reading the EXPLAIN output")
+    w()
+    w(f"Job `{j}`")
+    w()
+    block(d["text"]["d"])
+    w(f"Job `{j}`: `SET enable_seqscan = off` before each statement")
+    w()
+    table(["Statement", "Node", "Condition line", "`Disabled: true`"],
+          [plan_row(d["cases"][k])[:3] + ["yes" if d["cases"][k]["disabled"] else "no"] for k in ["p7-like", "p7-lower", "p7-p4", "p7-status"]])
+    w(f"Job `{j}`: the `varchar` column compared with a `text` value")
+    w()
+    table(["Statement", "Node", "Condition line"], [plan_row(d["cases"]["p8"])[:3]])
+
+d = parts.get("causes")
+if d and not d["invalid"]:
+    j = JOBS["causes"]
+    w("## 3. How each cause happens")
+    w()
+    w(f"Job `{j}`: `PREPARE q(<parameter type>) AS SELECT * FROM members WHERE <column> = $1;` then `EXPLAIN (ANALYZE) EXECUTE q(<value>)`")
+    w()
+    rows = []
+    for column, ptype, pre, ex, key in d["p14"]:
+        c = d["cases"][key]
+        rows.append([code(column), code(ptype), code(pre), code(ex.replace("EXPLAIN (ANALYZE) ", "")), node(c), cell(c["conds"]), result(c)])
+    table(["Column", "Parameter type", "Prepared", "Executed", "Node", "Condition line", "Execution Time or error"], rows)
+    w(f"Job `{j}`: `members_code_idx` dropped; each index created, `{d['cases']['p9 default']['sql']}` explained, the index dropped")
+    w()
+    table(["Index", "Node", "Condition lines", "Execution Time"],
+          [[code(ddl)] + plan_row(d["cases"]["p9 " + label])[1:] for label, ddl in d["p9"]])
+    if "django" in d:
+        w(f"Job `{j}`: `CREATE INDEX` statements collected by `connection.schema_editor(collect_sql=True)` for a model with "
+          "`CharField(db_index=True)`, `CharField(unique=True)` and a `CharField` in `Meta.indexes`")
+        w()
+        block("\n".join(s for s in d["django"]["sql"] if s.startswith("CREATE INDEX")))
+
 d = parts.get("log")
 if d and not d["invalid"]:
     j = JOBS["log"]
     keys = ["base", "p1-decimal", "p1-float", "p2", "p3-like", "p3-lower", "p3-status", "p4"]
-    w("## 2. Running the logged statement with the logged values")
+    w("## 4. Checking with the logged statement")
     w()
     w(f"Job `{j}`: each case on a new connection with its own `application_name`; "
       "the logged statement is run in psql with `EXPLAIN (ANALYZE)`, `$1` replaced by the logged value with its quotes")
@@ -111,72 +149,37 @@ if d and not d["invalid"]:
             log.append(a["detail"])
     block("\n".join(log))
 
-    p6 = d["p6"]
-    w(f"Job `{j}`: `pg_dump -t members` of `lab`, restored without `--create` with psql into `staging`, "
-      "created with `LOCALE_PROVIDER libc LOCALE 'C' TEMPLATE template0`")
+    w(f"Job `{j}`: the plan auto_explain logged for the statement psycopg sent unnamed (cases above), "
+      "and `pg_prepared_statements.parameter_types` for the same value sent with `prepare=True` on a new connection")
     w()
-    block("\n".join(p6["l_lines"]))
-    w("`staging`, right after the restore:")
-    w()
-    block(p6["stat_before"])
-    table(["`staging`", "Statement", "Node", "Condition line", "Execution Time"],
-          [[when] + plan_row(d["cases"][k]) for when, k in [("before `ANALYZE`", "p6-before"), ("after `ANALYZE members`", "p6-after")]])
+    rows = []
+    for key, tkey in [("base", "types-int"), ("p1-decimal", "types-decimal"), ("p1-float", "types-float")]:
+        a, t = d["app"][key], d["app"][tkey]
+        ps = t["prepared"][0] if t["prepared"] else ["-", "-"]
+        rows.append([code(a["sent"]), cell(a["auto"]["conds"]) if a["auto"] else "-", code(ps[1])])
+    table(["Sent", "auto_explain condition line", "`parameter_types`"], rows)
 
-d = parts.get("reproduced")
-if d and not d["invalid"]:
-    j = JOBS["reproduced"]
-    w("## 3. When it reproduces")
-    w()
-    w(f"Job `{j}`")
-    w()
-    block(d["text"]["d"])
-    w(f"Job `{j}`: `SET enable_seqscan = off` before each statement")
-    w()
-    table(["Statement", "Node", "Condition line", "`Disabled: true`"],
-          [plan_row(d["cases"][k])[:3] + ["yes" if d["cases"][k]["disabled"] else "no"] for k in ["p7-like", "p7-lower", "p7-status", "p7-p4"]])
-    w(f"Job `{j}`: the `varchar` column compared with a `text` value")
-    w()
-    table(["Statement", "Node", "Condition line"], [plan_row(d["cases"]["p8"])[:3]])
-    w(f"Job `{j}`: `members_code_idx` dropped; each index created, `{d['cases']['p9 default']['sql']}` explained, the index dropped")
-    w()
-    table(["Index", "Node", "Condition lines", "Execution Time"],
-          [[code(ddl)] + plan_row(d["cases"]["p9 " + label])[1:] for label, ddl in d["p9"]])
-    if "django" in d:
-        w(f"Job `{j}`: `CREATE INDEX` statements collected by `connection.schema_editor(collect_sql=True)` for a model with "
-          "`CharField(db_index=True)`, `CharField(unique=True)` and a `CharField` in `Meta.indexes`")
-        w()
-        block("\n".join(s for s in d["django"]["sql"] if s.startswith("CREATE INDEX")))
-
-d = parts.get("not-reproduced")
-if d and not d["invalid"]:
-    j = JOBS["not-reproduced"]
-    w("## 4. When it does not reproduce")
-    w()
     w(f"Job `{j}`: the logged value `'42'` of a `Decimal` or `float` parameter, through `PREPARE` with the type psycopg sent")
     w()
     table(["Statement", "Node", "Condition line", "Execution Time"],
           [[cell([d["cases"][k]["pre"], "EXPLAIN (ANALYZE) " + d["cases"][k]["sql"]])] + plan_row(d["cases"][k])[1:] for k in ["p11-numeric", "p11-double"]])
 
-d = parts.get("types")
-if d and not d["invalid"]:
-    j = JOBS["types"]
-    w("## 5. How the type mismatch happens")
+    p6 = d["p6"]
+    w(f"Job `{j}`: `pg_dump -t members` of `lab`, restored without `--create` with psql into `staging`, "
+      "created with `LOCALE_PROVIDER libc LOCALE 'C' TEMPLATE template0`")
     w()
-    w(f"Job `{j}`: `PREPARE q(<parameter type>) AS SELECT * FROM members WHERE <column> = $1;` then `EXPLAIN (ANALYZE) EXECUTE q(<value>)`")
-    w()
-    rows = []
-    for column, ptype, pre, ex, key in d["p14"]:
-        c = d["cases"][key]
-        rows.append([code(column), code(ptype), code(pre), code(ex.replace("EXPLAIN (ANALYZE) ", "")), node(c), cell(c["conds"]), result(c)])
-    table(["Column", "Parameter type", "Prepared", "Executed", "Node", "Condition line", "Execution Time or error"], rows)
-    w(f"Job `{j}`: psycopg default cursor, `{d['app']['types-int']['sql']}` with `prepare=True`, each value on a new connection")
+    block("\n".join(p6["l_lines"]))
+    table(["Database", "Statement", "Node", "Condition line", "Execution Time"], [["`staging`, right after the restore"] + plan_row(d["cases"]["p6-before"])])
+
+    w(f"Job `{j}`: one connection with the default cursor, `SELECT * FROM members WHERE status = %s` "
+      "10 times with `'active'`, then with `'locked'`; `pg_prepared_statements` read after each execution")
     w()
     rows = []
-    for key in ["types-int", "types-decimal", "types-float"]:
-        a = d["app"][key]
-        ps = a["prepared"][0] if a["prepared"] else ["-", "-"]
-        rows.append([code(a["sent"]), code(ps[1]), cell(a["auto"]["conds"]) if a["auto"] else "-"])
-    table(["Sent", "`pg_prepared_statements.parameter_types`", "auto_explain condition line"], rows)
+    for r in d["p12"]:
+        ps = r["prepared"][0] if r["prepared"] else None
+        rows.append([str(r["n"]), code(r["value"]), code(r["name"]), str(ps[2]) if ps else "-", str(ps[3]) if ps else "-",
+                     " / ".join(r["auto"]["nodes"]) if r["auto"] else "-", cell(r["auto"]["conds"]) if r["auto"] else "-"])
+    table(["Execution", "Value", "Name after `execute`", "`generic_plans`", "`custom_plans`", "auto_explain node", "auto_explain condition line"], rows)
 
 w("## Numbers not used")
 w()
@@ -190,31 +193,26 @@ if parts:
     w()
     table(["Statement"] + [f"`{JOBS[k]}`" for k in keys],
           [[code(sql)] + [node(parts[k]["cases"]["base " + label]) for k in keys] for label, sql, _ in first.get("base", [])])
-d = parts.get("not-reproduced")
-if d and "p12" in d:
-    w(f"Generic plan, job `{JOBS['not-reproduced']}`: on one connection psycopg names the statement from the 6th execution, "
-      "and the server switches to the generic plan at the 11th (backs the footnote of section 4). "
-      "One connection with the default cursor, `SELECT * FROM members WHERE status = %s` 10 times with `'active'`, then with `'locked'`; "
-      "`pg_prepared_statements` read after each execution")
-    w()
-    rows = []
-    for r in d["p12"]:
-        ps = r["prepared"][0] if r["prepared"] else None
-        rows.append([str(r["n"]), code(r["value"]), code(r["name"]), str(ps[2]) if ps else "-", str(ps[3]) if ps else "-",
-                     " / ".join(r["auto"]["nodes"]) if r["auto"] else "-", cell(r["auto"]["conds"]) if r["auto"] else "-"])
-    table(["Execution", "Value", "Name after `execute`", "`generic_plans`", "`custom_plans`", "auto_explain node", "auto_explain condition line"], rows)
-d = parts.get("reproduced")
+d = parts.get("causes")
 if d and "pg_collation" in d["text"]:
-    w(f"`pg_collation`, job `{JOBS['reproduced']}`: the collations the indexes of section 3 use exist, with their provider")
+    w(f"`pg_collation`, job `{JOBS['causes']}`: the collations the indexes of section 3 use exist, with their provider")
     w()
     block(d["text"]["pg_collation"])
 if d and "django" in d:
-    w(f"Django model, job `{JOBS['reproduced']}`: the model the `CREATE INDEX` statements of section 3 were collected for")
+    w(f"Django model, job `{JOBS['causes']}`: the model the `CREATE INDEX` statements of section 3 were collected for")
     w()
     w("```python")
     w(d["django"]["model"].rstrip("\n"))
     w("```")
     w()
+d = parts.get("log")
+if d and "p6" in d:
+    p6 = d["p6"]
+    w(f"Statistics of the restore, job `{JOBS['log']}`: the restored table has no statistics until `ANALYZE`, and the `LIKE` uses the index before and after it")
+    w()
+    block(p6["stat_before"] + p6["stat_after"])
+    table(["`staging`", "Statement", "Node", "Condition line", "Execution Time"],
+          [["after `ANALYZE members`"] + plan_row(d["cases"]["p6-after"])])
 
 print("\n".join(lines).rstrip("\n"))
 sys.exit(1 if invalid else 0)

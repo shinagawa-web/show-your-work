@@ -156,40 +156,7 @@ def environment():
     data["text"]["counts"] = psql("SELECT status, count(*) FROM members GROUP BY status ORDER BY count(*) DESC;", aligned=True)
 
 
-def part_log():
-    app_case("base", ID_SQL, 42)
-    app_case("p1-decimal", ID_SQL, Decimal("42"))
-    app_case("p1-float", ID_SQL, 42.0)
-    app_case("p2", ID_SQL, Decimal("42.00"))
-    app_case("p3-like", "SELECT * FROM members WHERE code LIKE %s", "C000004%")
-    app_case("p3-lower", "SELECT * FROM members WHERE lower(email) = %s", "user42@example.com")
-    app_case("p3-status", STATUS_SQL, "active")
-    app_case("p4", ID_SQL, 42.0, client=True)
-
-    rc, dump, err = run(["docker", "compose", "exec", "-T", "postgres", "pg_dump", "-U", "postgres", "-d", "lab", "-t", "members"])
-    data["p6"] = {"pg_dump_rc": rc, "pg_dump_err": err, "dump_bytes": len(dump),
-                  "dump_relation_stats_calls": dump.count("pg_restore_relation_stats"),
-                  "dump_attribute_stats_calls": dump.count("pg_restore_attribute_stats")}
-    psql("CREATE DATABASE staging LOCALE_PROVIDER libc LOCALE 'C' TEMPLATE template0;")
-    rc, so, se = run(["docker", "compose", "exec", "-T", "postgres", "psql", "-X", "-q", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "staging"], dump)
-    data["p6"]["restore_rc"] = rc
-    data["p6"]["restore_err"] = se
-    say(f"restore rc={rc}\n{se}")
-    lst = psql("\\l", aligned=True)
-    data["text"]["l"] = lst
-    lines = lst.splitlines()
-    data["p6"]["l_lines"] = [l for l in lines if "Name" in l and "Owner" in l][:1] + [l for l in lines if re.match(r"^ (lab|staging)\s+\|", l)]
-    stats_q = "SELECT relname, last_analyze, last_autoanalyze FROM pg_stat_user_tables WHERE relname = 'members';"
-    data["p6"]["stat_before"] = psql(stats_q, db="staging", aligned=True)
-    data["p6"]["pg_stats_before"] = psql("SELECT count(*) FROM pg_stats WHERE tablename = 'members';", db="staging").strip()
-    explain("p6-before", LIKE_LITERAL, db="staging")
-    psql("ANALYZE members;", db="staging")
-    data["p6"]["stat_after"] = psql(stats_q, db="staging", aligned=True)
-    data["p6"]["pg_stats_after"] = psql("SELECT count(*) FROM pg_stats WHERE tablename = 'members';", db="staging").strip()
-    explain("p6-after", LIKE_LITERAL, db="staging")
-
-
-def part_reproduced():
+def part_explain():
     data["text"]["d"] = psql("\\d members", aligned=True)
     off = "SET enable_seqscan = off;"
     explain("p7-like", LIKE_LITERAL, pre=off)
@@ -197,6 +164,23 @@ def part_reproduced():
     explain("p7-status", "SELECT * FROM members WHERE status = 'active'", pre=off)
     explain("p7-p4", "SELECT * FROM members WHERE id = 42.0", pre=off)
     explain("p8", "SELECT * FROM members WHERE code = 'C0000042'::text")
+
+
+def part_causes():
+    data["p14"] = []
+    for column, ptype, cond, value in [
+        ("integer", "bigint", "id = $1", "42"),
+        ("integer", "varchar", "id = $1", "'42'"),
+        ("char(10)", "bpchar", "fixed_code = $1", "'F0000042'"),
+        ("char(10)", "varchar", "fixed_code = $1", "'F0000042'"),
+        ("char(10)", "text", "fixed_code = $1", "'F0000042'"),
+        ("numeric", "numeric", "amount = $1", "42"),
+        ("numeric", "double precision", "amount = $1", "42"),
+    ]:
+        pre = f"PREPARE q({ptype}) AS SELECT * FROM members WHERE {cond};"
+        key = f"p14 {column} x {ptype}"
+        explain(key, f"EXECUTE q({value})", pre=pre)
+        data["p14"].append([column, ptype, pre, f"EXPLAIN (ANALYZE) EXECUTE q({value})", key])
 
     psql("DROP INDEX members_code_idx;")
     data["p9"] = []
@@ -226,9 +210,44 @@ def part_reproduced():
         data["django"] = json.loads(so)
 
 
-def part_not_reproduced():
+def part_log():
+    app_case("base", ID_SQL, 42)
+    app_case("p1-decimal", ID_SQL, Decimal("42"))
+    app_case("p1-float", ID_SQL, 42.0)
+    app_case("p2", ID_SQL, Decimal("42.00"))
+    app_case("p3-like", "SELECT * FROM members WHERE code LIKE %s", "C000004%")
+    app_case("p3-lower", "SELECT * FROM members WHERE lower(email) = %s", "user42@example.com")
+    app_case("p3-status", STATUS_SQL, "active")
+    app_case("p4", ID_SQL, 42.0, client=True)
+
+    app_case("types-int", ID_SQL, 42, prepare=True)
+    app_case("types-decimal", ID_SQL, Decimal("42"), prepare=True)
+    app_case("types-float", ID_SQL, 42.0, prepare=True)
+
     explain("p11-numeric", "EXECUTE q('42')", pre="PREPARE q(numeric) AS SELECT * FROM members WHERE id = $1;")
     explain("p11-double", "EXECUTE q('42')", pre="PREPARE q(double precision) AS SELECT * FROM members WHERE id = $1;")
+
+    rc, dump, err = run(["docker", "compose", "exec", "-T", "postgres", "pg_dump", "-U", "postgres", "-d", "lab", "-t", "members"])
+    data["p6"] = {"pg_dump_rc": rc, "pg_dump_err": err, "dump_bytes": len(dump),
+                  "dump_relation_stats_calls": dump.count("pg_restore_relation_stats"),
+                  "dump_attribute_stats_calls": dump.count("pg_restore_attribute_stats")}
+    psql("CREATE DATABASE staging LOCALE_PROVIDER libc LOCALE 'C' TEMPLATE template0;")
+    rc, so, se = run(["docker", "compose", "exec", "-T", "postgres", "psql", "-X", "-q", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "staging"], dump)
+    data["p6"]["restore_rc"] = rc
+    data["p6"]["restore_err"] = se
+    say(f"restore rc={rc}\n{se}")
+    lst = psql("\\l", aligned=True)
+    data["text"]["l"] = lst
+    lines = lst.splitlines()
+    data["p6"]["l_lines"] = [l for l in lines if "Name" in l and "Owner" in l][:1] + [l for l in lines if re.match(r"^ (lab|staging)\s+\|", l)]
+    stats_q = "SELECT relname, last_analyze, last_autoanalyze FROM pg_stat_user_tables WHERE relname = 'members';"
+    data["p6"]["stat_before"] = psql(stats_q, db="staging", aligned=True)
+    data["p6"]["pg_stats_before"] = psql("SELECT count(*) FROM pg_stats WHERE tablename = 'members';", db="staging").strip()
+    explain("p6-before", LIKE_LITERAL, db="staging")
+    psql("ANALYZE members;", db="staging")
+    data["p6"]["stat_after"] = psql(stats_q, db="staging", aligned=True)
+    data["p6"]["pg_stats_after"] = psql("SELECT count(*) FROM pg_stats WHERE tablename = 'members';", db="staging").strip()
+    explain("p6-after", LIKE_LITERAL, db="staging")
 
     data["p12"] = []
     with psycopg.connect(DSN, application_name="p12-0", autocommit=True) as conn:
@@ -242,33 +261,12 @@ def part_not_reproduced():
             data["p12"].append(rec)
 
 
-def part_types():
-    data["p14"] = []
-    for column, ptype, cond, value in [
-        ("integer", "bigint", "id = $1", "42"),
-        ("integer", "varchar", "id = $1", "'42'"),
-        ("char(10)", "bpchar", "fixed_code = $1", "'F0000042'"),
-        ("char(10)", "varchar", "fixed_code = $1", "'F0000042'"),
-        ("char(10)", "text", "fixed_code = $1", "'F0000042'"),
-        ("numeric", "numeric", "amount = $1", "42"),
-        ("numeric", "double precision", "amount = $1", "42"),
-    ]:
-        pre = f"PREPARE q({ptype}) AS SELECT * FROM members WHERE {cond};"
-        key = f"p14 {column} x {ptype}"
-        explain(key, f"EXECUTE q({value})", pre=pre)
-        data["p14"].append([column, ptype, pre, f"EXPLAIN (ANALYZE) EXECUTE q({value})", key])
-
-    app_case("types-int", ID_SQL, 42, prepare=True)
-    app_case("types-decimal", ID_SQL, Decimal("42"), prepare=True)
-    app_case("types-float", ID_SQL, 42.0, prepare=True)
-
-
 def main():
     t0 = time.monotonic()
     environment()
     baseline()
     if not data["invalid"]:
-        {"log": part_log, "reproduced": part_reproduced, "not-reproduced": part_not_reproduced, "types": part_types}[part]()
+        {"explain": part_explain, "causes": part_causes, "log": part_log}[part]()
     data["duration_s"] = round(time.monotonic() - t0, 1)
     (out / "data.json").write_text(json.dumps(data, indent=1))
     if data["invalid"]:

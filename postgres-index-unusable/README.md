@@ -8,10 +8,9 @@ This reproduces, on PostgreSQL 18 with the official Docker image's default local
 
 | Job | Part | What it runs |
 |---|---|---|
-| `2 (log)` | `log` | Statements from psycopg run again in psql with the logged values, and the pg_dump restore |
-| `3 (reproduced)` | `reproduced` | `\d members`, the reproduced statements with `enable_seqscan = off`, a `varchar` column compared with a `text` value, `LIKE` with each kind of index on `code`, and the Django DDL |
-| `4 (not-reproduced)` | `not-reproduced` | `PREPARE` with the types psycopg sends for `Decimal` and `float`, and one connection running the same statement 11 times |
-| `5 (types)` | `types` | `PREPARE` with each pair of column type and parameter type, and the parameter types psycopg sends with `prepare=True` |
+| `2 (explain)` | `explain` | `\d members`, the statements that read the whole table with `enable_seqscan = off`, and a `varchar` column compared with a `text` value |
+| `3 (causes)` | `causes` | `PREPARE` with each pair of column type and parameter type, `LIKE` with each kind of index on `code`, and the Django DDL |
+| `4 (log)` | `log` | Statements from psycopg run again in psql with the logged values, the parameter types psycopg sends with `prepare=True`, `PREPARE` with the types psycopg sends for `Decimal` and `float`, the pg_dump restore, and one connection running the same statement 11 times |
 
 Each `run` job writes `results/summary.md` to its job summary and uploads `results/` as the `postgres-index-unusable-<part>` artifact. The `summary` job merges the results of all `run` jobs with `scripts/summary.py` into one `results/summary.md`, grouped by article section with the job name on each result and a section for the results the article does not use, and writes it to its job summary, to a comment on the open pull request for the branch (the same comment is overwritten on every run), and to the `postgres-index-unusable-summary` artifact.
 
@@ -37,11 +36,10 @@ A part is reported as `RUN INVALID` and fails when one of the base queries in `s
 
 ## Conditions
 
-- psycopg statements: each runs on its own connection with its own `application_name` and autocommit, except the 11 executions on one connection in `not-reproduced`. `scripts/lab.py` finds the `execute` or `statement` line, the `Parameters:` line and the auto_explain plan in the server log by `application_name`, replaces each `$n` in the logged statement with the logged value, quotes included, and runs it in psql with `EXPLAIN (ANALYZE)`
-- `log`: the default cursor with `id = %s` and `42`, `Decimal("42")`, `42.0`, `Decimal("42.00")`, with `code LIKE %s`, `lower(email) = %s` and `status = %s`, and `ClientCursor` with `id = %s` and `42.0`. `pg_dump -t members` of `lab`, without `--create`, restored with psql into `staging`, created with `LOCALE_PROVIDER libc LOCALE 'C' TEMPLATE template0`, with `pg_stat_user_tables` and the `LIKE` before and after `ANALYZE`
-- `reproduced`: `members_code_idx` is dropped, and indexes on `code` with the default collation, `text_pattern_ops`, `COLLATE "C"`, libc `COLLATE "C.utf8"` and builtin `COLLATE "pg_c_utf8"` are created one at a time, each dropped before the next. `scripts/django_ddl.py` defines a model with a `CharField` with `db_index=True`, one with `unique=True`, and one indexed through `Meta.indexes`, and prints the statements `connection.schema_editor(collect_sql=True)` collects for it
-- `not-reproduced`: one connection runs `status = %s` 10 times with `'active'` and once with `'locked'`, reading `pg_prepared_statements` after each execution
-- `types`: `PREPARE q(<type>) AS ...` and `EXPLAIN (ANALYZE) EXECUTE q(<value>)`, each pair in its own psql session
+- psycopg statements: each runs on its own connection with its own `application_name` and autocommit, except the 11 executions on one connection in `log`. `scripts/lab.py` finds the `execute` or `statement` line, the `Parameters:` line and the auto_explain plan in the server log by `application_name`, replaces each `$n` in the logged statement with the logged value, quotes included, and runs it in psql with `EXPLAIN (ANALYZE)`
+- `explain`: `SET enable_seqscan = off` before `code LIKE`, `lower(email)`, `id = 42.0` and `status = 'active'`
+- `causes`: `PREPARE q(<type>) AS ...` and `EXPLAIN (ANALYZE) EXECUTE q(<value>)`, each pair in its own psql session. `members_code_idx` is dropped, and indexes on `code` with the default collation, `text_pattern_ops`, `COLLATE "C"`, libc `COLLATE "C.utf8"` and builtin `COLLATE "pg_c_utf8"` are created one at a time, each dropped before the next. `scripts/django_ddl.py` defines a model with a `CharField` with `db_index=True`, one with `unique=True`, and one indexed through `Meta.indexes`, and prints the statements `connection.schema_editor(collect_sql=True)` collects for it
+- `log`: the default cursor with `id = %s` and `42`, `Decimal("42")`, `42.0`, `Decimal("42.00")`, with `code LIKE %s`, `lower(email) = %s` and `status = %s`, and `ClientCursor` with `id = %s` and `42.0`. The default cursor with `id = %s` and `42`, `Decimal("42")`, `42.0` with `prepare=True`, reading `pg_prepared_statements`. `pg_dump -t members` of `lab`, without `--create`, restored with psql into `staging`, created with `LOCALE_PROVIDER libc LOCALE 'C' TEMPLATE template0`, with `pg_stat_user_tables` and the `LIKE` before and after `ANALYZE`. One connection runs `status = %s` 10 times with `'active'` and once with `'locked'`, reading `pg_prepared_statements` after each execution
 
 ## Output
 

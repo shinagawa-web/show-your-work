@@ -20,10 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { section: "2", part: log }
-          - { section: "3", part: reproduced }
-          - { section: "4", part: not-reproduced }
-          - { section: "5", part: types }
+          - { section: "2", part: explain }
+          - { section: "3", part: causes }
+          - { section: "4", part: log }
     name: ${{ matrix.section }} (${{ matrix.part }})
     steps:
       - uses: actions/checkout@v7

@@ -2,7 +2,7 @@
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 cd "$here"
-all=(log reproduced not-reproduced types)
+all=(explain causes log)
 rows=300000
 if [ $# -gt 0 ]; then parts=("$@"); else parts=("${all[@]}"); fi
 for p in "${parts[@]}"; do
