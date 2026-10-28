@@ -17,7 +17,7 @@ Each job runs `./run-all.sh <job>`, which runs the conditions whose `job` column
 
 Each job writes `results/summary.md` to the job summary and uploads `results/` as the `turborepo-cache-misses-<job>` artifact. The `report` job merges the artifacts, runs `scripts/summary.mjs` on all of them, and writes the merged `results/summary.md` to its job summary and to a comment on the pull request of the branch, replacing the comment from the previous run.
 
-A run fails with a `RUN INVALID` line at the end of the summary when the cache built on `main` did not pass, or the full `vitest run` of a condition did not fail exactly the test file the condition breaks.
+A run fails with a `RUN INVALID` line at the end of the summary when the cache built on `main` did not pass, a `turbo run` exited non-zero without failing the test file the condition breaks, or the full `vitest run` of a condition did not fail exactly that test file.
 
 ## Workspace
 
@@ -36,10 +36,10 @@ The variable is `APP_MODE` because Vitest sets `process.env.MODE` to its own mod
 
 `conditions.tsv` has one row per condition.
 
-- `after`: the condition starts from a copy of the directory of that condition, with its Git repository and `.turbo/cache`, instead of a fresh copy of `workspace/`
+- `after`: the condition starts from a copy of the directory of that condition, with its Git repository and `.turbo/cache`, instead of a fresh copy of `workspace/`. `node_modules/.vitest-cache` is removed from the copy, as a fresh checkout on CI has none
 - `setup`: changes to `turbo.json` committed on `main` before the cache is built (`setup_*` in `scripts/changes.sh`)
 - `change`: the change committed on the pull request branch (`change_*` in `scripts/changes.sh`)
-- `mode`: `pr` commits the change on a branch and runs there; `pr-force` also runs `turbo run test --force`; `main` moves to a branch standing in for `main` with the pull request merged and runs there, also with `-v` and with `GITHUB_ACTIONS=true`; `main-cleared` does the same after deleting `.turbo/cache`, without the two extra runs
+- `mode`: `pr` commits the change on a branch and runs there; `pr-force` also runs `turbo run test --force`; `main` merges the pull request branch into `main` with `git merge --no-ff` and runs there, also with `-v`, with `GITHUB_ACTIONS=true` and with `--force`; `main-cleared` deletes `.turbo/cache` on that `main` and runs there, also with `GITHUB_ACTIONS=true`
 - `app_mode`: `APP_MODE` in the shell for the runs after the change. The cache on `main` is always built with `APP_MODE=old`
 - `target`: the test file in `packages/b/test/` the change breaks
 
@@ -49,9 +49,10 @@ For each condition without `after`, `scripts/cond.sh` commits `setup` on `main`,
 |---|---|
 | `dry` | `turbo run test --dry=json` |
 | `cache` | `turbo run test --summarize` |
-| `force` (`pr-force`) | `turbo run test --summarize --force` |
+| `git-log` (`main`, `main-cleared`) | `git log --oneline <cache.sha>..HEAD`, with `cache.sha` of `b#test` in the Run Summary of `cache` |
+| `force` (`pr-force`, `main`) | `turbo run test --summarize --force` |
 | `cache-verbose` (`main`) | `turbo run test --summarize -v` |
-| `cache-gha` (`main`) | `turbo run test --summarize` with `GITHUB_ACTIONS=true` |
+| `cache-gha` (`main`, `main-cleared`) | `turbo run test --summarize` with `GITHUB_ACTIONS=true` |
 | `correct-b` | `vitest run` in `packages/b` |
 
 ## Outputs

@@ -48,6 +48,7 @@ for name in "$@"; do
     cp -a "$WORK/$after" "$dir"
   fi
   cd "$dir"
+  rm -rf node_modules/.vitest-cache
   export PATH=$dir/node_modules/.bin:$base_path
   pnpm install --frozen-lockfile > "$out/install.log" 2>&1
   if [ "$after" = - ]; then
@@ -66,13 +67,22 @@ for name in "$@"; do
   export APP_MODE=$app_mode
   case $mode in
     main | main-cleared)
-      git checkout -q -B mainsim pr
+      if [ "$mode" = main ]; then
+        git checkout -q main
+        git merge -q --no-ff --no-edit pr
+      else
+        rm -rf .turbo/cache
+      fi
       git rev-parse HEAD > "$out/head.sha"
-      [ "$mode" = main ] || rm -rf .turbo/cache
       run dry turbo run test --dry=json
       run cache turbo run test --ui=stream --summarize
+      used=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).tasks.find((t) => t.taskId === "b#test").cache.sha ?? ""' "$out/cache.summary.json" 2>/dev/null)
+      [ -z "$used" ] || run git-log git log --oneline "$used..HEAD"
       if [ "$mode" = main ]; then
         run cache-verbose turbo run test --ui=stream --summarize -v
+        GITHUB_ACTIONS=true run cache-gha turbo run test --ui=stream --summarize
+        run force turbo run test --ui=stream --summarize --force
+      else
         GITHUB_ACTIONS=true run cache-gha turbo run test --ui=stream --summarize
       fi
       ;;

@@ -44,7 +44,7 @@ function turbo(n, col) {
   const bCache = all.filter((l) => /^b:test: cache /.test(l));
   const hash = bCache[0]?.match(/([0-9a-f]{16})\s*$/)?.[1] ?? null;
   const code = rc(n, col);
-  const failed = new RegExp(`^b:test:\\s+(FAIL|×|✗)\\s+test/${target}\\.test\\.ts`, 'm').test(log);
+  const failed = new RegExp(`^(b:test:)?\\s+FAIL\\s+test/${target}\\.test\\.ts`, 'm').test(log);
   let cell;
   if (!task || task.cache.status === 'HIT') cell = code === 0 ? 'not run (green)' : `not run (exit ${code})`;
   else cell = failed ? 'ran, failed' : code === 0 ? 'ran, passed' : `ran, exit ${code}`;
@@ -75,6 +75,10 @@ for (const n of want) {
   }
   const bad = read(n, 'invalid.txt');
   if (bad) invalid.push(`${n}: ${bad.trim()}`);
+  for (const col of ['cache-build', 'cache', 'force', 'cache-verbose', 'cache-gha']) {
+    const t = turbo(n, col);
+    if (t && t.code !== 0 && t.cell !== 'ran, failed') invalid.push(`${n}: ${col} exited ${t.code} without failing test/${conds[n].target}.test.ts`);
+  }
   const c = correct(n);
   if (!c || c.cell !== 'ran, failed') invalid.push(`${n}: the full vitest run did not fail test/${conds[n].target}.test.ts (${c?.cell})`);
   if (c?.others.length) invalid.push(`${n}: other test files failed: ${c.others.join(', ')}`);
@@ -119,6 +123,9 @@ if (p4) {
     `commit the cache was built on (main before P2 was merged): ${built} (${s === built ? 'equal' : 'not equal'})`,
     `HEAD of main after P2 was merged: ${head} (${s === head ? 'equal' : 'not equal'})`,
   ]);
+  p(`${tag('P4')}, commits from cache.sha to HEAD of main:`, '', ...block((read('P4', 'git-log.log') ?? '').trim().split('\n').filter(Boolean)), '');
+  const f = turbo('P4', 'force');
+  if (f) p(`${tag('P4')}, \`turbo run test --force\` on main: ${f.cell}, exit ${f.code}`, '', ...block(f.bCache), '');
 }
 for (const n of ['P5', 'P6']) {
   const t = has(n) && turbo(n, 'cache');
@@ -163,6 +170,14 @@ if (has('P4')) {
     const e = s < 0 ? -1 : g.all.findIndex((l, i) => i > s && l === '::endgroup::');
     const lines = s < 0 ? [] : [...numbered(g.all, Math.max(0, s - 1), s + 4), '...', ...(e < 0 ? ['(no ::endgroup:: after it)'] : numbered(g.all, e - 3, e + 2))];
     p(`${tag('P4')}, \`turbo run test\` with GITHUB_ACTIONS=true (${g.cell}): the start and the end of the b:test group (line numbers of cache-gha.log, "..." marks the lines left out)`, '', ...block(lines), '');
+  }
+}
+if (has('P5')) {
+  const g = turbo('P5', 'cache-gha');
+  if (g) {
+    const h = g.all.findIndex((l) => l === 'b:test');
+    const lines = h < 0 ? [] : numbered(g.all, Math.max(0, h - 2), h + 4);
+    p(`${tag('P5')}, \`turbo run test\` with GITHUB_ACTIONS=true (${g.cell}, exit ${g.code}): the header of the failed b:test task and the cache miss line (line numbers of cache-gha.log, escape sequences removed)`, '', ...block(lines), '');
   }
 }
 
