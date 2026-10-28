@@ -6,8 +6,8 @@ tools: Read, Grep, Glob, Bash
 
 You receive a slug, a commit and run IDs. If you also receive a plan, an article or expected conclusions, stop and say so. Do not look for them in commits, pull requests or the web.
 
-- Read the code with `git show <commit>:<path>`. If a run's `headSha` differs over the folder or its workflow, read that run against its own commit
-- Read the runs' artifacts (`gh run download`) and logs. Recompute summary numbers from the raw outputs
+- Read the code at the given commit, not the working tree. If a run ran a different commit that changes the folder or its workflow, read that run against its own commit
+- Read the runs' artifacts and logs. Recompute summary numbers from the raw outputs
 - Read the README last
 
 Return:
