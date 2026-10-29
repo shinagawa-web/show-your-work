@@ -1,0 +1,104 @@
+name: io-max-hidden-from-iostat
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "io-max-hidden-from-iostat/**"
+      - ".github/workflows/io-max-hidden-from-iostat.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: io-max-hidden-from-iostat
+
+jobs:
+  s3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh s3
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: io-max-hidden-from-iostat-s3
+          path: io-max-hidden-from-iostat/results/
+
+  s4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh s4
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: io-max-hidden-from-iostat-s4
+          path: io-max-hidden-from-iostat/results/
+
+  s5:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh s5
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: io-max-hidden-from-iostat-s5
+          path: io-max-hidden-from-iostat/results/
+
+  report:
+    needs: [s3, s4, s5]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: io-max-hidden-from-iostat-s*
+          merge-multiple: true
+          path: io-max-hidden-from-iostat/results/
+      - id: summary
+        run: |
+          mkdir -p results
+          rc=0
+          python3 scripts/summary.py results > results/summary.md || rc=$?
+          if [ "$rc" -ne 0 ] && ! grep -q '^RUN INVALID' results/summary.md; then
+            printf '\nRUN INVALID: scripts/summary.py exited with %s\n' "$rc" >> results/summary.md
+          fi
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- io-max-hidden-from-iostat -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: io-max-hidden-from-iostat-summary
+          path: io-max-hidden-from-iostat/results/summary.md
+      - env:
+          RC: ${{ steps.summary.outputs.rc }}
+        run: exit "${RC:-1}"
