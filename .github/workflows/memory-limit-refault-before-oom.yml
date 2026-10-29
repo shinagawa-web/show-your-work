@@ -1,0 +1,76 @@
+name: memory-limit-refault-before-oom
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "memory-limit-refault-before-oom/**"
+      - ".github/workflows/memory-limit-refault-before-oom.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: memory-limit-refault-before-oom
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        condition: [n1, p3, p3b, f1]
+    name: s3-${{ matrix.condition }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: memory-limit-refault-before-oom/loadgen/go.mod
+          cache: false
+      - run: ./run-all.sh "s3:${{ matrix.condition }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: memory-limit-refault-before-oom-s3-${{ matrix.condition }}
+          path: memory-limit-refault-before-oom/results/
+
+  summary:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: memory-limit-refault-before-oom-s3-*
+          path: memory-limit-refault-before-oom/artifacts/
+      - run: |
+          mkdir -p results
+          for d in artifacts/*/; do cp -r "$d". results/; done
+          python3 scripts/report.py results > results/summary.md
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- memory-limit-refault-before-oom -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: memory-limit-refault-before-oom-summary
+          path: memory-limit-refault-before-oom/results/summary.md
