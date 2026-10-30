@@ -25,7 +25,7 @@ def f(v, nd=1):
     if v is None:
         return "-"
     if v == NEVER:
-        return "not by the end"
+        return "not while the load ran"
     return ("%." + str(nd) + "f") % v
 
 
@@ -33,7 +33,7 @@ def g(v):
     if v is None:
         return "-"
     if v == NEVER:
-        return "not by the end"
+        return "not while the load ran"
     return ("%d" % v) if float(v).is_integer() else ("%.1f" % v)
 
 
@@ -57,24 +57,6 @@ def med(vals):
     return statistics.median(vals) if vals else None
 
 
-def spread(table):
-    counts = {len(next(iter(cols.values()))) for cols in table.values()}
-    if counts == {1}:
-        print("One run per condition.")
-        print()
-        return
-    diff = []
-    for cond, cols in table.items():
-        for col, vals in cols.items():
-            if len(set(vals)) > 1:
-                diff.append("%s, %s: %s" % (NAME[cond], col, ", ".join(g(v) for v in vals)))
-    print("Medians of %s runs per condition. %s" % (
-        "/".join(str(c) for c in sorted(counts)),
-        ("Values that differed between runs, in run order: " + "; ".join(diff) + ".") if diff
-        else "Every run of a condition gave the same values."))
-    print()
-
-
 def stage_at(m, t):
     start = -m["stages"][0][1]
     for r, sec, fr in m["stages"]:
@@ -93,8 +75,30 @@ def gaps(values):
     return [round(b - a, 1) for a, b in zip(v, v[1:])]
 
 
+def load_end(m):
+    return sum(sec for _, sec, _ in m["stages"]) - m["stages"][0][1]
+
+
+def cell(vals, fmt=g):
+    vals = [v for v in vals if v is not None]
+    if not vals:
+        return "-"
+    lo, hi = min(vals), max(vals)
+    edge = lambda v: "not reached" if v == NEVER else fmt(v)
+    return fmt(med(vals)) if lo == hi else "%s (%s–%s)" % (fmt(med(vals)), edge(lo), edge(hi))
+
+
+def note(table):
+    n = sorted({len(next(iter(cols.values()))) for cols in table.values()})
+    if n == [1]:
+        print("One run per condition.")
+    else:
+        print("Medians of %s runs per condition; ranges across runs in parentheses." % "/".join(str(x) for x in n))
+    print()
+
+
 def recovery(m):
-    rows = measured(m)
+    rows = [r for r in measured(m) if r["t"] + 5 <= load_end(m)]
     pods = sorted(m["pods"])
     low = [all((r.get("rq_" + p) or 0) <= 20 for p in pods) for r in rows]
     return next((r["t"] for i, r in enumerate(rows) if all(low[i:])), NEVER)
@@ -149,9 +153,9 @@ if base:
         print()
         print("- Recv-Q on 8080 at t=%s: %d" % (f(near), rq[near]))
         print("- Recv-Q on 8080 at t=%s, the last sample before the first failed liveness probe was seen: %d" % (
-            f(before), rq[before]))
+            f(before, 2), rq[before]))
         print("- first failed liveness probe of %s seen in /metrics/probes (scraped every second) at t=%s" % (
-            fr["pod"], f(fr["first_liveness_failure_seen"])))
+            fr["pod"], f(fr["first_liveness_failure_seen"], 2)))
 for m in of("capacity"):
     print("- %s: closed loop with %d VUs, %s responses per second for the 3 Pods, %s per Pod" % (
         NAME["capacity"], m["capacity_vus"], m["capacity_rps"], f(m["capacity_rps"] / 3)))
@@ -161,9 +165,9 @@ if of("P2"):
     cols = {"restarts": [len(m["restarts"]) for m in v], "max Recv-Q": [peak(m) for m in v],
             "failed liveness probes": [sum(r["live_fail"] for r in m["rows"]) for m in v]}
     print("%s (0.75C → 0.90C): %s restarts, Recv-Q at most %s, %s failed liveness probes." % (
-        NAME["P2"], g(med(cols["restarts"])), g(med(cols["max Recv-Q"])), g(med(cols["failed liveness probes"]))))
+        NAME["P2"], cell(cols["restarts"]), cell(cols["max Recv-Q"]), cell(cols["failed liveness probes"])))
     print()
-    spread({"P2": cols})
+    note({"P2": cols})
 
 print("## 4. Check in your own cluster (%s: the first Pod to restart)" % NAME["P1"])
 print()
@@ -212,7 +216,8 @@ print("Load in every condition in the table: 0.75C for 15 s, then 1.2C for 60 s,
       "(C = %s rps)." % ", ".join(sorted({str(m["C"]) for v in runs.values() for m in v})))
 print()
 print("The last column is the first 5 s bin from which the maximum Recv-Q of every Pod stays at 20 or less in every "
-      "bin until the end of the measurement. A first restart is counted only in the runs that had one.")
+      "bin while the load runs, up to the bin starting at t=%d; the load ends at t=%d. A first restart is counted only "
+      "in the runs that had one." % (load_end(of("P1")[0]) - 5, load_end(of("P1")[0])))
 print()
 print("| condition | restarts | first restart (t) | max Recv-Q (any Pod) | seconds with 0 Ready endpoints "
       "| Recv-Q of every Pod at most 20 from the bin at t |")
@@ -228,10 +233,10 @@ for c in ("P1", "P3", "P4", "P5"):
             "Recv-Q at most 20 from": [recovery(m) for m in v]}
     table[c] = cols
     print("| %s | %s | %s | %s | %s | %s |" % (
-        NAME[c], g(med(cols["restarts"])), f(med(cols["first restart"])), g(med(cols["max Recv-Q"])),
-        g(med(cols["seconds with 0 Ready endpoints"])), g(med(cols["Recv-Q at most 20 from"]))))
+        NAME[c], cell(cols["restarts"]), cell(cols["first restart"], f), cell(cols["max Recv-Q"]),
+        cell(cols["seconds with 0 Ready endpoints"]), cell(cols["Recv-Q at most 20 from"])))
 print()
-spread(table)
+note(table)
 
 print("## Numbers not used")
 print()
