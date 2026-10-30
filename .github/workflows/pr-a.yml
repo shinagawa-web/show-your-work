@@ -1,0 +1,20 @@
+name: pr-a
+
+on:
+  pull_request:
+    paths:
+      - "svc-a/**"
+
+jobs:
+  pr-a:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          FORCED: ${{ github.event.forced }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: printf 'event=%s before=%s after=%s forced=%s base=%s head=%s\n' "$EVENT" "$BEFORE" "$AFTER" "$FORCED" "$BASE_SHA" "$HEAD_SHA"
