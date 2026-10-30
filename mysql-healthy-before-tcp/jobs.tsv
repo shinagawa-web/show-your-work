@@ -1,0 +1,4 @@
+job	conditions
+s2-s4-baseline	baseline
+s5-tcp-healthcheck	tcp-healthcheck
+s5-wait-for-query	wait-for-query

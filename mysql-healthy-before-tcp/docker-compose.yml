@@ -1,0 +1,37 @@
+services:
+  mysql:
+    image: mysql:9.7.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: app
+    volumes:
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${HOST_PORT}:3306"
+    healthcheck:
+      test: mysqladmin ping -h localhost
+      start_period: 60s
+      start_interval: 1s
+
+  tester:
+    image: mysql:9.7.4
+    profiles: [test]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["bash", "/client.sh", "mysql", "3306", "${CLIENT_MODE:-once}"]
+    tmpfs:
+      - /var/lib/mysql
+    volumes:
+      - ./scripts/client.sh:/client.sh:ro
+
+  hostclient:
+    image: mysql:9.7.4
+    profiles: [test]
+    network_mode: host
+    init: true
+    entrypoint: ["sleep", "infinity"]
+    tmpfs:
+      - /var/lib/mysql
+    volumes:
+      - ./scripts/client.sh:/client.sh:ro

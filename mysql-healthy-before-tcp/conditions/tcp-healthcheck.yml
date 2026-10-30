@@ -1,0 +1,4 @@
+services:
+  mysql:
+    healthcheck:
+      test: mysqladmin ping --protocol=TCP -h 127.0.0.1

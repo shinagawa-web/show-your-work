@@ -1,0 +1,83 @@
+name: mysql-healthy-before-tcp
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mysql-healthy-before-tcp/**"
+      - ".github/workflows/mysql-healthy-before-tcp.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: mysql-healthy-before-tcp
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        job: [s2-s4-baseline, s5-tcp-healthcheck, s5-wait-for-query]
+    name: ${{ matrix.job }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh ${{ matrix.job }}
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mysql-healthy-before-tcp-${{ matrix.job }}
+          path: mysql-healthy-before-tcp/results/
+
+  report:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: mysql-healthy-before-tcp-s*
+          path: mysql-healthy-before-tcp/artifacts/
+      - id: summary
+        run: |
+          mkdir -p results
+          for d in artifacts/*/*/; do cp -r "${d%/}" results/; done
+          cp "$(ls artifacts/*/environment.txt | head -1)" results/environment.txt
+          { printf 'job\tseconds\n'; cat artifacts/*/timing.tsv | awk -F'\t' '$1 != "job" && $1 != "all"'; } > results/timing.tsv
+          rc=0
+          python3 scripts/summary.py results > results/summary.md || rc=$?
+          if [ "$rc" -ne 0 ] && ! grep -q '^## RUN INVALID' results/summary.md; then
+            printf '\n## RUN INVALID\n\n- scripts/summary.py exited with %s\n' "$rc" >> results/summary.md
+          fi
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- mysql-healthy-before-tcp -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mysql-healthy-before-tcp-report
+          path: mysql-healthy-before-tcp/results/
+      - env:
+          RC: ${{ steps.summary.outputs.rc }}
+        run: exit "${RC:-1}"
