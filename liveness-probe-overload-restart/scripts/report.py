@@ -1,3 +1,4 @@
+import collections
 import json
 import math
 import os
@@ -19,21 +20,16 @@ for v in runs.values():
 NAME = {"P1": "baseline (no change)", "P2": "no 1.2C stage", "P3": "probes on a second port (8081)",
         "P4": "liveness timeoutSeconds 5", "P5": "no liveness probe", "capacity": "capacity measurement"}
 NEVER = math.inf
+BUCKETS = ("< 0.5 s", "0.5 to 1 s", ">= 1 s", "no record")
 
 
 def f(v, nd=1):
-    if v is None:
-        return "-"
-    if v == NEVER:
-        return "not while the load ran"
-    return ("%." + str(nd) + "f") % v
+    return "-" if v is None else ("%." + str(nd) + "f") % v
 
 
 def g(v):
     if v is None:
         return "-"
-    if v == NEVER:
-        return "not while the load ran"
     return ("%d" % v) if float(v).is_integer() else ("%.1f" % v)
 
 
@@ -48,13 +44,42 @@ def block(lines):
     print("```")
 
 
-def measured(m):
-    return [r for r in m["rows"] if r["t"] >= 0]
-
-
 def med(vals):
     vals = [v for v in vals if v is not None]
     return statistics.median(vals) if vals else None
+
+
+def cell(vals, fmt=g):
+    vals = [v for v in vals if v is not None]
+    if not vals:
+        return "-"
+    lo, hi = min(vals), max(vals)
+    return fmt(med(vals)) if lo == hi else "%s (%s–%s)" % (fmt(med(vals)), fmt(lo), fmt(hi))
+
+
+def split_cell(vals, never_text):
+    n = len(vals)
+    nev = sum(1 for v in vals if v == NEVER)
+    rest = [v for v in vals if v != NEVER]
+    if nev == 0:
+        return cell(rest)
+    if nev == n:
+        return never_text
+    counts = collections.Counter(rest)
+    return "%s in %d of %d runs, %s" % (never_text, nev, n, ", ".join(
+        "%s in %d" % (g(v), c) for v, c in sorted(counts.items())))
+
+
+def note(nruns):
+    if nruns == 1:
+        print("One run per condition.")
+    else:
+        print("Medians of %d runs per condition; ranges across runs in parentheses." % nruns)
+    print()
+
+
+def measured(m):
+    return [r for r in m["rows"] if r["t"] >= 0]
 
 
 def stage_at(m, t):
@@ -66,39 +91,8 @@ def stage_at(m, t):
     return "-"
 
 
-def num(s):
-    return None if s in (None, "-") else float(s)
-
-
-def gaps(values):
-    v = sorted(x for x in values if x is not None)
-    return [round(b - a, 1) for a, b in zip(v, v[1:])]
-
-
-def load_end(m):
-    return sum(sec for _, sec, _ in m["stages"]) - m["stages"][0][1]
-
-
-def cell(vals, fmt=g):
-    vals = [v for v in vals if v is not None]
-    if not vals:
-        return "-"
-    lo, hi = min(vals), max(vals)
-    edge = lambda v: "not reached" if v == NEVER else fmt(v)
-    return fmt(med(vals)) if lo == hi else "%s (%s–%s)" % (fmt(med(vals)), edge(lo), edge(hi))
-
-
-def note(table):
-    n = sorted({len(next(iter(cols.values()))) for cols in table.values()})
-    if n == [1]:
-        print("One run per condition.")
-    else:
-        print("Medians of %s runs per condition; ranges across runs in parentheses." % "/".join(str(x) for x in n))
-    print()
-
-
 def recovery(m):
-    rows = [r for r in measured(m) if r["t"] + 5 <= load_end(m)]
+    rows = [r for r in measured(m) if r["t"] + 5 <= m["load_end"]]
     pods = sorted(m["pods"])
     low = [all((r.get("rq_" + p) or 0) <= 20 for p in pods) for r in rows]
     return next((r["t"] for i, r in enumerate(rows) if all(low[i:])), NEVER)
@@ -108,8 +102,20 @@ def peak(m):
     return max((r.get("rq_" + p) or 0) for r in m["rows"] for p in sorted(m["pods"]))
 
 
+def overflows(m):
+    return sum((v or {}).get("ListenOverflows", 0) for v in m["overflows"].values())
+
+
+def wait_counts(m):
+    return {(b, t, k): c for b, t, k, c in m["wait_table"]}
+
+
 def run_label(m):
     return "run %d" % m["run"] if m["run"] else "the run"
+
+
+def maxrun(conds):
+    return max([len(of(c)) for c in conds] or [1])
 
 
 print("# liveness-probe-overload-restart")
@@ -127,7 +133,7 @@ if base:
     pods = sorted(m["pods"])
     print("### %s timeline (5 s bins, %s)" % (NAME["P1"], run_label(m)))
     print()
-    print("Recv-Q is the maximum in the bin.")
+    print("Recv-Q is the maximum in the bin. A restart is placed at the time the Killing Event was received.")
     print()
     print("| t | load (rps) | " + " | ".join("Recv-Q " + p for p in pods) + " | restarted |")
     print("|" + "---|" * (len(pods) + 3))
@@ -144,41 +150,68 @@ if base:
             rest[0]["t"], rest[-1]["t"], "; ".join(x.replace(" (", " rps, ").rstrip(")") for x in loads), rq,
             sum(len([x for x in r["restarts"].split(",") if x]) for r in rest)))
         print()
-    fr = m.get("first")
-    if fr:
-        rq = dict((t, q) for t, q in fr["recvq"])
-        before = max((t for t in rq if t < fr["first_liveness_failure_seen"]), default=None)
-        near = min(rq, key=lambda t: abs(t - 2.3)) if rq else None
-        print("Values for estimating the wait of a probe (%s, %s, pod %s):" % (NAME["P1"], run_label(m), fr["pod"]))
+
+if of("P1"):
+    v = of("P1")
+    print("### %s: wait of each probe and its result" % NAME["P1"])
+    print()
+    print("The wait is from the probe's scheduled time to the time the app started processing it. Liveness probes are "
+          "scheduled every periodSeconds; readiness probes every periodSeconds from the first one in each container and "
+          "from the probe the kubelet runs when the Pod becomes unready. \"No record\" is a probe that the kubelet sent and whose processing is not in the app "
+          "logs. All Pods from t=-15, counted by the kubelet's result (prober_probe_total).")
+    print()
+    print("| wait | liveness successful | liveness failed | readiness successful | readiness failed |")
+    print("|---|---|---|---|---|")
+    for b in BUCKETS:
+        print("| %s | %s |" % (b, " | ".join(str(sum(wait_counts(m).get((b, t, k), 0) for m in v))
+                                            for t in ("Liveness", "Readiness") for k in ("successful", "failed"))))
+    print()
+    print("Summed over %s." % ("the %d runs" % len(v) if len(v) > 1 else "the run"))
+    print()
+    if base and base.get("first_live_fail"):
+        x = base["first_live_fail"]
+        print("First failed liveness probe in the timeline (%s): pod %s, scheduled at t=%s, %s." % (
+            run_label(base), x["pod"], f(x["T"], 2),
+            "processing started %s s later" % f(x["wait"], 2) if x["wait"] is not None else "no record in the app logs"))
         print()
-        print("- Recv-Q on 8080 at t=%s: %d" % (f(near), rq[near]))
-        print("- Recv-Q on 8080 at t=%s, the last sample before the first failed liveness probe was seen: %d" % (
-            f(before, 2), rq[before]))
-        print("- first failed liveness probe of %s seen in /metrics/probes (scraped every second) at t=%s" % (
-            fr["pod"], f(fr["first_liveness_failure_seen"], 2)))
-for m in of("capacity"):
-    print("- %s: closed loop with %d VUs, %s responses per second for the 3 Pods, %s per Pod" % (
-        NAME["capacity"], m["capacity_vus"], m["capacity_rps"], f(m["capacity_rps"] / 3)))
-print()
+    iv = [x for m in v for xs in m["restart_intervals"].values() for x in xs]
+    if iv:
+        print("Seconds between two restarts of the same Pod (Killing Events): median %s, from %s to %s (%d intervals)." % (
+            f(med(iv)), f(min(iv)), f(max(iv)), len(iv)))
+        print()
+    ret = v[0]["stages"][1][1]
+    after = sum(1 for m in v if any(r["t"] >= ret for r in m["restarts"]))
+    unready = sum(1 for m in v if m.get("readiness_outages"))
+    print("After the return to 0.9C at t=%d, a restart in %d of %d runs; a Pod out of the endpoints by readiness, without "
+          "a restart, in %d of %d runs." % (ret, after, len(v), unready, len(v)))
+    print()
+    resets = [len(m["reset_events"]) for m in v]
+    ex = next((e for m in v for e in m["reset_events"]), None)
+    print("Readiness probe failures with \"connection reset by peer\" within 5 s after a Killing Event of the same Pod: %s." % cell(resets))
+    if ex:
+        print()
+        block([ex["message"]])
+    print()
+    print("ListenOverflows summed over the Pods: %s." % cell([overflows(m) for m in v]))
+    print()
 if of("P2"):
     v = of("P2")
-    cols = {"restarts": [len(m["restarts"]) for m in v], "max Recv-Q": [peak(m) for m in v],
-            "failed liveness probes": [sum(r["live_fail"] for r in m["rows"]) for m in v]}
-    print("%s (0.75C → 0.90C): %s restarts, Recv-Q at most %s, %s failed liveness probes." % (
-        NAME["P2"], cell(cols["restarts"]), cell(cols["max Recv-Q"]), cell(cols["failed liveness probes"])))
+    fails = [sum(r["live_fail"] + r["ready_fail"] for r in m["rows"]) for m in v]
+    print("%s (0.75C → 0.90C): %s restarts, Recv-Q at most %s, %s failed probes." % (
+        NAME["P2"], cell([len(m["restarts"]) for m in v]), cell([peak(m) for m in v]), cell(fails)))
     print()
-    note({"P2": cols})
+    note(len(v))
 
 print("## 4. Check in your own cluster (%s: the first Pod to restart)" % NAME["P1"])
 print()
 if base and base.get("first"):
     m = base
     fr = m["first"]
-    print("%s, %s, pod %s, restart %d at t=%s" % (NAME["P1"], run_label(m), fr["name"], fr["count"], f(fr["finished"])))
+    print("%s, %s, pod %s, Killing Event at t=%d" % (NAME["P1"], run_label(m), fr["name"], round(fr["t"])))
     print()
     print("`.status.containerStatuses[0].lastState.terminated` (containerID left out):")
     print()
-    term = fr["lastState_terminated"]
+    term = fr["lastState_terminated"] or {}
     block(json.dumps({k: term.get(k) for k in ("exitCode", "reason", "startedAt", "finishedAt")}, indent=2).splitlines())
     print()
     print("Events (lastTimestamp, type, reason, involvedObject, message):")
@@ -212,65 +245,85 @@ else:
 
 print("## 5. What changing the probe settings does")
 print()
-print("Load in every condition in the table: 0.75C for 15 s, then 1.2C for 60 s, then 0.9C for 105 s, back to 0.9C at t=60 "
-      "(C = %s rps)." % ", ".join(sorted({str(m["C"]) for v in runs.values() for m in v})))
-print()
-print("The last column is the first 5 s bin from which the maximum Recv-Q of every Pod stays at 20 or less in every "
-      "bin while the load runs, up to the bin starting at t=%d; the load ends at t=%d. A first restart is counted only "
-      "in the runs that had one." % (load_end(of("P1")[0]) - 5, load_end(of("P1")[0])))
-print()
-print("| condition | restarts | first restart (t) | max Recv-Q (any Pod) | seconds with 0 Ready endpoints "
-      "| Recv-Q of every Pod at most 20 from the bin at t |")
-print("|---|---|---|---|---|---|")
-table = {}
+if of("P1"):
+    m0 = of("P1")[0]
+    print("Load in every condition in the table: 0.75C for 15 s, then 1.2C for 60 s, then 0.9C for 105 s, back to 0.9C at "
+          "t=60 (C = %s rps)." % m0["C"])
+    print()
+    print("Restarts are counted from the Killing Events. Seconds with 0 Ready endpoints come from a watch on the "
+          "EndpointSlice. The queue column is the first 5 s bin from which the maximum Recv-Q of every Pod stays at 20 or "
+          "less in every bin while the load runs, up to the bin starting at t=%d; the load ends at t=%d. Failed liveness "
+          "probes are split into those the app started processing after timeoutSeconds and those with no record in the app "
+          "logs." % (m0["load_end"] - 5, m0["load_end"]))
+    print()
+print("| condition | restarts | first restart (t) | max Recv-Q (any Pod) | ListenOverflows | seconds with 0 Ready endpoints "
+      "| Recv-Q of every Pod at most 20 from the bin at t | failed liveness probes: wait >= timeoutSeconds / no record |")
+print("|---|---|---|---|---|---|---|---|")
 for c in ("P1", "P3", "P4", "P5"):
     v = of(c)
     if not v:
         continue
-    cols = {"restarts": [len(m["restarts"]) for m in v],
-            "first restart": [round(m["first_restart"], 1) if m["first_restart"] is not None else None for m in v],
-            "max Recv-Q": [peak(m) for m in v], "seconds with 0 Ready endpoints": [m["ready_zero_seconds"] for m in v],
-            "Recv-Q at most 20 from": [recovery(m) for m in v]}
-    table[c] = cols
-    print("| %s | %s | %s | %s | %s | %s |" % (
-        NAME[c], cell(cols["restarts"]), cell(cols["first restart"], f), cell(cols["max Recv-Q"]),
-        cell(cols["seconds with 0 Ready endpoints"]), cell(cols["Recv-Q at most 20 from"])))
+    firsts = [round(m["restarts"][0]["t"]) if m["restarts"] else NEVER for m in v]
+    lf = "%s / %s" % (cell([m["live_fail_split"]["wait >= timeoutSeconds"] for m in v]),
+                      cell([m["live_fail_split"]["no record"] for m in v])) if c != "P5" else "no liveness probe"
+    print("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
+        NAME[c], cell([len(m["restarts"]) for m in v]), split_cell(firsts, "no restart"), cell([peak(m) for m in v]),
+        cell([overflows(m) for m in v]), cell([m["ready_zero_seconds"] for m in v], lambda x: f(x)),
+        split_cell([recovery(m) for m in v], "not while the load ran"), lf))
 print()
-note(table)
+note(maxrun(("P1", "P3", "P4", "P5")))
 
 print("## Numbers not used")
 print()
 for c in ("P1", "P2"):
     v = of(c)
     if v:
-        print("- %s, new connection per probe: %s /healthz requests in the logs of the current containers, %s distinct "
-              "(pod, source address:port) pairs, source addresses %s" % (
-                  NAME[c], ", ".join(str(m["claim1"]["healthz_requests"]) for m in v),
+        print("- %s, new connection per probe: %s /livez and /readyz requests in the logs of the current containers, %s "
+              "distinct (pod, source address:port) pairs, source addresses %s" % (
+                  NAME[c], ", ".join(str(m["claim1"]["probe_requests"]) for m in v),
                   ", ".join(str(m["claim1"]["distinct_pod_source_pairs"]) for m in v),
                   ", ".join(sorted({a for m in v for a in m["claim1"]["source_addrs"]}))))
-for c in sorted(runs):
-    v = runs[c]
-    run_gaps = "; ".join(", ".join(g(x) for x in gaps(m["stagger_running"].values())) for m in v)
-    live = [[num(s["first_liveness_seen"]) for s in m["stagger"]] for m in v]
-    live_gaps = "; ".join(", ".join(g(x) for x in gaps(l)) for l in live) if any(
-        x is not None for l in live for x in l) else "no liveness probe"
-    print("- %s, Pod start (per run): seconds between the containers becoming running %s; between their first liveness "
-          "probes %s" % (NAME[c], run_gaps, live_gaps))
-print()
-print("| condition | valid runs | dropped_iterations | achieved rps per stage (target), lowest and highest run | event watch errors | event count gaps | app logs (files / containers) |")
-print("|---|---|---|---|---|---|---|")
 for c in sorted(runs, key=lambda c: list(NAME).index(c)):
     v = runs[c]
-    stages = []
+
+    def gaps(xs):
+        xs = sorted(xs)
+        return ", ".join(f(b - a) for a, b in zip(xs, xs[1:]))
+    print("- %s, Pod start (per run): seconds between the containers becoming running %s; between their first liveness "
+          "probes %s" % (NAME[c], "; ".join(gaps(m["stagger_running"]) for m in v),
+                         "; ".join(gaps(m["stagger_first_liveness"]) for m in v) if c != "P5" else "no liveness probe"))
+for c in sorted(runs, key=lambda c: list(NAME).index(c)):
+    if c == "capacity":
+        continue
+    per_run = []
+    for m in runs[c]:
+        parts = []
+        for win, d in m["schedule_check"].items():
+            parts.append("%s: %s" % (win, ", ".join("%s %d probes, median %s ms, max %s ms" % (
+                t, x["probes"], x["median_ms"], x["max_ms"]) for t, x in d.items()) or "no probes"))
+        per_run.append("%s: %s" % (run_label(m), "; ".join(parts)))
+    print("- %s, wait of successful probes (schedule check; the liveness phase is taken from t=-15 to 0): %s" % (
+        NAME[c], " / ".join(per_run)))
+print("- kernel: %s" % ", ".join(sorted({str(m["kernel"]) for v in runs.values() for m in v})))
+print()
+print("| condition | valid runs | dropped_iterations | achieved rps per stage (target) | /work processed per Pod-second with Recv-Q > 0 in the 1.2C stage (rps; C/3 = %s) | event watch errors | event count gaps | EndpointSlice watch errors | app logs (files / containers) |" % (
+    f(int(next(iter(runs.values()))[0]["C"]) / 3) if runs else "-"))
+print("|---|---|---|---|---|---|---|---|---|")
+for c in sorted(runs, key=lambda c: list(NAME).index(c)):
+    v = runs[c]
+    stg = []
     for i, a in enumerate(v[0]["achieved"]):
-        vals = [m["achieved"][i]["achieved_rps"] for m in v]
-        stages.append("%s–%s (%d)" % (min(vals), max(vals), a["target_rps"]) if min(vals) != max(vals)
-                      else "%s (%d)" % (vals[0], a["target_rps"]))
-    print("| %s | %d of %d | %d | %s | %d | %d | %d / %d |" % (
-        NAME[c], sum(1 for m in v if not m["invalid"]), len(v), sum(m["dropped"] for m in v), ", ".join(stages) or "-",
+        stg.append("%s (%d)" % (cell([m["achieved"][i]["achieved_rps"] for m in v], lambda x: f(x)), a["target_rps"]))
+    if c == "capacity":
+        rate = "capacity %s rps for 3 Pods" % cell([m["capacity"]["rps"] for m in v], lambda x: f(x))
+    else:
+        rate = cell([m["rate_per_pod"] for m in v], lambda x: f(x))
+    print("| %s | %d of %d | %d | %s | %s | %d | %d | %d | %d / %d |" % (
+        NAME[c], sum(1 for m in v if not m["invalid"]), len(v), sum(m["dropped"] for m in v), ", ".join(stg) or "-", rate,
         sum(len(m["event_watch"]["errors"]) for m in v), sum(len(m["event_gaps"]) for m in v),
+        sum(len(m["eps_watch"]["errors"]) for m in v),
         sum(m["log_coverage"]["log_files"] for m in v), sum(m["log_coverage"]["containers_expected"] for m in v)))
-for c in sorted(runs):
+for c in sorted(runs, key=lambda c: list(NAME).index(c)):
     for m in runs[c]:
         for i in m["invalid"]:
             print()

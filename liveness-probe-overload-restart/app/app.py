@@ -8,7 +8,7 @@ BODY = b"ok\n"
 def app(environ, start_response):
     t0 = time.time()
     path = environ.get("PATH_INFO", "")
-    if path != "/healthz":
+    if path not in ("/livez", "/readyz"):
         time.sleep(WORK_SECONDS)
     start_response("200 OK", [("Content-Type", "text/plain"), ("Content-Length", str(len(BODY)))])
     t1 = time.time()

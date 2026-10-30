@@ -10,8 +10,8 @@ what, cond = sys.argv[1], sys.argv[2]
 c = CONDITIONS[cond]
 
 
-def probe(timeout, port):
-    return {"httpGet": {"path": "/healthz", "port": port}, "timeoutSeconds": timeout,
+def probe(path, timeout, port):
+    return {"httpGet": {"path": path, "port": port}, "timeoutSeconds": timeout,
             "periodSeconds": 10, "failureThreshold": 3, "successThreshold": 1}
 
 
@@ -27,10 +27,10 @@ def app():
         "command": cmd, "env": env,
         "ports": [{"containerPort": 8080}],
         "resources": {"requests": {"cpu": "100m", "memory": "64Mi"}},
-        "readinessProbe": probe(1, port),
+        "readinessProbe": probe("/readyz", 1, port),
     }
     if c.get("liveness", True):
-        container["livenessProbe"] = probe(c.get("liveness_timeout", 1), port)
+        container["livenessProbe"] = probe("/livez", c.get("liveness_timeout", 1), port)
     labels = {"app": "app"}
     deploy = {
         "apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "app"},

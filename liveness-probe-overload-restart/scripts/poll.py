@@ -118,7 +118,54 @@ def events_loop():
         json.dump(log, f)
 
 
-threads = [threading.Thread(target=x) for x in (status_loop, probes_loop, events_loop)]
+def eps_watch_loop():
+    log = {"reconnects": 0, "errors": []}
+    sel = "labelSelector=kubernetes.io%2Fservice-name%3Dapp"
+    base = "/apis/discovery.k8s.io/v1/namespaces/default/endpointslices"
+    slices = {}
+
+    def ready():
+        return sum(1 for s in slices.values() for e in s.get("endpoints") or [] if e["conditions"].get("ready"))
+
+    with open(os.path.join(results, "eps-watch.jsonl"), "w") as f:
+        lst = json.loads(get(base + "?" + sel))
+        rv = lst["metadata"]["resourceVersion"]
+        for o in lst["items"]:
+            slices[o["metadata"]["name"]] = o
+        f.write(json.dumps({"recv": time.time(), "type": "LISTED", "ready": ready()}) + "\n")
+        while not stop.is_set():
+            try:
+                with urllib.request.urlopen(API + base + "?watch=1&allowWatchBookmarks=true&timeoutSeconds=5&" + sel +
+                                            "&resourceVersion=" + rv, timeout=30) as r:
+                    while True:
+                        line = r.readline()
+                        if not line:
+                            break
+                        ev = json.loads(line)
+                        if ev["type"] == "ERROR":
+                            log["errors"].append(ev["object"])
+                            break
+                        rv = ev["object"]["metadata"]["resourceVersion"]
+                        if ev["type"] == "BOOKMARK":
+                            continue
+                        name = ev["object"]["metadata"]["name"]
+                        if ev["type"] == "DELETED":
+                            slices.pop(name, None)
+                        else:
+                            slices[name] = ev["object"]
+                        eps = [{"pod": (e.get("targetRef") or {}).get("name"), "ready": e["conditions"].get("ready")}
+                               for s in slices.values() for e in s.get("endpoints") or []]
+                        f.write(json.dumps({"recv": time.time(), "type": ev["type"], "ready": ready(), "eps": eps}) + "\n")
+                        f.flush()
+            except Exception as e:
+                log["errors"].append(str(e))
+                time.sleep(0.2)
+            log["reconnects"] += 1
+    with open(os.path.join(results, "eps-watch.json"), "w") as f:
+        json.dump(log, f)
+
+
+threads = [threading.Thread(target=x) for x in (status_loop, probes_loop, events_loop, eps_watch_loop)]
 for th in threads:
     th.start()
 stopfile = os.path.join(results, ".stop")

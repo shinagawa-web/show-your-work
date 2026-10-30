@@ -53,6 +53,7 @@ svc=$(kubectl get svc app -o jsonpath='{.spec.clusterIP}')
   echo "\$ kind version"; kind version
   echo "\$ kubectl version"; kubectl version 2>&1
   echo "\$ uname -srm; nproc"; uname -srm; nproc
+  echo "\$ uname -r (on $worker)"; docker exec "$worker" uname -r
   echo "\$ gunicorn --version (in the app Pod)"; kubectl exec deploy/app -- gunicorn --version 2>&1
   echo "\$ python -V (in the app Pod)"; kubectl exec deploy/app -- python -V 2>&1
   echo "\$ cat /proc/sys/net/core/somaxconn (in the app Pod)"; kubectl exec deploy/app -- cat /proc/sys/net/core/somaxconn 2>&1
