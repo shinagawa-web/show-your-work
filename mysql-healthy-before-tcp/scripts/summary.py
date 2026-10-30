@@ -27,9 +27,9 @@ def read_tests(path):
     rows = []
     if path.exists():
         for line in path.read_text().splitlines():
-            parts = line.split("\t", 2)
-            if len(parts) == 3:
-                rows.append((float(parts[0]), int(parts[1]), parts[2]))
+            parts = line.split("\t", 3)
+            if len(parts) == 4:
+                rows.append((float(parts[0]), int(parts[2]), parts[3], float(parts[1])))
     return rows
 
 
@@ -164,7 +164,7 @@ if runs.get("baseline"):
     out += ["## 3. Reproduce", ""]
     out += [f"Baseline: job `{job_of('baseline')}`. Init script `sleep 8`; health check {hc_text(rs[0]['hc'])}; empty data directory (`down -v` before each run); the test sends `SELECT 1` once when it sees healthy, from another container on the Compose network and from the host to the published port on `127.0.0.1`.", ""]
     if r1:
-        out += ["### Baseline run 1", "", "| Temporary server ready (`port: 0`) | Healthy | Test connected (network / published port) | Real server ready (`port: 3306`) |", "|---|---|---|---|"]
+        out += ["### Baseline run 1", "", "| Temporary server ready (`port: 0`) | Healthy | Test started `SELECT 1` (network / published port) | Real server ready (`port: 3306`) |", "|---|---|---|---|"]
         conn = " / ".join(el(r1, r1["tests"][v][0][0]) if r1["tests"][v] else "" for v in ("net", "host"))
         out += [f"| {el(r1, r1['port0'])} | {el(r1, r1['healthy'])} | {conn} | {el(r1, r1['port3306'])} |", ""]
     rows = outcomes("baseline")
@@ -190,8 +190,8 @@ if fixes:
         r = runs[c][0]
         rows = outcomes(c)
         if env_of(c)["CLIENT_MODE"] == "poll":
-            d = [t[-1][0] - rr["port3306"] for rr, _, t in rows if t[-1][1] == 0 and rr["port3306"] is not None]
-            res = f"first returned − `port: 3306`: {min(d):+.2f} s to {max(d):+.2f} s ({len(d)} of {len(rows)} returned)" if d else f"none of {len(rows)} returned"
+            d = [t[-1][3] - rr["port3306"] for rr, _, t in rows if t[-1][1] == 0 and rr["port3306"] is not None]
+            res = f"return of the first successful `SELECT 1` − `port: 3306`: {min(d):+.2f} s to {max(d):+.2f} s ({len(d)} of {len(rows)} returned)" if d else f"none of {len(rows)} returned"
         else:
             res = f"failed: {sum(t[0][1] != 0 for _, _, t in rows)} of {len(rows)}"
         out.append(f"| {label} | {changed(c)} | {el(r, r['healthy'])} | {el(r, r['port3306'])} | {res} |")

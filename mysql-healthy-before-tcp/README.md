@@ -26,7 +26,7 @@ A run fails with a `RUN INVALID` line at the end of the summary when a run has n
 - `tester`: the `mysql` image running `scripts/client.sh` against `mysql:3306` on the Compose network, started by `docker compose up -d tester` with `depends_on` `condition: service_healthy`
 - `hostclient`: the `mysql` image with `network_mode: host`, idle until `run-all.sh` runs `scripts/client.sh` in it against `127.0.0.1:<published port>` right after `docker compose up -d --wait mysql` returns
 
-`initdb/10-sleep.sh` is sourced by the entrypoint while its temporary server runs. Both tests run in the same run. `scripts/client.sh` sends `SELECT 1` with credentials, once, or every 100 ms until it returns (`CLIENT_MODE=poll`), and writes the start time, exit code and output of each attempt.
+`initdb/10-sleep.sh` is sourced by the entrypoint while its temporary server runs. Both tests run in the same run. `scripts/client.sh` sends `SELECT 1` with credentials, once, or every 100 ms until it returns (`CLIENT_MODE=poll`), and writes the time it started and the time it returned, the exit code and the output of each attempt.
 
 Each run starts with `docker compose down -v`. `docker events` for the run's Compose project is recorded from before the containers start.
 
