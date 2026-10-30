@@ -22,10 +22,10 @@ docker pull -q "$IMAGE" > /dev/null || exit 1
 echo "[$(el)s] image pulled"
 status=0
 for c in "${conds[@]}"; do
-  IFS=$'\t' read -r name keep env trim inject < <(awk -F'\t' -v n="$c" '$1 == n' "$here/conditions.tsv")
+  IFS=$'\t' read -r name keep env trim inject cap < <(awk -F'\t' -v n="$c" '$1 == n' "$here/conditions.tsv")
   pids=()
   for k in $(seq "$runs"); do
-    "$here/scripts/run.sh" "$results/$name/run$k" "$keep" "$env" "$trim" "$inject" &
+    "$here/scripts/run.sh" "$results/$name/run$k" "$keep" "$env" "$trim" "$inject" "$cap" &
     pids+=($!)
   done
   for p in "${pids[@]}"; do wait "$p" || status=1; done

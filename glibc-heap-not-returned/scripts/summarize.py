@@ -58,6 +58,7 @@ def load(cond, run):
     r["env"] = dict(l.split(" ", 1) for l in read(os.path.join(d, "env.txt")).splitlines() if " " in l)
     st = dict(l.split("=", 1) for l in read(os.path.join(d, "settings.txt")).splitlines() if "=" in l)
     r["args"] = st.get("observer_args", "").split()
+    r["caps"] = sorted(x.split("=", 1)[1] for x in st.get("docker_opts", "").split() if x.startswith("--cap-add="))
     r["container"] = dict(l.split(" ", 1) for l in read(os.path.join(d, "container.txt")).splitlines() if " " in l)
     return r
 
@@ -125,6 +126,24 @@ def rss_at(n, ph):
     return lambda r: (point(r, n, ph)[0] or {}).get("rss")
 
 
+def call_kind(r):
+    c = r["call"]
+    if not c:
+        return "not called"
+    p = c["result"].split()
+    return p[1] if p[0] == "error" and len(p) > 1 else p[0]
+
+
+def error_text(r):
+    c = r["call"]
+    if not c:
+        return "nothing (not called)"
+    p = c["result"].split(" ", 2)
+    if p[0] != "error":
+        return "no exception"
+    return "%s: %s" % (p[1], p[2]) if len(p) > 2 else p[1]
+
+
 def rss_return(r):
     call = r["call"]
     if not call:
@@ -186,13 +205,13 @@ def main():
                 problems.append("%s: container exit %s" % (job(r), r["container"].get("exit", "-")))
             if any("wait" not in cyc(r, n) for n in range(1, cycles + 1)) or r["idle"] is None:
                 problems.append("%s: not all %d cycles completed" % (job(r), cycles))
-            if cfg[name]["inject_malloc_trim"] == "1" and not (r["call"] and r["call"]["result"] == "ok" and r["injected"]):
+            if cfg[name]["inject_malloc_trim"] == "1" and cfg[name].get("cap_add", "-") != "-" and not (r["call"] and r["call"]["result"] == "ok" and r["injected"]):
                 problems.append("%s: sys.remote_exec did not run the script" % job(r))
             wait_s = float(os.environ.get("WAIT_S", "12"))
             slow = [n for n in range(1, cycles + 1) if "wait" in cyc(r, n) and "rel_t" in cyc(r, n) and cyc(r, n)["wait"]["t"] - cyc(r, n)["rel_t"] > wait_s + 2]
             if slow:
                 problems.append("%s: the wait took more than %.0f s in cycles %s" % (job(r), wait_s + 2, ", ".join(map(str, slow))))
-            if name.startswith(("p1", "p5")):
+            if name.startswith(("p1", "p5", "p6")):
                 c2 = cyc(r, 2)
                 hold = at(r, c2["hold"]["t"]) if "hold" in c2 else None
                 if not c2 or not hold or not (c2["k"] > c2["last"] and hold["hend"] and c2["k"] < hold["hend"]):
@@ -204,9 +223,6 @@ def main():
     body = io.StringIO()
     with contextlib.redirect_stdout(body):
         print("## 3. Reproduce and check")
-        print()
-        scopes = sorted({r["env"].get("ptrace_scope", "-") for rs in runs.values() for r in rs})
-        print("The workload was started as a child process of the observer process, and sys.remote_exec was called from that parent; ptrace_scope was %s and the container had Docker's default capabilities (no --cap-add)." % " / ".join(scopes))
         print()
         if p1:
             print("### p1-default")
@@ -234,18 +250,34 @@ def main():
                              kib(rs, rss_at(16, "wait"), "%s, VmRSS at end of wait, cycle 16" % name)])
         table(["condition", "VmRSS at end of wait, cycle 2", "VmRSS at end of wait, cycle 16"], rows)
 
-        if p1:
+        inj = [n for n in ("p1-default", "p6-exec-no-cap") if runs.get(n)]
+        if inj:
             print("## 4. Check in your own process")
             print()
-            print("p1-default, after cycle 16: malloc_trim(0) run in the process with sys.remote_exec(pid, script).")
+            scopes = sorted({r["env"].get("ptrace_scope", "-") for n in inj for r in runs[n]})
+            print("After cycle 16, malloc_trim(0) was run in the process with sys.remote_exec(pid, script), called from a process that entered the same container with docker exec; ptrace_scope was %s." % " / ".join(scopes))
             print()
             rr = lambda i, key: (lambda r: (rss_return(r) or ({}, {}))[i].get(key))
-            row = ["p1-default"]
-            for key, lab in (("rss", "VmRSS"), ("hsize", "[heap] Size"), ("hrss", "[heap] Rss")):
-                row += [kib(p1, rr(0, key), "p1-default %s before malloc_trim(0)" % lab),
-                        kib(p1, rr(1, key), "p1-default %s after malloc_trim(0)" % lab)]
-            table(["condition", "VmRSS before", "VmRSS after", "[heap] Size before", "[heap] Size after",
-                   "[heap] Rss before", "[heap] Rss after"], [row])
+            rows = []
+            errors = []
+            for n in inj:
+                rs = runs[n]
+                caps = sorted({" ".join("--cap-add=" + c for c in r["caps"]) or "none" for r in rs})
+                kinds = [call_kind(r) for r in rs]
+                row = [n, " / ".join(caps),
+                       kinds[0] if len(set(kinds)) == 1 else ", ".join("%s x%d" % (k, kinds.count(k)) for k in sorted(set(kinds)))]
+                for key, lab in (("rss", "VmRSS"), ("hsize", "[heap] Size"), ("hrss", "[heap] Rss")):
+                    row += [kib(rs, rr(0, key), "%s %s before malloc_trim(0)" % (n, lab)),
+                            kib(rs, rr(1, key), "%s %s after malloc_trim(0)" % (n, lab))]
+                rows.append(row)
+                msgs = [error_text(r) for r in rs]
+                if any(x != "no exception" for x in msgs):
+                    errors.append("%s: sys.remote_exec raised %s" % (n, "%s (all %d runs)" % (msgs[0], len(rs)) if len(set(msgs)) == 1 else "; ".join("%s: %s" % (r["run"], x) for r, x in zip(rs, msgs))))
+            table(["condition", "container --cap-add", "sys.remote_exec", "VmRSS before", "VmRSS after", "[heap] Size before",
+                   "[heap] Size after", "[heap] Rss before", "[heap] Rss after"], rows)
+            for e in errors:
+                print(e)
+                print()
             print("Before: last sample before the sys.remote_exec() call. After: last sample of the run. Samples are 0.5 s apart.")
             print()
 
@@ -265,8 +297,10 @@ def main():
         table(["condition", "minor page faults per peak stage, median of cycles 3-16", "pages obtained from the kernel again (MiB)"], rows)
         p5 = runs.get("p5-trim-after-release", [])
         if p5:
-            t = [x for x in (med([cyc(r, n)["trim_s"] for n in range(1, 17) if "trim_s" in cyc(r, n)]) for r in p5) if x is not None]
-            print("p5-trim-after-release: malloc_trim(0) after each release took %s ms (median over cycles 1 to 16)." % ms(med(t)))
+            per = [[cyc(r, n)["trim_s"] for n in range(2, 17) if "trim_s" in cyc(r, n)] for r in p5]
+            per = [x for x in per if x]
+            print("p5-trim-after-release: malloc_trim(0) after each release took %s ms (median over cycles 2 to 16; min %s ms, max %s ms)." % (
+                ms(med([med(x) for x in per])), ms(med([min(x) for x in per])), ms(med([max(x) for x in per]))))
             print()
 
         print("## Numbers not used")

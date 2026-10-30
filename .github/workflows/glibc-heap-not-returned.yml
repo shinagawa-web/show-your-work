@@ -32,8 +32,27 @@ jobs:
           name: glibc-heap-not-returned-s3-${{ matrix.cond }}
           path: glibc-heap-not-returned/results/
 
+  s4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [p6-exec-no-cap]
+    name: s4 (${{ matrix.cond }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: glibc-heap-not-returned-s4-${{ matrix.cond }}
+          path: glibc-heap-not-returned/results/
+
   report:
-    needs: [s3]
+    needs: [s3, s4]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -44,7 +63,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
-          pattern: glibc-heap-not-returned-s3-*
+          pattern: glibc-heap-not-returned-s*
           merge-multiple: true
           path: glibc-heap-not-returned/results/
       - id: summary

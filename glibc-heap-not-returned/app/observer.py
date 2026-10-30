@@ -30,6 +30,13 @@ with open("/out/env.txt", "w") as f:
     f.write("ptrace_scope %s\n" % sh("cat /proc/sys/kernel/yama/ptrace_scope"))
     f.write("cap_eff %s\n" % cap_eff())
     f.write("malloc_env %s\n" % " ".join("%s=%s" % (k, v) for k, v in sorted(os.environ.items()) if k.startswith(("MALLOC_", "GLIBC_TUNABLES"))))
+    f.write("ld_preload %s\n" % os.environ.get("LD_PRELOAD", "none"))
+    f.write("pythonmalloc %s\n" % os.environ.get("PYTHONMALLOC", "none"))
+    try:
+        preload = " ".join(open("/etc/ld.so.preload").read().split()) or "empty"
+    except FileNotFoundError:
+        preload = "none"
+    f.write("ld_so_preload %s\n" % preload)
 
 open(events, "w").close()
 t0 = time.time()
@@ -64,7 +71,6 @@ def sample():
 out = open("/out/samples.tsv", "w")
 out.write("t\tvmrss_kib\theap_size_kib\theap_rss_kib\theap_end\n")
 idle_at = None
-inject_at = None
 nxt = t0
 status = 0
 while True:
@@ -82,19 +88,8 @@ while True:
     out.flush()
     if idle_at is None and "\nidle " in "\n" + open(events).read():
         idle_at = now
-    if idle_at is not None:
-        if inject and inject_at is None and now - idle_at >= pre_s:
-            inject_at = time.time()
-            try:
-                sys.remote_exec(pid, "/app/trim.py")
-                with open("/out/inject.txt", "w") as f:
-                    f.write("call %.3f %.3f ok\n" % (inject_at, time.time()))
-            except Exception as e:
-                with open("/out/inject.txt", "w") as f:
-                    f.write("call %.3f %.3f error %r\n" % (inject_at, time.time(), e))
-                status = 1
-        if now - idle_at >= (pre_s + post_s if inject else pre_s):
-            break
+    if idle_at is not None and now - idle_at >= (pre_s + post_s if inject else pre_s):
+        break
     nxt += 0.5
     time.sleep(max(0, nxt - time.time()))
 child.kill()
