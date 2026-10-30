@@ -1,0 +1,65 @@
+name: if-a
+
+on: pull_request
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      svc_a: ${{ steps.diff.outputs.svc_a }}
+    steps:
+      - env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          FORCED: ${{ github.event.forced }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: printf 'event=%s before=%s after=%s forced=%s base=%s head=%s\n' "$EVENT" "$BEFORE" "$AFTER" "$FORCED" "$BASE_SHA" "$HEAD_SHA"
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff --name-only "$BASE_SHA...$HEAD_SHA" | tee changed.txt
+          if grep -q '^svc-a/' changed.txt; then echo "svc_a=true" >> "$GITHUB_OUTPUT"; else echo "svc_a=false" >> "$GITHUB_OUTPUT"; fi
+      - run: exit 1
+
+  test-a:
+    needs: changes
+    if: needs.changes.outputs.svc_a == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          FORCED: ${{ github.event.forced }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: printf 'event=%s before=%s after=%s forced=%s base=%s head=%s\n' "$EVENT" "$BEFORE" "$AFTER" "$FORCED" "$BASE_SHA" "$HEAD_SHA"
+
+  required-a:
+    needs: [changes, test-a]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          FORCED: ${{ github.event.forced }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: printf 'event=%s before=%s after=%s forced=%s base=%s head=%s\n' "$EVENT" "$BEFORE" "$AFTER" "$FORCED" "$BASE_SHA" "$HEAD_SHA"
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "needs=$RESULTS"
+          case " $RESULTS " in *" failure "*|*" cancelled "*) exit 1 ;; esac
