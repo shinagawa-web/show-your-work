@@ -125,7 +125,14 @@ for c in conds:
         if r["port0"] is None:
             invalid.append(f"{r['dir'].relative_to(results)}: no `port: 0` line, the data directory was not empty")
 
-out = ["# mysql-healthy-before-tcp", "", "Elapsed seconds are from the MySQL container's `.State.StartedAt`.", ""]
+ELAPSED = "Elapsed seconds are from the MySQL container's `.State.StartedAt`."
+
+
+def tests_text(c):
+    return f"{len(runs[c])} runs × 2 tests per run: network, published port"
+
+
+out = ["# mysql-healthy-before-tcp", "", ELAPSED, ""]
 
 r1 = next((r for r in runs.get("baseline", []) if r["dir"].name == "run1"), None)
 if r1:
@@ -164,14 +171,20 @@ if runs.get("baseline"):
     out += ["## 3. Reproduce", ""]
     out += [f"Baseline: job `{job_of('baseline')}`. Init script `sleep 8`; health check {hc_text(rs[0]['hc'])}; empty data directory (`down -v` before each run); the test sends `SELECT 1` once when it sees healthy, from another container on the Compose network and from the host to the published port on `127.0.0.1`.", ""]
     if r1:
-        out += ["### Baseline run 1", "", "| Temporary server ready (`port: 0`) | Healthy | Test started `SELECT 1` (network / published port) | Real server ready (`port: 3306`) |", "|---|---|---|---|"]
+        out += ["### Baseline run 1", "", ELAPSED, "", "| Temporary server ready (`port: 0`) | Healthy | Test started `SELECT 1` (network / published port) | Real server ready (`port: 3306`) |", "|---|---|---|---|"]
         conn = " / ".join(el(r1, r1["tests"][v][0][0]) if r1["tests"][v] else "" for v in ("net", "host"))
         out += [f"| {el(r1, r1['port0'])} | {el(r1, r1['healthy'])} | {conn} | {el(r1, r1['port3306'])} |", ""]
     rows = outcomes("baseline")
-    for v, label in (("net", "Network"), ("host", "Published port")):
-        err = next((t[0][2] for r, vv, t in rows if vv == v and t[0][1] != 0), None)
-        out += [f"{label}:", "", "```", err or "(no failure)", "```", ""]
-    out += [f"Failed: {sum(t[0][1] != 0 for _, _, t in rows)} of {len(rows)}.", ""]
+    out += ["### All baseline runs", ""]
+    out += [f"Failed: {sum(t[0][1] != 0 for _, _, t in rows)} of {len(rows)} tests ({tests_text('baseline')}).", ""]
+    for v, label in (("net", "network"), ("host", "published port")):
+        failed = [t[0][2] for r, vv, t in rows if vv == v and t[0][1] != 0]
+        errs = sorted(set(failed))
+        if not errs:
+            out += [f"No {label} test failed.", ""]
+            continue
+        head = f"All {len(failed)} failed {label} tests printed:" if len(errs) == 1 else f"The {len(failed)} failed {label} tests printed:"
+        out += [head, "", "```"] + errs + ["```", ""]
 
 if r1:
     line = r1["healthy_line"]
@@ -184,16 +197,16 @@ if fixes:
     js = {}
     for c, label in fixes:
         js.setdefault(job_of(c), []).append(c)
-    out += ["## 5. Fixes", "", "Jobs: " + ", ".join(f"`{j}`" for j in js) + ".", ""]
+    out += ["## 5. Fixes", "", "Jobs: " + ", ".join(f"`{j}`" for j in js) + ".", "", ELAPSED, ""]
     out += ["| Fix | Changed from the baseline | Healthy (run 1) | Real server ready (`port: 3306`, run 1) | Result |", "|---|---|---|---|---|"]
     for c, label in fixes:
         r = runs[c][0]
         rows = outcomes(c)
         if env_of(c)["CLIENT_MODE"] == "poll":
             d = [t[-1][3] - rr["port3306"] for rr, _, t in rows if t[-1][1] == 0 and rr["port3306"] is not None]
-            res = f"return of the first successful `SELECT 1` − `port: 3306`: {min(d):+.2f} s to {max(d):+.2f} s ({len(d)} of {len(rows)} returned)" if d else f"none of {len(rows)} returned"
+            res = f"return of the first successful `SELECT 1` − `port: 3306`: {min(d):+.2f} s to {max(d):+.2f} s ({len(d)} of {len(rows)} tests returned; {tests_text(c)})" if d else f"none of {len(rows)} tests returned ({tests_text(c)})"
         else:
-            res = f"failed: {sum(t[0][1] != 0 for _, _, t in rows)} of {len(rows)}"
+            res = f"failed: {sum(t[0][1] != 0 for _, _, t in rows)} of {len(rows)} tests ({tests_text(c)})"
         out.append(f"| {label} | {changed(c)} | {el(r, r['healthy'])} | {el(r, r['port3306'])} | {res} |")
     out.append("")
 
