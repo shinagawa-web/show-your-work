@@ -1,0 +1,96 @@
+name: glibc-heap-not-returned
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "glibc-heap-not-returned/**"
+      - ".github/workflows/glibc-heap-not-returned.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: glibc-heap-not-returned
+
+jobs:
+  s3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [p1-default, p2-no-keep, p3-mmap-threshold, p4-trim-threshold, p5-trim-after-release]
+    name: s3 (${{ matrix.cond }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: glibc-heap-not-returned-s3-${{ matrix.cond }}
+          path: glibc-heap-not-returned/results/
+
+  s4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cond: [p6-exec-no-cap]
+    name: s4 (${{ matrix.cond }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh "${{ matrix.cond }}"
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: glibc-heap-not-returned-s4-${{ matrix.cond }}
+          path: glibc-heap-not-returned/results/
+
+  report:
+    needs: [s3, s4]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: glibc-heap-not-returned-s*
+          merge-multiple: true
+          path: glibc-heap-not-returned/results/
+      - id: summary
+        run: |
+          rc=0
+          scripts/summary.sh results || rc=$?
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- glibc-heap-not-returned -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: glibc-heap-not-returned-summary
+          path: glibc-heap-not-returned/results/summary.md
+      - env:
+          RC: ${{ steps.summary.outputs.rc }}
+        run: exit "${RC:-1}"

@@ -1,0 +1,7 @@
+name	keep_bytes	env	trim_after_release	inject_malloc_trim	cap_add
+p1-default	262144	-	0	1	SYS_PTRACE
+p2-no-keep	0	-	0	0	-
+p3-mmap-threshold	262144	MALLOC_MMAP_THRESHOLD_=131072	0	0	-
+p4-trim-threshold	262144	MALLOC_TRIM_THRESHOLD_=131072	0	0	-
+p5-trim-after-release	262144	-	1	0	-
+p6-exec-no-cap	262144	-	0	1	-
