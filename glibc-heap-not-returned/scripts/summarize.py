@@ -293,14 +293,15 @@ def main():
             flt = lambda r: med([cyc(r, n)["minflt"] for n in range(3, 17) if "minflt" in cyc(r, n)])
             v = [x for x in (flt(r) for r in rs) if x is not None]
             pages = lambda r: flt(r) * int(r["env"]["pagesize"]) if flt(r) is not None and r["env"].get("pagesize", "").isdigit() else None
-            rows.append([name, cnt(med(v)) if v else "-", byt(rs, pages, "%s, pages obtained from the kernel again" % name)])
-        table(["condition", "minor page faults per peak stage, median of cycles 3-16", "pages obtained from the kernel again (MiB)"], rows)
+            dur = [x for x in (med([cyc(r, n)["peak_s"] for n in range(3, 17) if "peak_s" in cyc(r, n)]) for r in rs) if x is not None]
+            rows.append([name, cnt(med(v)) if v else "-", byt(rs, pages, "%s, pages obtained from the kernel again" % name), ms(med(dur))])
+        table(["condition", "minor page faults per peak stage, median of cycles 3-16", "pages obtained from the kernel again (MiB)",
+               "peak stage duration, median of cycles 3-16 (ms)"], rows)
         p5 = runs.get("p5-trim-after-release", [])
         if p5:
             per = [[cyc(r, n)["trim_s"] for n in range(2, 17) if "trim_s" in cyc(r, n)] for r in p5]
             per = [x for x in per if x]
-            print("p5-trim-after-release: malloc_trim(0) after each release took %s ms (median over cycles 2 to 16; min %s ms, max %s ms)." % (
-                ms(med([med(x) for x in per])), ms(med([min(x) for x in per])), ms(med([max(x) for x in per]))))
+            print("p5-trim-after-release: malloc_trim(0) after each release took %s ms (median over cycles 2 to 16)." % ms(med([med(x) for x in per])))
             print()
 
         print("## Numbers not used")
