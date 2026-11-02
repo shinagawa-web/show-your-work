@@ -1,0 +1,240 @@
+name: atlas-local-healthy-first-op-fails
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "atlas-local-healthy-first-op-fails/**"
+      - ".github/workflows/atlas-local-healthy-first-op-fails.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: atlas-local-healthy-first-op-fails
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { job: wait, run: 1, options: "" }
+          - { job: wait, run: 2, options: "" }
+          - { job: wait, run: 3, options: "" }
+          - { job: wait, run: 4, options: "" }
+          - { job: wait, run: 5, options: "" }
+          - { job: wait, run: 6, options: "" }
+          - { job: nowait, run: 1, options: "" }
+          - { job: nowait, run: 2, options: "" }
+          - { job: nowait, run: 3, options: "" }
+          - { job: mongoose, run: 1, options: "" }
+          - { job: mongoose, run: 2, options: "" }
+          - { job: mongoose, run: 3, options: "" }
+          - { job: mongoose, run: 4, options: "" }
+          - { job: mongoose, run: 5, options: "" }
+          - { job: health-start-interval, run: 1, options: "--health-start-interval 1s" }
+          - { job: health-start-interval, run: 2, options: "--health-start-interval 1s" }
+          - { job: health-start-interval, run: 3, options: "--health-start-interval 1s" }
+          - { job: mongot-oom, run: 1, options: "--memory 1g --memory-swap 1g" }
+          - { job: mongot-oom, run: 2, options: "--memory 1g --memory-swap 1g" }
+          - { job: mongot-oom, run: 3, options: "--memory 1g --memory-swap 1g" }
+    name: ${{ matrix.job }}-run${{ matrix.run }}
+    services:
+      mongodb:
+        image: mongodb/mongodb-atlas-local@sha256:ca394bdaedef5d802a07f8e00e7734f181ee9b6cc1aacbf09a50fb776657edbf
+        ports:
+          - 27017:27017
+        env:
+          RUNNER_LOG_FILE: /dev/stdout
+          MONGOT_LOG_FILE: /dev/stdout
+        options: ${{ matrix.options }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: atlas-local-healthy-first-op-fails
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: seed
+        if: matrix.job == 'mongoose'
+        run: ./run-all.sh mongoose seed
+        env:
+          SERVICE_CONTAINER: ${{ job.services.mongodb.id }}
+          RUN: ${{ matrix.run }}
+      - name: test
+        run: ./run-all.sh ${{ matrix.job }} test
+        env:
+          SERVICE_CONTAINER: ${{ job.services.mongodb.id }}
+          RUN: ${{ matrix.run }}
+      - name: collect
+        if: always()
+        run: ./run-all.sh ${{ matrix.job }} collect
+        env:
+          SERVICE_CONTAINER: ${{ job.services.mongodb.id }}
+          RUN: ${{ matrix.run }}
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: atlas-local-healthy-first-op-fails-${{ matrix.job }}-run${{ matrix.run }}
+          path: atlas-local-healthy-first-op-fails/results/
+
+  auth:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2, 3]
+    name: auth-run${{ matrix.run }}
+    services:
+      mongodb:
+        image: mongodb/mongodb-atlas-local@sha256:ca394bdaedef5d802a07f8e00e7734f181ee9b6cc1aacbf09a50fb776657edbf
+        ports:
+          - 27017:27017
+        env:
+          RUNNER_LOG_FILE: /dev/stdout
+          MONGOT_LOG_FILE: /dev/stdout
+          MONGODB_INITDB_ROOT_USERNAME: e2e
+          MONGODB_INITDB_ROOT_PASSWORD: e2e-password
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: atlas-local-healthy-first-op-fails
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: test
+        run: ./run-all.sh auth test
+        env:
+          SERVICE_CONTAINER: ${{ job.services.mongodb.id }}
+          RUN: ${{ matrix.run }}
+      - name: collect
+        if: always()
+        run: ./run-all.sh auth collect
+        env:
+          SERVICE_CONTAINER: ${{ job.services.mongodb.id }}
+          RUN: ${{ matrix.run }}
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: atlas-local-healthy-first-op-fails-auth-run${{ matrix.run }}
+          path: atlas-local-healthy-first-op-fails/results/
+
+  sample-data:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    name: sample-data-run1
+    services:
+      mongodb:
+        image: mongodb/mongodb-atlas-local@sha256:ca394bdaedef5d802a07f8e00e7734f181ee9b6cc1aacbf09a50fb776657edbf
+        ports:
+          - 27017:27017
+        env:
+          RUNNER_LOG_FILE: /dev/stdout
+          MONGOT_LOG_FILE: /dev/stdout
+          MONGODB_LOAD_SAMPLE_DATA: "true"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: atlas-local-healthy-first-op-fails
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: test
+        run: ./run-all.sh sample-data test
+        env:
+          SERVICE_CONTAINER: ${{ job.services.mongodb.id }}
+          RUN: 1
+      - name: collect
+        if: always()
+        run: ./run-all.sh sample-data collect
+        env:
+          SERVICE_CONTAINER: ${{ job.services.mongodb.id }}
+          RUN: 1
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: atlas-local-healthy-first-op-fails-sample-data-run1
+          path: atlas-local-healthy-first-op-fails/results/
+
+  report:
+    needs: [run, auth, sample-data]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: atlas-local-healthy-first-op-fails
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: atlas-local-healthy-first-op-fails-*-run*
+          path: atlas-local-healthy-first-op-fails/artifacts/
+      - id: summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p results
+          for d in artifacts/*/*/; do
+            j=$(basename "$d")
+            mkdir -p "results/$j"
+            cp -r "$d". "results/$j/"
+          done
+          cp "$(ls artifacts/*/environment.txt | head -1)" results/environment.txt
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs" \
+            --jq '.jobs[] | select(.name | test("-run[0-9]+$")) | [.id, .name, ((.completed_at | fromdate) - (.started_at | fromdate)), .conclusion] | @tsv' > results/jobs.tsv
+          { printf 'job\tseconds\tconclusion\n'; cut -f2- results/jobs.tsv | sort; } > results/timing.tsv
+          while IFS=$'\t' read -r id name _ _; do
+            j=${name%-run*}
+            n=${name##*-run}
+            mkdir -p "results/$j/run$n"
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > "results/$j/run$n/runner-job.log"
+          done < results/jobs.tsv
+          present=()
+          for j in wait nowait mongoose auth health-start-interval mongot-oom sample-data; do
+            [ -d "results/$j" ] && present+=("$j")
+          done
+          rc=0
+          REQUIRE_RUNNER_LOG=1 python3 scripts/summary.py results "${present[@]}" > results/summary.md || rc=$?
+          if [ "$rc" -ne 0 ] && ! grep -q '^## Invalid' results/summary.md; then
+            printf '\n## Invalid\n\n- scripts/summary.py exited with %s\n' "$rc" >> results/summary.md
+          fi
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- atlas-local-healthy-first-op-fails -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          if [ "$(wc -c < results/comment.md)" -gt 65000 ]; then
+            { echo "$marker"; sed '/^## Not used for numbers/,$d' results/summary.md; echo "## Not used for numbers"; echo; echo "Too long for a comment. The full \`results/summary.md\` is in the \`atlas-local-healthy-first-op-fails-report\` artifact of run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."; } > results/comment.md
+          fi
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: atlas-local-healthy-first-op-fails-report
+          path: atlas-local-healthy-first-op-fails/results/
+      - env:
+          RC: ${{ steps.summary.outputs.rc }}
+        run: exit "${RC:-1}"
