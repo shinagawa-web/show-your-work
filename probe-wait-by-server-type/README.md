@@ -36,7 +36,7 @@ The server is a Deployment of 3 Pods (`scripts/render.py`, `scripts/servers.py`)
 
 The Pods have CPU and memory requests and no limits. They are started one at a time, each 3 s after the previous container is running, so that their probe periods are not aligned.
 
-k6 (`k6/load.js`) sends GET `/work` to the ClusterIP Service at a fixed arrival rate per stage, with a new connection per request, a 2 s timeout and 2000 VUs. The stages are fractions of `C` = 600 rps for the 3 Pods (`scripts/conditions.py`): 0.75C for 15 s, 1.2C for 60 s, 0.75C for 105 s. While it runs:
+k6 (`k6/load.js`) sends GET `/work` to the ClusterIP Service at a fixed arrival rate per stage, with a new connection per request, a 2 s timeout and 2000 VUs. The k6 Pod sets `net.ipv4.ip_local_port_range` and `net.ipv4.tcp_tw_reuse` (`scripts/render.py`), and `k8s/kind.yaml` allows the kubelet to set `net.ipv4.tcp_tw_reuse`. The stages are fractions of `C` = 600 rps for the 3 Pods (`scripts/conditions.py`): 0.75C for 15 s, 1.2C for 60 s, 0.75C for 105 s. While it runs:
 
 - The prober (`prober/prober.py`), in a Pod on the control-plane node, sends GET to the liveness probe path of each server Pod IP every second, each on a new connection with a 30 s timeout, and records how long it took
 - `scripts/poll.py` reads the Pods and the EndpointSlice every second, `/metrics/probes` of the worker's kubelet every 5 s, and watches the Events and the EndpointSlice from the start of the run. When a container restarts, it saves `kubectl logs --previous`

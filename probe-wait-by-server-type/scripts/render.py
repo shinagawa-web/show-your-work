@@ -56,7 +56,8 @@ def k6(base):
         "spec": {"backoffLimit": 0, "activeDeadlineSeconds": 300, "template": {"spec": {
             "restartPolicy": "Never",
             "nodeSelector": {"kubernetes.io/hostname": cluster + "-control-plane"},
-            "securityContext": {"sysctls": [{"name": "net.ipv4.ip_local_port_range", "value": "1024 65535"}]},
+            "securityContext": {"sysctls": [{"name": "net.ipv4.ip_local_port_range", "value": "1024 65535"},
+                                            {"name": "net.ipv4.tcp_tw_reuse", "value": "1"}]},
             "containers": [{
                 "name": "k6", "image": os.environ["K6_TAG"], "imagePullPolicy": "Never",
                 "args": ["run", "--quiet", "--no-usage-report", "--log-format=raw",
