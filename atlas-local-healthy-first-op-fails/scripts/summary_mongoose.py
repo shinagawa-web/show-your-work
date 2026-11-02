@@ -244,24 +244,25 @@ def section(results, ts, invalid, h):
 
     notused = []
     q = notused.append
-    q('### job: mongoose, debug on')
-    q('')
-    q('Same flow with `mongoose.set(\'debug\', fn)`. Times are when mongoose called the debug function.')
-    q('')
-    q('| run | runner wait saw healthy | seed debug calls (method at time) | seed `createIndex` returned | returned before `disconnect` called | seed `disconnect` called | mongod 20438 | mongod 20345 `name_1` | `listIndexes` | test debug calls | `find` |')
-    q('|---|---|---|---|---|---|---|---|---|---|---|')
-    for r in debug:
-        rel = r['rel']
-        dc = first(r['seed'], ev='op', op='disconnect')
-        sd = ', '.join(f"{e['method']} {f(rel(e['t']))}" for e in r['seed'] if e['ev'] == 'debug')
-        td = ', '.join(f"{e['method']} {f(rel(e['t']))}" for e in r['test'] if e['ev'] == 'debug')
-        q(f"| {r['name']} | {f(r['runner_healthy'])} | {sd} | {ci_text(r, 'seed')} | {yn(returned_before_disconnect(r))} | {f(rel(dc['t_start'])) if dc else '-'} | {f(mongod_first(r, 20438))} | {f(mongod_done(r))} | {probe_text(r)} | {td} | {find_text(r)} |")
-    q('')
-    for r in debug:
-        errs = errors_of(r)
-        if errs:
-            q(f"- {r['name']} errors: " + '; '.join(f'{proc} {f(t)} {text}' for proc, t, text in errs))
-    q('')
+    if debug:
+        q('### job: mongoose, debug on')
+        q('')
+        q('Same flow with `mongoose.set(\'debug\', fn)`. Times are when mongoose called the debug function.')
+        q('')
+        q('| run | runner wait saw healthy | seed debug calls (method at time) | seed `createIndex` returned | returned before `disconnect` called | seed `disconnect` called | mongod 20438 | mongod 20345 `name_1` | `listIndexes` | test debug calls | `find` |')
+        q('|---|---|---|---|---|---|---|---|---|---|---|')
+        for r in debug:
+            rel = r['rel']
+            dc = first(r['seed'], ev='op', op='disconnect')
+            sd = ', '.join(f"{e['method']} {f(rel(e['t']))}" for e in r['seed'] if e['ev'] == 'debug')
+            td = ', '.join(f"{e['method']} {f(rel(e['t']))}" for e in r['test'] if e['ev'] == 'debug')
+            q(f"| {r['name']} | {f(r['runner_healthy'])} | {sd} | {ci_text(r, 'seed')} | {yn(returned_before_disconnect(r))} | {f(rel(dc['t_start'])) if dc else '-'} | {f(mongod_first(r, 20438))} | {f(mongod_done(r))} | {probe_text(r)} | {td} | {find_text(r)} |")
+        q('')
+        for r in debug:
+            errs = errors_of(r)
+            if errs:
+                q(f"- {r['name']} errors: " + '; '.join(f'{proc} {f(t)} {text}' for proc, t, text in errs))
+        q('')
     for r in plain + debug:
         rel = r['rel']
         q(f"### job: mongoose, {r['name']}")

@@ -80,6 +80,7 @@ def load_runner_wait(run_dir):
             for line in f:
                 line = line.rstrip('\n').lstrip('\ufeff')
                 t, _, text = line.partition(' ')
+                text = text.removeprefix('##[group]')
                 if not (text.startswith('Waiting for all services to be ready') or 'service is starting, waiting' in text
                         or text.endswith('service is healthy.') or text.startswith('Service container ')):
                     continue

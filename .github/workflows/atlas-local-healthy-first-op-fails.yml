@@ -200,7 +200,8 @@ jobs:
             j=${name%-run*}
             n=${name##*-run}
             mkdir -p "results/$j/run$n"
-            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > "results/$j/run$n/runner-job.log"
+            curl -sSfL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" -o "results/$j/run$n/runner-job.log"
           done < results/jobs.tsv
           present=()
           for j in wait nowait mongoose auth health-start-interval mongot-oom sample-data; do
