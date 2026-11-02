@@ -23,6 +23,7 @@ jobs:
         with:
           name: probe-wait-by-server-type-image
           path: probe-wait-by-server-type/.images/
+          include-hidden-files: true
           retention-days: 1
 
   run:
