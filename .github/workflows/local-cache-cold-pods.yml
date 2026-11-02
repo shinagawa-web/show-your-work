@@ -1,0 +1,78 @@
+name: local-cache-cold-pods
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "local-cache-cold-pods/**"
+      - ".github/workflows/local-cache-cold-pods.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: local-cache-cold-pods
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { section: "3", condition: add-1 }
+          - { section: "3", condition: add-2 }
+          - { section: "3, 4", condition: add-4 }
+          - { section: "3", condition: add-8 }
+          - { section: "3, 4", condition: restart-default }
+          - { section: "4", condition: restart-surge1 }
+          - { section: "4", condition: redis }
+    name: ${{ matrix.section }} (${{ matrix.condition }})
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh ${{ matrix.condition }}
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: local-cache-cold-pods-${{ matrix.condition }}
+          path: local-cache-cold-pods/results/
+
+  summary:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: local-cache-cold-pods-*
+          path: local-cache-cold-pods/artifacts/
+      - run: |
+          mkdir -p results
+          python3 -B scripts/report.py artifacts/*/ > results/summary.md
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- local-cache-cold-pods -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: local-cache-cold-pods-summary
+          path: local-cache-cold-pods/results/summary.md
