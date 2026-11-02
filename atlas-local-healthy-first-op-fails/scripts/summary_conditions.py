@@ -106,11 +106,15 @@ def oom_detail(p, rs):
         go = float(env['t_hog_go']) if 't_hog_go' in env else None
         p(f"#### mongot-oom, {r['name']}")
         p('')
-        p(f"- memory limit and memory hog (`oom.env`): `limit_kb={env.get('limit_kb')} total_rss_kb={env.get('total_rss_kb')} mongot_rss_kb={env.get('mongot_rss_kb')} hog_kb={env.get('hog_kb')}`, `mongod_oom_score_adj={env.get('mongod_oom_score_adj')}`, `hog_oom_score_adj={env.get('hog_oom_score_adj')}`")
-        p(f"- hog started: {f(r['rel'](go)) if go else '-'}; mongot gone and `oom_kill` raised, as polled: {f(r['rel'](float(env['t_oom_seen']))) if 't_oom_seen' in env else '-'}")
+        p(f"- memory limit and memory hog (`oom.env`): `limit_kb={env.get('limit_kb')} total_rss_anon_kb={env.get('total_rss_anon_kb')} mongot_rss_anon_kb={env.get('mongot_rss_anon_kb')} hog_kb={env.get('hog_kb')}`, `mongod_oom_score_adj={env.get('mongod_oom_score_adj')}`, `hog_oom_score_adj={env.get('hog_oom_score_adj')}`")
+        p(f"- hog started: {f(r['rel'](go)) if go else '-'}; poll loop ended (mongot gone and `oom_kill` raised, or the container not running): {f(r['rel'](float(env['t_oom_seen']))) if 't_oom_seen' in env else '-'}")
         before = read(os.path.join(d, 'memory.events.before')).split()
         after = read(os.path.join(d, 'memory.events.after')).split()
-        p(f"- `memory.events` before the hog: `{' '.join(before)}`; after: `{' '.join(after)}`")
+        p(f"- `memory.events` before the hog: `{' '.join(before)}`; after the poll loop: `{' '.join(after)}`")
+        polls = [x.split('\t') for x in read(os.path.join(d, 'oom-poll.tsv')).splitlines()[1:] if x.strip()]
+        if polls and len(polls[-1]) == 5:
+            t, running, cur, n, pid = polls[-1]
+            p(f"- last poll: {f(r['rel'](float(t)))} running=`{running}` memory.current=`{cur}` oom_kill=`{n}` mongot_pid=`{pid}`")
         try:
             st = json.load(open(os.path.join(d, 'inspect.json')))[0]['State']
             p(f"- `docker inspect` `.State` at collect: `Status={st.get('Status')} OOMKilled={st.get('OOMKilled')} ExitCode={st.get('ExitCode')} FinishedAt={st.get('FinishedAt')} Health.Status={(st.get('Health') or {}).get('Status')}`")

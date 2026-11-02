@@ -84,21 +84,24 @@ cgroup_dir() {
 mongot_pid() { docker top "$1" -eo pid,args 2> /dev/null | awk '/MongotCli/ {print $1; exit}'; }
 
 oom_mongot() {
-  local out=$1 ctr=$2 cg limit_kb total_kb mongot_kb hog_kb mongod hog="" t_end n before p
+  local out=$1 ctr=$2 cg limit_kb total_kb mongot_kb hog_kb mongod hog="" t_end n before p running
   cg=$(cgroup_dir "$ctr")
   echo "cgroup=$cg" >> "$out/oom.env"
   limit_kb=$(($(docker inspect -f '{{.HostConfig.Memory}}' "$ctr") / 1024))
   docker top "$ctr" -eo pid,rss,args > "$out/top-before.txt"
-  total_kb=$(awk 'NR > 1 {s += $2} END {print s}' "$out/top-before.txt")
-  mongot_kb=$(awk 'NR > 1 && /MongotCli/ {print $2; exit}' "$out/top-before.txt")
+  for p in $(awk 'NR > 1 {print $1}' "$out/top-before.txt"); do
+    printf '%s\t%s\t%s\n' "$p" "$(awk '/^RssAnon:/ {print $2}' "/proc/$p/status" 2> /dev/null)" "$(tr '\0' ' ' < "/proc/$p/cmdline" 2> /dev/null | cut -c1-80)"
+  done > "$out/rss-anon-before.tsv"
+  total_kb=$(awk -F'\t' '{s += $2} END {print s}' "$out/rss-anon-before.tsv")
+  mongot_kb=$(awk -F'\t' '$3 ~ /^\/opt\/mongot\// {print $2; exit}' "$out/rss-anon-before.tsv")
   hog_kb=$((limit_kb - total_kb + ${mongot_kb:-0} / 2))
-  echo "limit_kb=$limit_kb total_rss_kb=$total_kb mongot_rss_kb=$mongot_kb hog_kb=$hog_kb" >> "$out/oom.env"
+  echo "limit_kb=$limit_kb total_rss_anon_kb=$total_kb mongot_rss_anon_kb=$mongot_kb hog_kb=$hog_kb" >> "$out/oom.env"
   cat "$cg/memory.events" > "$out/memory.events.before" 2>&1
   before=$(awk '$1 == "oom_kill" {print $2}' "$out/memory.events.before")
   mongod=$(docker top "$ctr" -eo pid,args | awk '$2 == "mongod" {print $1; exit}')
   echo -1000 | sudo tee "/proc/$mongod/oom_score_adj" > /dev/null
   echo "mongod_pid=$mongod mongod_oom_score_adj=$(cat "/proc/$mongod/oom_score_adj")" >> "$out/oom.env"
-  docker exec -u root -d "$ctr" sh -c "while [ ! -f /tmp/hog.go ]; do sleep 0.1; done; exec sh -c 'head -c ${hog_kb}k /dev/zero | tail > /dev/null'"
+  docker exec -u root -d "$ctr" sh -c "while [ ! -f /tmp/hog.go ]; do sleep 0.1; done; exec sh -c '{ head -c ${hog_kb}k /dev/zero; sleep 3600; } | tail > /dev/null'"
   for _ in $(seq 50); do
     hog=$(docker top "$ctr" -eo pid,args | awk '/hog.go/ {print $1; exit}')
     [ -n "$hog" ] && break
@@ -109,11 +112,13 @@ oom_mongot() {
   echo "t_hog_go=$(now)" >> "$out/oom.env"
   docker exec -u root "$ctr" touch /tmp/hog.go
   t_end=$(($(date +%s) + 30))
-  printf 't\tmemory_current\toom_kill\tmongot_pid\n' > "$out/oom-poll.tsv"
+  printf 't\trunning\tmemory_current\toom_kill\tmongot_pid\n' > "$out/oom-poll.tsv"
   while [ "$(date +%s)" -lt "$t_end" ]; do
-    n=$(awk '$1 == "oom_kill" {print $2}' "$cg/memory.events")
+    running=$(docker inspect -f '{{.State.Running}}' "$ctr")
+    n=$(awk '$1 == "oom_kill" {print $2}' "$cg/memory.events" 2> /dev/null)
     p=$(mongot_pid "$ctr")
-    printf '%s\t%s\t%s\t%s\n' "$(now)" "$(cat "$cg/memory.current")" "$n" "$p" >> "$out/oom-poll.tsv"
+    printf '%s\t%s\t%s\t%s\t%s\n' "$(now)" "$running" "$(cat "$cg/memory.current" 2> /dev/null)" "$n" "$p" >> "$out/oom-poll.tsv"
+    [ "$running" = true ] || break
     if [ "${n:-0}" -gt "${before:-0}" ] && [ -z "$p" ]; then break; fi
     sleep 0.2
   done

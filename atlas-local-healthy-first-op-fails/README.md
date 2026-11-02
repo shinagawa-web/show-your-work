@@ -36,7 +36,7 @@ The service container has `RUNNER_LOG_FILE=/dev/stdout` and `MONGOT_LOG_FILE=/de
 
 ### mongot-oom
 
-Before the test, `run-all.sh` sets `oom_score_adj` of mongod to -1000 through `sudo` on the host, starts `head -c <size> /dev/zero | tail` in the container with `docker exec -u root`, sets its `oom_score_adj` to -1000 before it allocates, and waits up to 30 s for `oom_kill` in the container's `memory.events` and for mongot to leave `docker top`. The size is the memory limit minus the RSS of the container's processes plus half the RSS of mongot. After the test it polls `.State.Health` every 2 s for up to 120 s, and saves `dmesg`.
+Before the test, `run-all.sh` sets `oom_score_adj` of mongod to -1000 through `sudo` on the host, starts `{ head -c <size> /dev/zero; sleep 3600; } | tail` in the container with `docker exec -u root`, so that `tail` keeps the bytes it read, sets its `oom_score_adj` to -1000 before it allocates, and waits up to 30 s for `oom_kill` in the container's `memory.events` and for mongot to leave `docker top`, or for the container to stop running. The size is the memory limit minus the anonymous RSS (`RssAnon`) of the container's processes plus half that of mongot. After the test it polls `.State.Health` every 2 s for up to 120 s, and saves `dmesg`.
 
 ## Local runs
 
