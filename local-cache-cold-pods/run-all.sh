@@ -53,6 +53,10 @@ kubectl get pod -l app=app -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{
   echo "\$ kind version"; kind version
   echo "\$ kubectl version"; kubectl version 2>&1
   echo "\$ uname -srm; nproc"; uname -srm; nproc
+  echo "\$ lscpu"; lscpu
+  echo "\$ lscpu -e"; lscpu -e
+  echo "\$ cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list"
+  for f in /sys/devices/system/cpu/cpu*/topology/thread_siblings_list; do echo "$f: $(cat "$f")"; done
   echo "\$ docker inspect cpuset ($node, $PG)"; docker inspect -f '{{.Name}} {{.HostConfig.CpusetCpus}} {{.HostConfig.NanoCpus}}' "$node" "$PG"
   echo "\$ grep Cpus_allowed_list /proc/1/status (in $node)"; docker exec "$node" grep Cpus_allowed_list /proc/1/status
   echo "\$ grep Cpus_allowed_list /proc/1/status (in $PG)"; docker exec "$PG" grep Cpus_allowed_list /proc/1/status
