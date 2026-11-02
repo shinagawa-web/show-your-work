@@ -21,12 +21,9 @@ jobs:
       matrix:
         include:
           - { section: "3", condition: add-1 }
-          - { section: "3", condition: add-2 }
-          - { section: "3, 4", condition: add-4 }
-          - { section: "3", condition: add-8 }
+          - { section: "3", condition: add-4 }
           - { section: "3, 4", condition: restart-default }
           - { section: "4", condition: restart-surge1 }
-          - { section: "4", condition: redis }
     name: ${{ matrix.section }} (${{ matrix.condition }})
     steps:
       - uses: actions/checkout@v7

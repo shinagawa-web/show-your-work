@@ -3,29 +3,27 @@ set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-$here/results}
 cond=${1:-}
-case $cond in add-[0-9]*|restart-default|restart-surge1|redis) ;; *) echo "usage: run-all.sh add-<n>|restart-default|restart-surge1|redis [NAME=value ...]" >&2; exit 2 ;; esac
+case $cond in add-1|add-4|restart-default|restart-surge1) ;; *) echo "usage: run-all.sh add-1|add-4|restart-default|restart-surge1 [NAME=value ...]" >&2; exit 2 ;; esac
 shift
 . "$here/scripts/versions.env"
 . "$here/scripts/params.env"
 for a in "$@"; do case $a in [A-Z]*=*) eval "${a%%=*}=\${a#*=}" ;; *) echo "bad argument $a" >&2; exit 2 ;; esac; done
 export PATH=$here/.bin:$PATH
-export KIND_NODE_IMAGE APP_IMAGE K6_TAG REDIS_TAG CLUSTER PG RATE START_RATE RAMP KEYS ZIPF_S CACHE_SIZE CACHE_TTL_SECONDS REDIS_TTL_SECONDS POOL_MAX JOIN_ROWS USERS WARM MIN_READY MITIGATION_N K6_GOGC
+export KIND_NODE_IMAGE APP_IMAGE K6_TAG CLUSTER PG NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S CACHE_SIZE CACHE_TTL_SECONDS POOL_MAX JOIN_ROWS USERS WARM MIN_READY MAX_OBS QUIET_READS QUIET_SECONDS K6_GOGC
 start=$(date +%s)
 rm -rf "$results"
 mkdir -p "$results"
 abort() { echo "RUN INVALID: $1" | tee "$results/summary.md"; exit 1; }
 py() { python3 -B "$here/scripts/$@"; }
 node=$CLUSTER-control-plane
-mode=local strategy=default add=0
+strategy=default add=0
 case $cond in
-  add-*) add=${cond#add-}; obs=$(( add >= 8 ? 90 : 60 )) ;;
-  redis) mode=redis add=$MITIGATION_N obs=$(( add >= 8 ? 90 : 60 )) ;;
-  restart-default) obs=75 ;;
-  restart-surge1) strategy=surge1 obs=$(( 4 * (MIN_READY + 5) + 25 )) ;;
+  add-*) add=${cond#add-} ;;
+  restart-surge1) strategy=surge1 ;;
 esac
 {
-  echo "cond=$cond mode=$mode strategy=$strategy add=$add warm=$WARM obs=$obs"
-  for v in RATE START_RATE RAMP KEYS ZIPF_S CACHE_SIZE CACHE_TTL_SECONDS REDIS_TTL_SECONDS POOL_MAX JOIN_ROWS USERS MIN_READY MITIGATION_N K6_GOGC; do echo "$v=${!v}"; done
+  echo "cond=$cond strategy=$strategy add=$add warm=$WARM"
+  for v in NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S CACHE_SIZE CACHE_TTL_SECONDS POOL_MAX JOIN_ROWS USERS MIN_READY MAX_OBS QUIET_READS QUIET_SECONDS K6_GOGC; do echo "$v=${!v}"; done
 } > "$results/params.txt"
 
 "$here/scripts/setup.sh" > "$results/setup.log" 2>&1 || { tail -30 "$results/setup.log"; abort "setup.sh failed"; }
@@ -34,15 +32,11 @@ echo "setup $(( $(date +%s) - start ))s" > "$results/elapsed.txt"
 pgip=$(docker inspect -f '{{.NetworkSettings.Networks.kind.IPAddress}}' "$PG")
 py render.py pg "$pgip" | kubectl apply -f - >/dev/null 2>&1 || abort "apply of the pg Service failed"
 q="SELECT i.id, i.name, count(r.id), avg(r.score)::float8, count(DISTINCT u.country) FROM items i JOIN reviews r ON r.item_id = i.id JOIN users u ON u.id = r.user_id WHERE i.id = :id GROUP BY i.id, i.name;"
-docker run --rm --network kind --cpuset-cpus 0-2 -e PGPASSWORD=pg --entrypoint sh "$POSTGRES_IMAGE" -c \
+docker run --rm --network kind --cpuset-cpus "$NODE_CPUS" -e PGPASSWORD=pg --entrypoint sh "$POSTGRES_IMAGE" -c \
   "printf '%s\n' '\\set id random(1, $KEYS)' '$q' > /tmp/q.sql && pgbench -n -h $pgip -U postgres -c 16 -j 4 -T 8 -f /tmp/q.sql postgres" \
   > "$results/pgbench.txt" 2>&1 || abort "pgbench failed"
 
-if [ "$mode" = redis ]; then
-  py render.py redis | kubectl apply -f - >/dev/null || abort "apply of redis failed"
-  kubectl rollout status deploy/redis --timeout=120s >/dev/null || abort "redis did not roll out"
-fi
-py render.py app "$mode" "$strategy" > "$results/app.json"
+py render.py app "$strategy" > "$results/app.json"
 kubectl apply -f "$results/app.json" >/dev/null || abort "apply of the app failed"
 kubectl rollout status deploy/app --timeout=180s >/dev/null || abort "app did not roll out"
 kubectl wait --for=condition=Ready pod -l app=app --timeout=60s >/dev/null || abort "app Pods not Ready"
@@ -79,7 +73,7 @@ py poll.py "$results" "$pgcg" "$nodecg" > "$results/poll.log" 2>&1 &
 poll=$!
 
 kubectl create configmap k6-script --from-file=load.js="$here/k6/load.js" >/dev/null
-py render.py k6 $(( WARM + obs )) | kubectl apply -f - >/dev/null || abort "apply of the k6 Job failed"
+py render.py k6 $(( WARM + MAX_OBS )) | kubectl apply -f - >/dev/null || abort "apply of the k6 Job failed"
 t0=
 for i in $(seq 600); do
   t0=$(docker exec "$node" sh -c 'grep -m1 "^T0 " /k6out/k6.log 2>/dev/null' | awk '{print $2}')
@@ -89,19 +83,27 @@ done
 [ -n "$t0" ] || abort "k6 did not start"
 echo "k6_t0 $t0" > "$results/timeline.txt"
 python3 -c 'import sys, time; time.sleep(max(0, int(sys.argv[1]) / 1000 + int(sys.argv[2]) - time.time()))' "$t0" "$WARM"
-echo "op $(date +%s.%N)" >> "$results/timeline.txt"
+op=$(date +%s.%N)
+echo "op $op" >> "$results/timeline.txt"
 case $cond in
-  restart-*)
-    kubectl rollout restart deploy/app > "$results/operation.txt" 2>&1
-    kubectl rollout status deploy/app --timeout=${obs}s >> "$results/operation.txt" 2>&1
-    echo "rollout_done $(date +%s.%N) exit=$?" >> "$results/timeline.txt"
-    ;;
-  *)
-    kubectl scale deploy/app --replicas=$(( 4 + add )) > "$results/operation.txt" 2>&1
-    ;;
+  restart-*) kubectl rollout restart deploy/app > "$results/operation.txt" 2>&1 ;;
+  *) kubectl scale deploy/app --replicas=$(( 4 + add )) > "$results/operation.txt" 2>&1 ;;
 esac
-kubectl wait --for=condition=complete job/k6 --timeout=$(( obs + 120 ))s >/dev/null || echo "k6_incomplete $(date +%s.%N)" >> "$results/timeline.txt"
-echo "k6_done $(date +%s.%N)" >> "$results/timeline.txt"
+left=$(python3 -c 'import sys, time; print(max(1, int(float(sys.argv[1]) + int(sys.argv[2]) - time.time())))' "$op" "$MAX_OBS")
+kubectl rollout status deploy/app --timeout=${left}s >> "$results/operation.txt" 2>&1
+echo "rollout_done $(date +%s.%N) exit=$?" >> "$results/timeline.txt"
+py watch.py "$node" "$op" "$MAX_OBS" "$QUIET_READS" "$QUIET_SECONDS" >> "$results/timeline.txt"
+k6pod=$(kubectl get pod -l job-name=k6 -o jsonpath='{.items[0].metadata.name}')
+kubectl exec "$k6pod" -- kill -INT 1 >/dev/null 2>&1
+echo "k6_interrupted $(date +%s.%N)" >> "$results/timeline.txt"
+for i in $(seq 120); do
+  phase=$(kubectl get pod "$k6pod" -o jsonpath='{.status.phase}')
+  [ "$phase" = Succeeded ] || [ "$phase" = Failed ] && break
+  sleep 1
+done
+code=$(kubectl get pod "$k6pod" -o jsonpath='{.status.containerStatuses[0].state.terminated.exitCode}')
+case $code in 0|105) ;; *) echo "k6_incomplete $(date +%s.%N) exit=$code" >> "$results/timeline.txt" ;; esac
+echo "k6_done $(date +%s.%N) exit=$code" >> "$results/timeline.txt"
 
 pods() { kubectl get pod -l app=app -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | sort; }
 if [ "$add" -gt 0 ]; then

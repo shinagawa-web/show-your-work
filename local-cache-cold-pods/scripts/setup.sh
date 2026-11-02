@@ -21,14 +21,12 @@ docker build -q --build-arg GO_IMAGE="$GO_IMAGE" --build-arg BASE_IMAGE="$BASE_I
 build=$!
 docker pull -q "grafana/k6@$K6_DIGEST"
 docker tag "grafana/k6@$K6_DIGEST" "$K6_TAG"
-docker pull -q "redis@$REDIS_DIGEST"
-docker tag "redis@$REDIS_DIGEST" "$REDIS_TAG"
 docker pull -q "$POSTGRES_IMAGE"
 wait "$create"
-docker update --cpuset-cpus 0-2 "$CLUSTER-control-plane"
-docker run -d --name "$PG" --cpuset-cpus 3 --network kind -e POSTGRES_PASSWORD=pg "$POSTGRES_IMAGE"
+docker update --cpuset-cpus "$NODE_CPUS" "$CLUSTER-control-plane"
+docker run -d --name "$PG" --cpuset-cpus "$PG_CPUS" --network kind -e POSTGRES_PASSWORD=pg "$POSTGRES_IMAGE"
 wait "$build"
-for img in "$APP_IMAGE" "$K6_TAG" "$REDIS_TAG"; do
+for img in "$APP_IMAGE" "$K6_TAG"; do
   docker save "$img" | docker exec -i "$CLUSTER-control-plane" ctr -n k8s.io images import -
 done
 docker exec "$CLUSTER-control-plane" sh -c 'rm -rf /k6out /stats && mkdir -m 777 /k6out /stats'

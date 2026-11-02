@@ -36,7 +36,7 @@ for f in glob.glob(R("stats", "*.jsonl")):
         stats[rows[0]["pod"]] = rows
 
 per = defaultdict(lambda: defaultdict(float))
-COUNTERS = ["req", "hit", "miss", "db_start", "db_done", "dup", "redis_hit", "redis_miss",
+COUNTERS = ["req", "hit", "miss", "db_start", "db_done", "dup",
             "errs", "pool_acquire_count", "pool_empty_acquire", "pool_empty_wait_ns", "pool_acquire_ns"]
 new_first_req = None
 for pod, rows in stats.items():
@@ -60,13 +60,22 @@ for pod, rows in stats.items():
 
 lat = defaultdict(list)
 status_bad = defaultdict(int)
+stop_ms = float(timeline.get("k6_interrupted", "inf")) * 1000
 for line in open(R("k6", "k6.log")):
     p = line.split()
-    if p and p[0] == "r":
+    if p and p[0] == "r" and int(p[1]) < stop_ms:
         s = int(p[1]) // 1000
         lat[s].append(float(p[3]))
         if p[4] != "200":
             status_bad[s] += 1
+
+def ncpus(spec):
+    n = 0
+    for part in spec.split(","):
+        a, _, b = part.partition("-")
+        n += int(b or a) - int(a) + 1
+    return n
+
 
 cpu = {}
 stalls = []
@@ -81,13 +90,8 @@ for line in open(R("cpu.jsonl")):
         ticks = sum(v[0] - prev["proc_stat"][c][0] for c, v in r["proc_stat"].items()) / dt
         if ticks < 0.75 * 100 * len(r["proc_stat"]):
             stalls.append((s, ticks))
-        busy = {}
-        for c, (tot, idle) in r["proc_stat"].items():
-            pt, pi = prev["proc_stat"][c]
-            busy[c] = 100 * (1 - (idle - pi) / max(1, tot - pt))
-        cpu[s] = {"pg": (r["pg_usec"] - prev["pg_usec"]) / dt / 1e4,
-                  "node": (r["node_usec"] - prev["node_usec"]) / dt / 1e4 / 3,
-                  "cpu012": statistics.mean(busy[c] for c in ("cpu0", "cpu1", "cpu2")), "cpu3": busy["cpu3"]}
+        cpu[s] = {"pg": (r["pg_usec"] - prev["pg_usec"]) / dt / 1e4 / ncpus(params["PG_CPUS"]),
+                  "node": (r["node_usec"] - prev["node_usec"]) / dt / 1e4 / ncpus(params["NODE_CPUS"])}
     prev = r
 
 
@@ -111,8 +115,7 @@ for s in secs:
            "k6_n": len(lat[s]), "p50": pct(lat[s], 0.5), "p99": pct(lat[s], 0.99), "bad": status_bad[s],
            "pool_wait_ms": d["pool_empty_wait_ns"] / d["pool_empty_acquire"] / 1e6 if d["pool_empty_acquire"] else 0.0,
            "pool_empty": d["pool_empty_acquire"], "inflight": d["db_inflight"],
-           "pool_acq": d["pool_acquired"], "pool_max": d["pool_max"],
-           "redis_hit": d["redis_hit"]}
+           "pool_acq": d["pool_acquired"], "pool_max": d["pool_max"]}
     c = cpu.get(s)
     row.update({"pg_cpu": c["pg"], "node_cpu": c["node"]} if c else {"pg_cpu": None, "node_cpu": None})
     table.append(row)
@@ -157,7 +160,6 @@ new_pods = sorted(p for p in stats if p not in initial)
 new_db_total = sum(stats[p][-1]["db_start"] for p in new_pods)
 new_dup_total = sum(stats[p][-1]["dup"] for p in new_pods)
 new_req_total = sum(stats[p][-1]["req"] for p in new_pods)
-new_redis_hit = sum(stats[p][-1]["redis_hit"] for p in new_pods)
 excess_db = sum(r["db"] for r in after) - b_db * len(after)
 
 ready_at = {}
@@ -197,9 +199,10 @@ if b_old_hit < 0.98:
     invalid.append("hit rate of the existing Pods before the operation is %.4f (< 0.98): caches were not filled" % b_old_hit)
 if dropped > 0.01 * (iters + dropped):
     invalid.append("dropped_iterations %d is over 1%% of the iterations" % dropped)
-if cond.startswith("restart") and final & initial:
+restarted = cond.startswith("restart")
+if restarted and final & initial:
     invalid.append("Pods from before the restart remain: %s" % sorted(final & initial))
-if cond.startswith("restart") and (rollout is None or "exit=0" not in open(R("timeline.txt")).read()):
+if restarted and (rollout is None or not any(l.startswith("rollout_done ") and l.split()[-1] == "exit=0" for l in open(R("timeline.txt")))):
     invalid.append("rollout status did not succeed")
 
 frac = add / (4 + add) if add else None
@@ -217,7 +220,7 @@ out = {
     "pool_wait_ge_1ms_s": pool_wait, "pg_cpu_ge_90_s": pg_full,
     "new_pods": new_pods, "new_db_total": new_db_total, "new_dup_total": new_dup_total,
     "new_req_total": new_req_total,
-    "new_redis_hit": new_redis_hit, "excess_db_after_op": excess_db,
+    "excess_db_after_op": excess_db,
     "fill_s": fill, "new_ready_rel_s": new_ready, "old_deleting_rel_s": old_deleted, "rollout_s": rollout,
     "dropped_iterations": dropped, "iterations": iters, "non_200": bad_total,
     "node_cpu_peak_pct": max((r["node_cpu"] for r in after if r["node_cpu"] is not None), default=None),
@@ -248,8 +251,6 @@ print("p99 of all requests in the 15 s before the operation %.1f ms, in the 30 s
       % (b_p99_pooled, a_p99_pooled))
 print("DB reads by the new Pods (total until the end of the load): %d, of which overlapped with an in-flight read of the same key in the same Pod: %d"
       % (new_db_total, new_dup_total))
-if cond == "redis":
-    print("Redis hits by the new Pods: %d" % new_redis_hit)
 print("seconds until the new Pods' hit rate reached 99%% of the existing Pods': %s" % f(fill, "%d"))
 print("p99 peak from the operation until 3 s after the last second with >= 10 DB reads (+%ds): %.1f ms at +%ds (p50 %.1f ms)"
       % (window_end, p99_peak["p99"], p99_peak["rel"], p99_peak["p50"]))
@@ -257,11 +258,11 @@ print("seconds with p99 > %.1f ms: %s" % (threshold, p99_high))
 print("seconds with mean pgxpool empty-acquire wait >= 1 ms: %s" % pool_wait)
 print("seconds with DB container CPU >= 90%%: %s" % pg_full)
 print("new Pods Ready at (s after the operation): %s" % ", ".join("%.1f" % x for x in new_ready))
-if rollout is not None:
+if rollout is not None and restarted:
     print("rollout restart took %.1f s (kubectl rollout status); old Pods marked for deletion at: %s"
           % (rollout, ", ".join("%.1f" % x for x in old_deleted)))
 print("k6: iterations %d, dropped_iterations %d, non-200 %d" % (iters, dropped, bad_total))
-print("node CPU peak %s%% of CPUs 0-2, DB CPU peak %s%%" % (f(out["node_cpu_peak_pct"], "%.0f"), f(out["pg_cpu_peak_pct"], "%.0f")))
+print("node CPU peak %s%% of its CPUs, DB CPU peak %s%% of its CPUs" % (f(out["node_cpu_peak_pct"], "%.0f"), f(out["pg_cpu_peak_pct"], "%.0f")))
 if add:
     print("Pods after scaling back to 4 are the initial 4: %s" % (final == initial))
 print("```")

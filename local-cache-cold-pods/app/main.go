@@ -17,7 +17,6 @@ import (
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 )
 
 type item struct {
@@ -34,15 +33,12 @@ WHERE i.id = $1
 GROUP BY i.id, i.name`
 
 type counters struct {
-	req, hit, miss, dbStart, dbDone, dbErr, dup, redisHit, redisMiss, redisErr, errs atomic.Int64
-	dbInflight                                                                       atomic.Int64
+	req, hit, miss, dbStart, dbDone, dbErr, dup, errs atomic.Int64
+	dbInflight                                        atomic.Int64
 }
 
 type server struct {
-	mode     string
 	pool     *pgxpool.Pool
-	rdb      *redis.Client
-	redisTTL time.Duration
 	cache    *expirable.LRU[int, item]
 	c        counters
 	ready    atomic.Bool
@@ -75,31 +71,6 @@ func (s *server) fromDB(ctx context.Context, id int) (item, error) {
 	return it, nil
 }
 
-func (s *server) fromRedisOrDB(ctx context.Context, id int) (item, error) {
-	key := "item:" + strconv.Itoa(id)
-	b, err := s.rdb.Get(ctx, key).Bytes()
-	if err == nil {
-		var it item
-		if json.Unmarshal(b, &it) == nil {
-			s.c.redisHit.Add(1)
-			return it, nil
-		}
-	} else if !errors.Is(err, redis.Nil) {
-		s.c.redisErr.Add(1)
-	}
-	s.c.redisMiss.Add(1)
-	it, err := s.fromDB(ctx, id)
-	if err != nil {
-		return it, err
-	}
-	if b, err := json.Marshal(it); err == nil {
-		if err := s.rdb.Set(ctx, key, b, s.redisTTL).Err(); err != nil {
-			s.c.redisErr.Add(1)
-		}
-	}
-	return it, nil
-}
-
 func (s *server) load(ctx context.Context, id int) (item, error) {
 	s.mu.Lock()
 	if s.inflight[id] > 0 {
@@ -115,12 +86,7 @@ func (s *server) load(ctx context.Context, id int) (item, error) {
 		}
 		s.mu.Unlock()
 	}()
-	switch s.mode {
-	case "redis":
-		return s.fromRedisOrDB(ctx, id)
-	default:
-		return s.fromDB(ctx, id)
-	}
+	return s.fromDB(ctx, id)
 }
 
 func (s *server) handleItem(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +136,6 @@ func (s *server) statsLoop(path, pod string, start time.Time) {
 		enc.Encode(map[string]any{
 			"t":                  float64(t.UnixNano()) / 1e9,
 			"pod":                pod,
-			"mode":               s.mode,
 			"start":              float64(start.UnixNano()) / 1e9,
 			"ready":              s.ready.Load(),
 			"req":                s.c.req.Load(),
@@ -181,9 +146,6 @@ func (s *server) statsLoop(path, pod string, start time.Time) {
 			"db_err":             s.c.dbErr.Load(),
 			"db_inflight":        s.c.dbInflight.Load(),
 			"dup":                s.c.dup.Load(),
-			"redis_hit":          s.c.redisHit.Load(),
-			"redis_miss":         s.c.redisMiss.Load(),
-			"redis_err":          s.c.redisErr.Load(),
 			"errs":               s.c.errs.Load(),
 			"cache_len":          s.cache.Len(),
 			"pool_max":           st.MaxConns(),
@@ -201,7 +163,6 @@ func (s *server) statsLoop(path, pod string, start time.Time) {
 func main() {
 	start := time.Now()
 	pod := os.Getenv("POD_NAME")
-	mode := os.Getenv("MODE")
 	cfg, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
@@ -215,14 +176,9 @@ func main() {
 		log.Fatal(err)
 	}
 	s := &server{
-		mode:     mode,
 		pool:     pool,
 		cache:    expirable.NewLRU[int, item](envInt("CACHE_SIZE", 1000), nil, time.Duration(envInt("CACHE_TTL_SECONDS", 600))*time.Second),
 		inflight: map[int]int{},
-	}
-	if mode == "redis" {
-		s.rdb = redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_ADDR")})
-		s.redisTTL = time.Duration(envInt("REDIS_TTL_SECONDS", 600)) * time.Second
 	}
 	if dir := os.Getenv("STATS_DIR"); dir != "" {
 		go s.statsLoop(dir+"/"+pod+".jsonl", pod, start)
@@ -241,9 +197,6 @@ func main() {
 			}
 			for _, c := range conns {
 				c.Release()
-			}
-			if err == nil && s.rdb != nil {
-				err = s.rdb.Ping(ctx).Err()
 			}
 			cancel()
 			if err == nil {

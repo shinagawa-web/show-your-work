@@ -19,31 +19,13 @@ def pg(ip):
     ])
 
 
-def redis():
-    labels = {"app": "redis"}
-    return lst([
-        {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "redis"},
-         "spec": {"replicas": 1, "selector": {"matchLabels": labels},
-                  "template": {"metadata": {"labels": labels}, "spec": {"containers": [{
-                      "name": "redis", "image": e["REDIS_TAG"], "imagePullPolicy": "Never",
-                      "args": ["--save", "", "--appendonly", "no"],
-                      "ports": [{"containerPort": 6379}],
-                      "readinessProbe": {"tcpSocket": {"port": 6379}, "periodSeconds": 1}}]}}}},
-        {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "redis"},
-         "spec": {"selector": labels, "ports": [{"port": 6379, "targetPort": 6379}]}},
-    ])
-
-
-def app(mode, surge1):
+def app(surge1):
     labels = {"app": "app"}
     env = {
-        "MODE": mode,
         "DATABASE_URL": "postgres://postgres:pg@pg:5432/postgres?sslmode=disable",
         "POOL_MAX": e["POOL_MAX"],
         "CACHE_SIZE": e["CACHE_SIZE"],
         "CACHE_TTL_SECONDS": e["CACHE_TTL_SECONDS"],
-        "REDIS_ADDR": "redis:6379",
-        "REDIS_TTL_SECONDS": e["REDIS_TTL_SECONDS"],
         "STATS_DIR": "/stats",
     }
     envs = [{"name": k, "value": v} for k, v in env.items()]
@@ -90,10 +72,8 @@ def k6(seconds):
 
 if what == "pg":
     out = pg(sys.argv[2])
-elif what == "redis":
-    out = redis()
 elif what == "app":
-    out = app(sys.argv[2], sys.argv[3] == "surge1")
+    out = app(sys.argv[2] == "surge1")
 elif what == "k6":
     out = k6(int(sys.argv[2]))
 print(json.dumps(out, indent=1))
