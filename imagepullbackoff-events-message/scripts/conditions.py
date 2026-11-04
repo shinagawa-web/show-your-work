@@ -3,6 +3,7 @@ import sys
 
 LOCAL = "localhost:5001"
 HUB = "docker.io/library/busybox:1.37.0"
+HUB_PRIVATE = "docker.io/shingawaweb/imagepullbackoff-private:1.0"
 
 CAUSES = [
     dict(name="local-baseline", base="local", expect="run", image=f"{LOCAL}/app:1.0", secrets=["regcred"],
@@ -37,6 +38,10 @@ CAUSES = [
          what="Single manifest (no index) for an architecture other than the node's"),
     dict(name="hub-no-creds-repo-missing", base="hub", expect="fail", image="docker.io/library/imagepullbackoff-no-such-repo:1.0", secrets=[],
          what="Docker Hub repository that does not exist, no credentials"),
+    dict(name="hub-private-no-creds", base="hub", expect="fail", image=HUB_PRIVATE, secrets=[],
+         what="Private Docker Hub repository, no credentials"),
+    dict(name="hub-private-wrong-password", base="hub", expect="fail", image=HUB_PRIVATE, secrets=["hub-wrong-password"],
+         what="Private Docker Hub repository with a secret for a user that exists and a wrong password"),
     dict(name="hub-wrong-creds", base="hub", expect="fail", image=HUB, secrets=["hub-bad-creds"],
          what="Public Docker Hub image with a secret whose user name does not fit the Docker ID format"),
     dict(name="hub-wrong-creds-valid-name", base="hub", expect="fail", image=HUB, secrets=["hub-bad-creds-valid-name"],

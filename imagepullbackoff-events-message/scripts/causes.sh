@@ -13,11 +13,13 @@ name=ipb
 ns=cond
 work=$here/.work/causes
 rm -rf "$work"; mkdir -p "$work"
-for u in "$HUB_USER_BAD_FORMAT" "$HUB_USER_VALID_FORMAT"; do
-  code=$(curl -sS -o "$out/hub-user-$u.body" -w '%{http_code}' "https://hub.docker.com/v2/users/$u/")
-  printf '%s\t%s\n' "$u" "$code" >> "$out/hub-user-exists.tsv"
+declare -A hub_code
+for u in "$HUB_USER_BAD_FORMAT" "$HUB_USER_VALID_FORMAT" "$HUB_USER_REAL"; do
+  hub_code[$u]=$(curl -sS -o "$out/hub-user-$u.body" -w '%{http_code}' "https://hub.docker.com/v2/users/$u/")
+  printf '%s\t%s\n' "$u" "${hub_code[$u]}" >> "$out/hub-user-exists.tsv"
 done
-[ "$code" = 404 ] || fail "Docker Hub did not answer 404 for user name $HUB_USER_VALID_FORMAT (status $code, hub-user-exists.tsv)"
+[ "${hub_code[$HUB_USER_VALID_FORMAT]}" = 404 ] || fail "Docker Hub did not answer 404 for user name $HUB_USER_VALID_FORMAT (status ${hub_code[$HUB_USER_VALID_FORMAT]}, hub-user-exists.tsv)"
+[ "${hub_code[$HUB_USER_REAL]}" = 200 ] || fail "Docker Hub did not answer 200 for user name $HUB_USER_REAL (status ${hub_code[$HUB_USER_REAL]}, hub-user-exists.tsv)"
 "$here/scripts/cluster.sh" "$name" "$here/k8s/kind-causes.yaml" "$work" 2> "$out/cluster.log" || fail "cluster setup failed (cluster.log)"
 cp "$work/host-proxy.txt" "$out/"
 nodes=($(kind get nodes --name "$name" | sort))
@@ -34,6 +36,7 @@ secret "$ns" regcred-bad-password localhost:5001 "$REG_USER" wrong-password
 secret elsewhere regcred-elsewhere localhost:5001 "$REG_USER" "$REG_PASSWORD"
 secret "$ns" hub-bad-creds https://index.docker.io/v1/ "$HUB_USER_BAD_FORMAT" "$HUB_PASSWORD"
 secret "$ns" hub-bad-creds-valid-name https://index.docker.io/v1/ "$HUB_USER_VALID_FORMAT" "$HUB_PASSWORD"
+secret "$ns" hub-wrong-password https://index.docker.io/v1/ "$HUB_USER_REAL" "$HUB_PASSWORD"
 for i in $(seq 30); do kubectl -n "$ns" get sa default >/dev/null 2>&1 && break; sleep 1; done
 echo "setup $(el)s" > "$out/elapsed.txt"
 {
@@ -108,6 +111,8 @@ r kubectl get events -A -o wide --sort-by=.lastTimestamp > "$out/events.txt"
     r docker exec "$name-worker" curl -sS -w '\n%{http_code}\n' -X POST -d "grant_type=password&username=$u&password=$HUB_PASSWORD&service=registry.docker.io&scope=repository%3Alibrary%2Fbusybox%3Apull&client_id=containerd-client" https://auth.docker.io/token
     r docker exec "$name-worker" curl -sS -w '\n%{http_code}\n' -u "$u:$HUB_PASSWORD" 'https://auth.docker.io/token?scope=repository%3Alibrary%2Fbusybox%3Apull&service=registry.docker.io'
   done
+  r docker exec "$name-worker" curl -sS -w '\n%{http_code}\n' -X POST -d "grant_type=password&username=$HUB_USER_REAL&password=$HUB_PASSWORD&service=registry.docker.io&scope=repository%3A$HUB_USER_REAL%2Fimagepullbackoff-private%3Apull&client_id=containerd-client" https://auth.docker.io/token
+  r docker exec "$name-worker" curl -sS -w '\n%{http_code}\n' -u "$HUB_USER_REAL:$HUB_PASSWORD" "https://auth.docker.io/token?scope=repository%3A$HUB_USER_REAL%2Fimagepullbackoff-private%3Apull&service=registry.docker.io"
 } > "$out/hub-wrong-creds.txt"
 stop_watch "$out"
 echo "total $(el)s" >> "$out/elapsed.txt"
