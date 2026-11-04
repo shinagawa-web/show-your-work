@@ -77,7 +77,8 @@ for i in invalid:
 if invalid:
     p()
 
-SECRET_EVENT = ["no-creds-repo-exists", "no-creds-repo-missing", "secret-wrong-host", "secret-other-namespace"]
+NO_CREDS_LINE = ["no-creds-repo-exists", "no-creds-repo-missing", "secret-wrong-host", "secret-other-namespace", "secret-name-typo"]
+CONTROL_PAIR = ["hub-missing-secret-name", "hub-missing-secret-name-pull-fails"]
 FULL_POD = "tag-missing"
 
 
@@ -161,11 +162,11 @@ if causes:
     block(f["message"] if f else "(none)")
     p()
     msgs = {}
-    for n in SECRET_EVENT:
+    for n in NO_CREDS_LINE:
         f = obs.first_pull_failure(evs, n)
         msgs[n] = without_image(f["message"], image_of(n)) if f else None
     same = all(m is not None for m in msgs.values()) and len(set(msgs.values())) == 1
-    p(f"First `Failed to pull image` event messages of {', '.join('`' + n + '`' for n in SECRET_EVENT)} with the image name replaced by `<image>`: "
+    p(f"First `Failed to pull image` event messages of {', '.join('`' + n + '`' for n in NO_CREDS_LINE)} with the image name replaced by `<image>`: "
       + ("all the same." if same else "not all the same."))
     p()
 
@@ -190,10 +191,15 @@ if causes:
     p()
     block("\n".join(excerpt) or "(not recorded)")
     p()
-    p("### imagePullSecrets names a secret that does not exist, pull succeeds (job: causes, Pod `hub-missing-secret-name`)")
+    p("### imagePullSecrets names a secret that does not exist: two Pods that differ only in the image (job: causes)")
     p()
-    p(f"- STATUS: `{status_of(get_pod(causes, 'cond', 'hub-missing-secret-name'))}`")
-    p(f"- `FailedToRetrieveImagePullSecret` event: {'present' if obs.secret_events(evs, 'hub-missing-secret-name') else 'none'}")
+    p("Both Pods have `imagePullSecrets: no-such-secret`.")
+    p()
+    p("| Pod | Image | STATUS | `FailedToRetrieveImagePullSecret` event |")
+    p("|---|---|---|---|")
+    for n in CONTROL_PAIR:
+        se = "present" if obs.secret_events(evs, n) else "none"
+        p(f"| `{n}` | `{image_of(n)}` | `{status_of(get_pod(causes, 'cond', n))}` | {se} |")
     p()
 
 p("## Numbers not used")
@@ -218,6 +224,26 @@ if causes:
     p()
     block(" -> ".join(seen) or "(none)")
     p()
+    p("### Docker Hub token requests with the credentials of the two secrets (job: causes)")
+    p()
+    p("The first line of each block is the user name and the status code of `https://hub.docker.com/v2/users/<name>/`, requested from the machine that runs `run-all.sh`. Then the status code and body of the POST and of the GET to `https://auth.docker.io/token`, sent from `ipb-worker`.")
+    p()
+    exists = dict(l.split("\t") for l in (read(os.path.join(causes, "hub-user-exists.tsv")) or "").splitlines() if "\t" in l)
+    hub = commands(os.path.join(causes, "hub-wrong-creds.txt"))
+    for user, code in exists.items():
+        lines = [f"{user}: hub.docker.com/v2/users status {code}"]
+        for method in ("POST", "GET"):
+            for cmd, v in hub.items():
+                is_post = "-X POST" in cmd
+                if "curl" not in cmd or is_post != (method == "POST"):
+                    continue
+                if (f"username={user}&" if is_post else f" -u {user}:") not in cmd:
+                    continue
+                rows = [l for l in v.splitlines() if l.strip()]
+                lines.append(f"{method} {rows[-1] if rows else '(no status)'}")
+                lines.append("\n".join(rows[:-1]) or "(empty body)")
+        block("\n".join(lines))
+        p()
     p("### Baselines (job: causes)")
     p()
     for n in ("local-baseline", "hub-baseline"):

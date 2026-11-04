@@ -21,6 +21,8 @@ CAUSES = [
          what="Secret created with --docker-server=localhost:5000, image on localhost:5001"),
     dict(name="secret-other-namespace", base="local", expect="fail", image=f"{LOCAL}/app:1.0", secrets=["regcred-elsewhere"],
          what="imagePullSecrets names a secret that exists only in another namespace"),
+    dict(name="secret-name-typo", base="local", expect="fail", image=f"{LOCAL}/app:1.0", secrets=["regcred-typo"],
+         what="imagePullSecrets names a secret that exists in no namespace"),
     dict(name="wrong-password", base="local", expect="fail", image=f"{LOCAL}/app:1.0", secrets=["regcred-bad-password"],
          what="Secret with the wrong password (Basic auth)"),
     dict(name="host-unresolvable", base="local", expect="fail", image="registry.invalid:5000/app:1.0", secrets=["regcred"],
@@ -36,9 +38,13 @@ CAUSES = [
     dict(name="hub-no-creds-repo-missing", base="hub", expect="fail", image="docker.io/library/imagepullbackoff-no-such-repo:1.0", secrets=[],
          what="Docker Hub repository that does not exist, no credentials"),
     dict(name="hub-wrong-creds", base="hub", expect="fail", image=HUB, secrets=["hub-bad-creds"],
-         what="Public Docker Hub image with a secret for a user name and password that do not exist"),
+         what="Public Docker Hub image with a secret whose user name does not fit the Docker ID format"),
+    dict(name="hub-wrong-creds-valid-name", base="hub", expect="fail", image=HUB, secrets=["hub-bad-creds-valid-name"],
+         what="Public Docker Hub image with a secret whose user name fits the Docker ID format and does not exist"),
     dict(name="hub-missing-secret-name", base="hub", expect="run", image=HUB, secrets=["no-such-secret"],
          what="Public Docker Hub image, imagePullSecrets names a secret that does not exist"),
+    dict(name="hub-missing-secret-name-pull-fails", base="hub", expect="fail", image="docker.io/library/imagepullbackoff-no-such-repo:1.0", secrets=["no-such-secret"],
+         what="Docker Hub repository that does not exist, imagePullSecrets names a secret that does not exist"),
 ]
 
 BACKOFF_POD = "tag-missing"
