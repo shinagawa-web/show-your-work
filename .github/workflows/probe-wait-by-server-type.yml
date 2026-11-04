@@ -37,6 +37,7 @@ jobs:
           - { server: gunicorn, sections: "1, 3, 4" }
           - { server: tomcat, sections: "1, 3, 4" }
           - { server: tomcat-virtual, sections: "1, 3, 4" }
+          - { server: tomcat-virtual-limit, sections: "3" }
           - { server: node, sections: "1, 3, 4" }
           - { server: go, sections: "1, 3, 4" }
           - { server: tomcat-mgmt, sections: "5" }
