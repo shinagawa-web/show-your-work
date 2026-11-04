@@ -69,6 +69,9 @@ if causes:
     for c in conditions.CAUSES:
         if c["expect"] == "run" and not obs.running(obs.pod_states(pods, c["name"])):
             invalid.append(f"causes: {c['name']} did not reach Running")
+    qps = (read(os.path.join(causes, "events.jsonl")) or "").count("pull QPS exceeded")
+    if qps:
+        invalid.append(f"causes: `pull QPS exceeded` {qps} times in events.jsonl")
 
 p("# imagepullbackoff-events-message")
 p()

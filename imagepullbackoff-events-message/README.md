@@ -8,7 +8,7 @@ This runs Pods in a kind cluster that fail to pull their image for one cause eac
 
 The `s2-s3` job (named after the article sections that use its numbers) runs `./run-all.sh`, writes `results/summary.md` to the job summary and to a comment on the open pull request of the branch (the same comment is overwritten on every run), and uploads `results/` as the `imagepullbackoff-events-message-results` artifact.
 
-The summary has a table of the first `Failed to pull image` Event message of each condition with the prefixes removed by `scripts/summary.py`, whether the messages of the conditions without credentials are the same once the image name is replaced, and the back-off message of one Pod. A run that did not collect the data (a step of the setup failed, a proxy variable with a value is set in containerd's environment on a node, Docker Hub did not answer 404 for `HUB_USER_VALID_FORMAT`, a baseline Pod did not reach Running, a Pod did not reach the state its condition waits for before the deadline) fails the job with `RUN INVALID` at the top of the summary.
+The summary has a table of the first `Failed to pull image` Event message of each condition with the prefixes removed by `scripts/summary.py`, whether the messages of the conditions without credentials are the same once the image name is replaced, and the back-off message of one Pod. A run that did not collect the data (a step of the setup failed, a proxy variable with a value is set in containerd's environment on a node, Docker Hub did not answer 404 for `HUB_USER_VALID_FORMAT`, a baseline Pod did not reach Running, `pull QPS exceeded` appears in `events.jsonl`, a Pod did not reach the state its condition waits for before the deadline) fails the job with `RUN INVALID` at the top of the summary.
 
 ## Setup
 
@@ -18,7 +18,7 @@ The summary has a table of the first `Failed to pull image` Event message of eac
 
 ## Conditions
 
-One control-plane node and two workers (`k8s/kind-causes.yaml`). Every Pod is in namespace `cond`, has `imagePullPolicy: Always`, and is placed with `nodeName`: `no-response` on `ipb-worker2`, which has `iptables -I OUTPUT -d 192.0.2.1 -j DROP` and runs no other Pod, and every other Pod on `ipb-worker`. The kubelet pulls one image at a time per node (`serializeImagePulls`), so the wait of `no-response` for the dial timeout does not hold up the other pulls.
+One control-plane node and two workers (`k8s/kind-causes.yaml`). The Pods are created one at a time with a fixed pause between them (`scripts/causes.sh`), so that the pulls stay within the kubelet's `registryPullQPS` and `registryBurst`. Every Pod is in namespace `cond`, has `imagePullPolicy: Always`, and is placed with `nodeName`: `no-response` on `ipb-worker2`, which has `iptables -I OUTPUT -d 192.0.2.1 -j DROP` and runs no other Pod, and every other Pod on `ipb-worker`. The kubelet pulls one image at a time per node (`serializeImagePulls`), so the wait of `no-response` for the dial timeout does not hold up the other pulls.
 
 The conditions, their images and secrets are in `scripts/conditions.py`. The secrets are created in `scripts/causes.sh`: `regcred` for `localhost:5001`, `regcred-port-5000` for `localhost:5000`, `regcred-bad-password` with a wrong password, `regcred-elsewhere` only in namespace `elsewhere`, and `hub-bad-creds` and `hub-bad-creds-valid-name` for `https://index.docker.io/v1/` with user names and a password from `scripts/versions.env`. `regcred-typo` and `no-such-secret` are not created.
 

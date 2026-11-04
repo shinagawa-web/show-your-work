@@ -49,7 +49,11 @@ echo "setup $(el)s" > "$out/elapsed.txt"
 start_watch "$out" "$ns"
 sleep 2
 python3 -B "$here/scripts/conditions.py" causes "$name" "$ns" > "$out/pods.json"
-kubectl apply -f "$out/pods.json" > "$out/apply.txt" 2>&1 || fail "apply failed (apply.txt)"
+: > "$out/apply.txt"
+for i in $(seq 0 $(( $(jq '.items | length' "$out/pods.json") - 1 ))); do
+  jq ".items[$i]" "$out/pods.json" | kubectl apply -f - >> "$out/apply.txt" 2>&1 || fail "apply failed (apply.txt)"
+  sleep 0.5
+done
 applied=$(date +%s)
 echo "pods applied $(el)s" >> "$out/elapsed.txt"
 specs=()
