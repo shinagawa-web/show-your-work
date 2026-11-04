@@ -128,7 +128,7 @@ if causes:
     p("## 2. Messages per cause (job: causes)")
     p()
     p("Every Pod is created with `imagePullPolicy: Always`. Local registry: `registry:3` with htpasswd, `localhost:5001` mapped to `kind-registry:5000` by `hosts.toml`. "
-      f"Node `uname -m`: `{arch}`. `platform-only:1.0` and `single-arch:1.0` hold only `linux/{other.group(1) if other else '?'}`.")
+      f"Node `uname -m`: `{arch}`. `platform-only:1.0` holds only `linux/{other.group(1) if other else '?'}`.")
     p()
     p('The first column is the first `Failed to pull image` event message with these prefixes removed by `scripts/summary.py`: `Failed to pull image "<image>": `, `rpc error: code = <X> desc = `, `failed to pull and unpack image "<image>": `, `failed to resolve reference "<image>": `. In what is left, the image reference of the Pod is replaced by `<image>`.')
     p()
@@ -148,15 +148,6 @@ if causes:
         se = ", ".join(f"`{c['name']}`" for c in cs if obs.secret_events(evs, c["name"])) or "none"
         p(f"| {'`' + rest + '`' if rest is not None else '(no event)'} | {conds} | {se} |")
     p()
-    sa = next(c for c in conditions.CAUSES if c["expect"] == "crash")
-    logs = commands(os.path.join(causes, "single-arch.txt")).get(f"kubectl -n cond logs {sa['name']}", "(not recorded)")
-    p(f"{sa['what']} (`{sa['name']}`, `{sa['image']}`):")
-    p()
-    p(f"- STATUS: `{status_of(get_pod(causes, 'cond', sa['name']))}`")
-    p(f"- `kubectl logs`: `{logs.strip()}`")
-    p(f"- `Failed to pull image` event: {'present' if obs.first_pull_failure(evs, sa['name']) else 'none'}")
-    p()
-
     p("### Full message")
     p()
     f = obs.first_pull_failure(evs, FULL_POD)
@@ -256,14 +247,10 @@ for name, d in dirs.items():
     if not d:
         continue
     env = commands(os.path.join(d, "environment.txt"))
-    p(f"### binfmt_misc and proxy variables of containerd on each node (job: {name})")
+    p(f"### Proxy variables of containerd on each node (job: {name})")
     p()
     lines = []
     for k, v in env.items():
-        m = re.match(r"docker exec (\S+) ls -la /proc/sys/fs/binfmt_misc", k)
-        if m:
-            entries = [l.split()[-1] for l in v.splitlines()[1:] if l.split() and l.split()[-1] not in (".", "..")]
-            lines.append(f"{m.group(1)} /proc/sys/fs/binfmt_misc: {' '.join(entries)}")
         m = re.match(r"docker exec (\S+) sh -c 'tr .* grep -i proxy'", k)
         if m:
             lines.append(f"{m.group(1)} containerd environ: {' '.join(v.split()) or '(no proxy variables)'}")
