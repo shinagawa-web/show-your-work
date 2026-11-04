@@ -1,46 +1,56 @@
 # local-cache-cold-pods
 
-A Go service keeps a local cache in each Pod in front of PostgreSQL. Four Pods run with filled caches under a constant request rate, then Pods with empty caches are added with `kubectl scale`, or all Pods are replaced with `kubectl rollout restart`. The app counts the reads it sends to PostgreSQL per second, and k6 records the latency of every request.
+A Go service keeps its cache in the Pod, in Redis, or in both, in front of PostgreSQL. Under a constant request rate the app Pods or Redis are restarted, and the app counts the requests that the caches did not answer, the Redis errors by type, and the time Redis could not be read. k6 records the latency of every request.
 
 ## Run
 
-`.github/workflows/local-cache-cold-pods.yml` runs one job per condition. Each job runs `./run-all.sh <condition>`:
+`.github/workflows/local-cache-cold-pods.yml` runs one job per condition. Each job runs `./run-all.sh <condition>`. Without a condition, `./run-all.sh` runs all of them.
 
-| condition | operation after the caches of the 4 Pods are filled |
-|---|---|
-| `add-1`, `add-4` | `kubectl scale` to 5 or 8 replicas, then back to 4 after the load |
-| `restart-default` | `kubectl rollout restart` with the default rolling update strategy |
-| `restart-default-ready` | `kubectl rollout restart` with the default `maxSurge` and `maxUnavailable` and `minReadySeconds` from `MIN_READY` |
-| `restart-surge1-noready` | `kubectl rollout restart` with `maxSurge: 1`, `maxUnavailable: 0` and `minReadySeconds: 0` |
-| `restart-surge1` | `kubectl rollout restart` with `maxSurge: 1`, `maxUnavailable: 0` and `minReadySeconds` from `MIN_READY` |
+| condition | cache | operation after the caches are filled |
+|---|---|---|
+| `app-restart-local` | local cache only | `kubectl rollout restart` of the app |
+| `app-restart-redis` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of the app |
+| `redis-restart-none-short` | as `redis-restart-none`, with go-redis `DialTimeout`, `ReadTimeout`, `WriteTimeout` and `PoolTimeout` of 500 ms, `DialerRetries` 1 and `MaxRetries` 1 | `kubectl rollout restart` of Redis |
+| `redis-restart-none` | Redis only, single instance with `save ""` and no PVC | `kubectl rollout restart` of Redis |
+| `redis-restart-rdb` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of Redis |
+| `sentinel-restart` | Redis only, redis-ha chart | `kubectl rollout restart` of the redis-ha StatefulSet with a partition of 2, with `redis-ha-server-2` as master, so that only the master is replaced |
+| `sentinel-kill` | Redis only, redis-ha chart | SIGKILL to the redis-server process of `redis-ha-server-0`, the master |
+| `redis-restart-none-local` | a local cache of `LOCAL_SIZE_PARTIAL` entries in front of Redis, single instance with `save ""` and no PVC | `kubectl rollout restart` of Redis |
 
-Each job writes its own `results/summary.md` to the job summary and uploads `results/` as the artifact `local-cache-cold-pods-<condition>`. The `summary` job merges the artifacts with `scripts/report.py`, writes the result to its job summary, and posts it as a comment on the pull request of the branch, replacing the previous one.
+Each job is named after its article section and condition. Each condition runs under `timeout 300`, writes `results/<condition>/` and adds its summary to the job summary. Each job uploads `results/` as an artifact. The `summary` job merges them with `scripts/report.py` into `summary.md`, adds it to its job summary, and posts it as a pull request comment, replacing the previous one.
 
 ## Setup
 
-- kind runs a single node whose container is limited to the CPUs in `NODE_CPUS` with `docker update --cpuset-cpus`. The app Pods and k6 run there
-- PostgreSQL runs outside kind as a Docker container on the CPUs in `PG_CPUS` only (`--cpuset-cpus`, `--network kind`) with the default configuration. The Pods reach it through the Service `pg`, whose Endpoints hold the container's IP
-- `app/main.go` serves `/item?id=<key>`. A key missing from the local cache (`hashicorp/golang-lru/v2` `expirable`) is read from PostgreSQL through a `pgxpool` pool with `MaxConns` from `POOL_MAX`, with a query that joins `items`, `reviews` and `users`. `/ready` answers 200 once every connection of the pool has been opened
-- Every second each Pod appends its counters (requests, cache hits, reads sent to PostgreSQL, reads that started while another read of the same key was in flight in the same Pod, `pgxpool` `Stat()`) to `/stats/<pod>.jsonl` on the node
-- k6 runs in the cluster with `ramping-arrival-rate` and `noConnectionReuse: true`, so that each request opens a new connection to the Service and is balanced across all Ready Pods. The rate rises from `START_RATE` to `RATE` over `RAMP` seconds while the caches of the first 4 Pods fill, then stays at `RATE`. The operation runs `WARM` seconds after k6 starts. After `kubectl rollout status` returns, `scripts/watch.py` stops k6 once, for `QUIET_SECONDS` seconds, the reads sent to PostgreSQL stay below `QUIET_READS` per second, no read is in flight in any Pod and the CPU of the PostgreSQL container is within `QUIET_DB_CPU` points of its value before the operation, or `MAX_OBS` seconds after the operation. Keys follow a Zipf distribution
-- `scripts/poll.py` records the app Pods every 0.5 s and the CPU usage of the PostgreSQL container, the node container and each CPU every second
+- `scripts/cpus.sh` reads `thread_siblings_list` and gives the first half of the physical cores to the kind node and the second half to PostgreSQL
+- kind runs a single node limited to `NODE_CPUS` with `docker update --cpuset-cpus`. The app Pods, Redis and k6 run there
+- PostgreSQL runs outside kind as a Docker container on `PG_CPUS` (`--cpuset-cpus`, `--network kind`) with the default configuration. The Pods reach it through the Service `pg`, whose Endpoints hold the container's IP
+- `app/main.go` serves `/item?id=<key>`. It reads the local cache (`hashicorp/golang-lru/v2` `expirable`) when enabled, then Redis (`redis/go-redis`) when enabled, then PostgreSQL through a `pgxpool` pool with `MaxConns` from `POOL_MAX`. A value read from PostgreSQL is written back to the caches. A Redis error is counted by type and the request goes to PostgreSQL. go-redis keeps its default timeouts and retries, apart from `redis-restart-none-short`. The redis-ha conditions use `NewFailoverClient`
+- Every value in Redis is `VALUE_BYTES` long, so that RDB loading shows in the time Redis is stopped. It is a JSON header of 256 bytes followed by incompressible bytes. The app reads `READ_BYTES` from the start of the value with `GETRANGE`
+- Each app Pod also runs a probe with its own go-redis client: one read every 100 ms, a 300 ms limit and no retries. Its start and end of failure, written to `/stats/<pod>.events`, give the time Redis was stopped. The errors returned to requests are written to the same file
+- Every second each Pod appends its counters to `/stats/<pod>.jsonl` on the node
+- The single instance is a StatefulSet of the official image with the probes of the chart: `k8s/redis_readiness.sh`, `k8s/redis_liveness.sh` and the same delays, periods and thresholds. The PVC uses the default StorageClass of kind
+- The redis-ha chart keeps its defaults apart from `k8s/redis-ha-values.yaml`. `podManagementPolicy: Parallel` starts the 3 servers together, so that the setup fits the job. The `init` container of each server waits for Sentinels to answer before it starts Redis
+- The chart renders only the `type` of the update strategy, so `sentinel-restart` sets the partition with `kubectl patch`. Clients read the master only, so the replicas are not replaced. The chart's `preStop` failover runs as usual
+- k6 runs in the cluster with `ramping-arrival-rate` and `noConnectionReuse: true`, so that each request opens a new connection. The rate rises from `START_RATE` to `RATE` over `RAMP` seconds, then stays at `RATE`. Keys follow a Zipf distribution. In the conditions with Redis, k6 first reads every key once in `setup()`, one at a time, so that Redis is filled before the load starts. The operation runs `WARM` seconds after k6 starts. `scripts/watch.py` stops k6 once, for `QUIET_SECONDS` seconds, the reads sent to PostgreSQL stay below `QUIET_READS` per second, no read is in flight, no Redis read failed and the CPU of the PostgreSQL container is within `QUIET_DB_CPU` points of its value before the operation, or `MAX_OBS` seconds after the operation
+- `scripts/poll.py` records the Pods every 0.5 s and the CPU usage of the PostgreSQL container, the node container and each CPU every second
 
-`scripts/params.env` holds the request rates, number of keys, Zipf exponent, cache size and TTL, pool size, table sizes, warm-up seconds, `MIN_READY` and the stop conditions.
+`scripts/params.env` holds the request rates, number of keys, Zipf exponent, cache sizes and TTLs, value size, pool size, table sizes, VUs, warm-up seconds and the stop conditions. `READY_DELAY_SECONDS` is the `initialDelaySeconds` of the readiness and startup probes of the single instance. Its value matches the chart.
 
 ## Output
 
 | file | content |
 |---|---|
-| `summary.md` | the condition's values and a per-second table from the operation on |
-| `metrics.json` | the values used by `scripts/report.py` |
-| `timeseries.tsv` | per-second requests, DB reads, hit rates, k6 p50 and p99, pool waits and CPU |
-| `stats/` | per-second counters of each Pod |
-| `k6/` | `k6.log` with one line per request, `summary.json` |
-| `pods.jsonl`, `cpu.jsonl` | Pod states and CPU samples |
-| `timeline.txt` | when k6 started, the operation, the end of the rollout and of the load |
-| `initial-pods.txt`, `final-pods.txt` | app Pods before the load and after scaling back to 4 |
-| `pgbench.txt` | `pgbench` with the app's query, run before the app starts |
-| `00-environment.txt` | versions, CPU sets, PostgreSQL settings, the query plan |
+| `summary.md` | the numbers per article section |
+| `<condition>/metrics.json` | the values used by `scripts/report.py` |
+| `<condition>/timeseries.tsv` | per-second requests, hits, misses, errors, k6 p50 and p99 and CPU |
+| `<condition>/stats/` | per-second counters and failure events of each Pod |
+| `<condition>/k6/` | `k6.log` with one line per request, `summary.json` |
+| `<condition>/logs/` | Redis and Sentinel logs with timestamps, app logs |
+| `<condition>/redis-before.txt`, `redis-after.txt` | keys, replication, persistence and memory of each Redis server |
+| `<condition>/pods.jsonl`, `cpu.jsonl` | Pod states and CPU samples |
+| `<condition>/timeline.txt` | when k6 started, the operation, the end of the rollout and of the load |
+| `<condition>/pgbench.txt` | `pgbench` with the app's query, run before the app starts |
+| `<condition>/00-environment.txt` | versions, CPU sets, PostgreSQL and Redis settings, the query plan |
 
 ## Pinned versions
 

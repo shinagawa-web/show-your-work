@@ -1,17 +1,20 @@
 import http from 'k6/http';
 import exec from 'k6/execution';
+import { SharedArray } from 'k6/data';
 
 const BASE = __ENV.BASE;
 const KEYS = Number(__ENV.KEYS);
 const S = Number(__ENV.ZIPF_S);
 
-const cdf = [];
-let sum = 0;
-for (let k = 1; k <= KEYS; k++) {
-  sum += Math.pow(k, -S);
-  cdf.push(sum);
-}
-for (let i = 0; i < KEYS; i++) cdf[i] /= sum;
+const cdf = new SharedArray('cdf', () => {
+  const out = [];
+  let sum = 0;
+  for (let k = 1; k <= KEYS; k++) {
+    sum += Math.pow(k, -S);
+    out.push(sum);
+  }
+  return out.map((v) => v / sum);
+});
 
 function key() {
   const u = Math.random();
@@ -37,12 +40,17 @@ export const options = {
         { target: Number(__ENV.RATE), duration: `${__ENV.RAMP}s` },
         { target: Number(__ENV.RATE), duration: `${Number(__ENV.SECONDS) - Number(__ENV.RAMP)}s` },
       ],
-      preAllocatedVUs: 6000,
-      maxVUs: 12000,
+      preAllocatedVUs: Number(__ENV.PREALLOC_VUS),
+      maxVUs: Number(__ENV.MAX_VUS),
     },
   },
   summaryTrendStats: ['avg', 'med', 'p(99)', 'max'],
 };
+
+export function setup() {
+  if (__ENV.PREFILL !== '1') return;
+  for (let id = 1; id <= KEYS; id++) http.get(`${BASE}/item?id=${id}`, { timeout: '30s' });
+}
 
 export default function () {
   if (exec.scenario.iterationInTest === 0) console.log(`T0 ${exec.scenario.startTime}`);

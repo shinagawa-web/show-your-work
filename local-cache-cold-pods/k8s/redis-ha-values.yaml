@@ -1,0 +1,5 @@
+podManagementPolicy: Parallel
+hardAntiAffinity: false
+sentinel:
+  config:
+    down-after-milliseconds: 5000

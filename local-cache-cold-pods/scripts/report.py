@@ -2,120 +2,108 @@ import json
 import os
 import sys
 
-runs = {}
-elapsed = {}
-dirs = {}
+SECTIONS = [
+    ("2", "Local cache only. `kubectl rollout restart` of the 4 app Pods.", ["app-restart-local"]),
+    ("3-1", "Redis only, single instance with PVC. `kubectl rollout restart` of the 4 app Pods.", ["app-restart-redis"]),
+    ("3-3", "Redis only, single instance, `save \"\"` and no PVC, go-redis with DialTimeout, ReadTimeout, WriteTimeout and PoolTimeout 500 ms, DialerRetries 1 and MaxRetries 1. `kubectl rollout restart` of Redis.", ["redis-restart-none-short"]),
+    ("4-1", "Redis only, single instance, `save \"\"` and no PVC. `kubectl rollout restart` of Redis.", ["redis-restart-none"]),
+    ("4-2", "Redis only, single instance, PVC and `save 900 1`. `kubectl rollout restart` of Redis (SIGTERM).", ["redis-restart-rdb"]),
+    ("4-3", "Redis only, redis-ha chart, Sentinel with `down-after-milliseconds` 5000. `sentinel-restart` replaces only the master, `redis-ha-server-2`, with `kubectl rollout restart` and a partition of 2. `sentinel-kill` sends SIGKILL to the master, `redis-ha-server-0`.", ["sentinel-restart", "sentinel-kill"]),
+    ("4-4", "Single instance, `save \"\"` and no PVC, with a local cache of 120 entries in front of Redis. `kubectl rollout restart` of Redis.", ["redis-restart-none-local"]),
+]
+
+
+def f(v, fmt="%.1f"):
+    return "-" if v is None else fmt % v
+
+
+def i(v):
+    return "-" if v is None else "%d" % v
+
+
+def diff(a, b):
+    return None if a is None or b is None else b - a
+
+
+metrics = {}
 for d in sys.argv[1:]:
     p = os.path.join(d, "metrics.json")
-    if not os.path.exists(p):
+    if os.path.exists(p):
+        m = json.load(open(p))
+        metrics[m["cond"]] = m
+    else:
+        s = os.path.join(d, "summary.md")
+        print("%s: no metrics.json. %s\n" % (os.path.basename(d.rstrip("/")), open(s).read().strip() if os.path.exists(s) else ""))
+
+first = next(iter(metrics.values()), None)
+print("# local-cache-cold-pods\n")
+if first:
+    print("Requests are counted from the operation until the job stopped. A miss is a request that the caches did not answer and that went to the DB. Seconds stopped runs from the last Redis read that succeeded to the first that succeeded again, across the 4 app Pods. Errors are the Redis commands that failed after go-redis finished its retries. p99 is from k6 by completion, for all requests from the operation until the job stopped.\n")
+for number, condition, conds in SECTIONS:
+    rows = [metrics[c] for c in conds if c in metrics]
+    if not rows:
         continue
-    m = json.load(open(p))
-    runs[m["cond"]] = m
-    dirs[m["cond"]] = d
-    el = {}
-    for line in open(os.path.join(d, "elapsed.txt")):
-        k, v = line.split()
-        el[k] = v
-    elapsed[m["cond"]] = el
-
-if not runs:
-    print("RUN INVALID: no metrics.json in %s" % " ".join(sys.argv[1:]))
-    sys.exit(0)
-
-SECTIONS = {"restart-default": "3, 4", "restart-default-ready": "4", "restart-surge1": "4", "restart-surge1-noready": "4"}
-RESTARTS = ("restart-default", "restart-surge1-noready", "restart-default-ready", "restart-surge1")
-
-
-def job(cond):
-    return "%s (%s)" % (SECTIONS.get(cond, "3"), cond)
-
-
-def strategy(c):
-    ready = runs[c]["params"]["MIN_READY"]
-    return {"restart-default": "default (maxSurge 25%, maxUnavailable 25%, minReadySeconds 0)",
-            "restart-surge1-noready": "maxSurge 1, maxUnavailable 0, minReadySeconds 0",
-            "restart-default-ready": "default maxSurge and maxUnavailable, minReadySeconds %s" % ready,
-            "restart-surge1": "maxSurge 1, maxUnavailable 0, minReadySeconds %s" % ready}[c]
-
-
-adds = sorted((c for c in runs if c.startswith("add-")), key=lambda c: int(c[4:]))
-order = adds + [c for c in RESTARTS if c in runs]
-
-
-def saturated(c):
-    return c in runs and bool(runs[c]["pg_cpu_ge_90_s"])
-
-
-def per_second(c):
-    m = runs[c]
-    print("%s, per second from 2 s before the operation until the job recovered. DB CPU is the share of the CPUs the PostgreSQL container runs on (%s). pool wait is the mean wait in that second of the pgxpool acquires that found no idle connection; a wait is added when the acquire succeeds, so acquires canceled while waiting are not included. p99 is from k6, by the second each request completed." % (job(c), m["params"]["PG_CPUS"]))
+    print("## %s\n\n%s\n" % (number, condition))
+    print("| job | requests | misses | during the stop | refill | seconds stopped | LOADING | connection refused | timeout | READONLY | other errors | p99 (ms) | p99 before (ms) | seconds with node CPU >= 95% |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for m in rows:
+        g = m["get_err"]
+        s = m["set_err"]
+        total = {k: g[k] + s[k] for k in g}
+        st = m["stopped"]
+        print("| %s (%s) | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %d |" % (
+            number, m["cond"], i(m["req"]), i(m["miss"]), i(m["miss_redis_failed"]), i(m["miss_redis_absent"]),
+            f(st["seconds"]) if st else "0", i(total["loading"]), i(total["refused"]), i(total["timeout"]),
+            i(total["readonly"]), i(total["other"]), f(m["p99_ms"]), f(m["p99_baseline_ms"]), m["node_cpu_95_seconds"]))
     print()
-    print("| s | DB reads/s | DB CPU % | pool wait ms | p99 ms |")
-    print("|---|---|---|---|---|")
-    rows = [line.rstrip("\n").split("\t") for line in open(os.path.join(dirs[c], "timeseries.tsv"))]
-    cols = rows[0]
-    for r in rows[1:]:
-        r = dict(zip(cols, r))
-        rel = int(r["rel"])
-        if -2 <= rel <= m["recovered_s"]:
-            print("| %+d | %.0f | %s | %.0f | %.1f |" % (
-                rel, float(r["db"]), "-" if r["pg_cpu"] == "" else "%.0f" % float(r["pg_cpu"]),
-                float(r["pool_wait_ms"]), float(r["p99"])))
-    print()
+    st_rows = [m for m in rows if m["steps"] and m["redis"].startswith("single")]
+    if st_rows:
+        print("Seconds stopped, measured from the operation.\n")
+        print("| job | termination | Pod start | load | probe | back in Service | total | `DB loaded from disk` |")
+        print("|---|---|---|---|---|---|---|---|")
+        for m in st_rows:
+            t = m["steps"]
+            print("| %s (%s) | %s | %s | %s | %s | %s | %s | %s |" % (
+                number, m["cond"], f(t.get("exit"), "%.2f"), f(diff(t.get("exit"), t.get("process_start")), "%.2f"),
+                f(diff(t.get("process_start"), t.get("accepting")), "%.2f"), f(diff(t.get("accepting"), t.get("pod_ready")), "%.2f"),
+                f(diff(t.get("pod_ready"), t.get("last_pod_back")), "%.2f"), f(t.get("last_pod_back"), "%.2f"),
+                f(m["load_seconds"], "%.3f")))
+        print()
+    for m in rows:
+        if m["redis"] == "sentinel":
+            print("%s (%s). Seconds from the operation.\n" % (number, m["cond"]))
+            print("| event | s |")
+            print("|---|---|")
+            t = m["steps"]
+            for name, key in (("SIGTERM on the master", "sigterm"), ("old master exit", "exit"), ("old master process start", "process_start"),
+                              ("old master accepting", "accepting"), ("old master Ready", "pod_ready"),
+                              ("first app Pod reads again", "first_pod_back"), ("last app Pod reads again", "last_pod_back")):
+                if t.get(key) is not None:
+                    print("| %s | %.2f |" % (name, t[key]))
+            seen = set()
+            for e in m["sentinel"]:
+                if ("switch-master" in e["msg"] or "+odown" in e["msg"] or "+sdown master" in e["msg"]) and e["msg"][:12] not in seen:
+                    seen.add(e["msg"][:12])
+                    print("| Sentinel `%s` | %.2f |" % (e["msg"].split()[0], e["t"]))
+            print()
+            print("Keys per server before: %s. After: %s.\n" % (m["dbsize_before"], m["dbsize_after"]))
 
-
-print("# local-cache-cold-pods")
-print()
-bad = [(c, msg) for c in order for msg in runs[c]["invalid"]]
-for c, msg in bad:
-    print("RUN INVALID: %s: %s" % (job(c), msg))
-if bad:
+if metrics:
+    print("## 数字は使わない\n")
+    print("| job | CPU | pgbench tps | DB reads | peak s p99 (ms) | p99 without hot seconds (ms) | longest stall (s) | requests over 100 ms | k6 dropped | k6 VUs max | observed (s) | stopped by | job total |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for m in metrics.values():
+        total = next((x.split()[1] for x in m["elapsed"] if x.startswith("total ")), "-")
+        print("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+            m["cond"], m["vendor"], f(m["pgbench_tps"], "%.0f"), i(m["db_reads"]), f(m["p99_peak_second_ms"]),
+            f(m["p99_excluding_hot_ms"]), f(m["stall_longest_seconds"]), i(m["requests_over_100ms"]), i(m["k6_dropped"]),
+            i(m["k6_vus_max"]), f(m["observed_seconds"]), m["stop_reason"], total))
     print()
-
-print("## 3. Reproduce")
-print()
-print("Pods added to 4 Pods with filled caches. DB reads are counted by the app when a request misses the local cache, summed over all Pods per second. DB CPU is the share of the CPUs the PostgreSQL container runs on.")
-print()
-print("| job | CPU model | pgbench tps | Pods added | peak DB reads/s | peak / all requests | DB reads by the added Pods | DB CPU peak (%) | seconds with DB CPU >= 90% |")
-print("|---|---|---|---|---|---|---|---|---|")
-for c in adds:
-    m = runs[c]
-    pk = m["peak_db"]
-    print("| %s | %s | %.0f | %d | %.0f | %.2f | %d | %.0f | %d |" % (
-        job(c), m["cpu_model"], m["pgbench_tps"], m["add"], pk["db_per_s"], pk["ratio"], m["new_db_total"],
-        m["pg_cpu_peak_pct"], len(m["pg_cpu_ge_90_s"])))
-print()
-if "restart-default" in runs:
-    m = runs["restart-default"]
-    print("`kubectl rollout restart` of the 4 Pods with the default strategy. Rollout time is from the command until `kubectl rollout status` returned.")
-    print()
-    print("| job | CPU model | pgbench tps | peak DB reads/s | rollout (s) |")
-    print("|---|---|---|---|---|")
-    print("| %s | %s | %.0f | %.0f | %.1f |" % (
-        job("restart-default"), m["cpu_model"], m["pgbench_tps"], m["peak_db"]["db_per_s"], m["rollout_s"]))
-    print()
-if saturated("restart-default") and runs["restart-default"]["recovered_s"] is not None:
-    per_second("restart-default")
-elif saturated("add-4") and runs["add-4"]["recovered_s"] is not None:
-    per_second("add-4")
-
-print("## 4. Mitigations")
-print()
-rs = [c for c in RESTARTS if c in runs]
-if rs:
-    print("`kubectl rollout restart` of the 4 Pods. Overlapped reads started while another read of the same key was in flight in the same Pod. Peak pool wait is the highest per-second mean of the pgxpool acquires that found no idle connection, added when an acquire succeeds. Recovered is the time from the command until DB reads stayed below %s/s, no read was in flight and DB CPU was within %s points of the value before the command, for %s s." % (
-        runs[rs[0]]["params"]["QUIET_READS"], runs[rs[0]]["params"]["QUIET_DB_CPU"], runs[rs[0]]["params"]["QUIET_SECONDS"]))
-    print()
-    print("| job | strategy | CPU model | pgbench tps | peak DB reads/s | overlapped reads | peak pool wait (ms) | rollout (s) | recovered (s) |")
-    print("|---|---|---|---|---|---|---|---|---|")
-    for c in rs:
-        m = runs[c]
-        rec = "not within %s s" % m["params"]["MAX_OBS"] if m["recovered_s"] is None else "%.1f" % m["recovered_s"]
-        print("| %s | %s | %s | %.0f | %.0f | %d | %.0f | %.1f | %s |" % (
-            job(c), strategy(c), m["cpu_model"], m["pgbench_tps"], m["peak_db"]["db_per_s"], m["new_dup_total"],
-            m["pool_wait_peak_ms"], m["rollout_s"], rec))
-    print()
-if "restart-default" in runs:
-    r = runs["restart-default"]["resolved"]
-    print("With 4 replicas the default strategy resolved to a `deployment.kubernetes.io/max-replicas` of %s. During the rollout at most %s Pods were not terminating and at least %s were available." % (
-        r["max_replicas"], r["max_pods"], r["min_available"]))
+    print("First Redis error of the probe per job:\n")
+    for m in metrics.values():
+        if m["first_errors"]:
+            print("- %s: %s" % (m["cond"], "; ".join("%s: %s" % (k, e) for k, e in m["first_errors"])))
+        if m.get("problems"):
+            print("- %s invalid: %s" % (m["cond"], "; ".join(m["problems"])))
+        if m["other_messages"]:
+            print("- %s other errors: %s" % (m["cond"], json.dumps(m["other_messages"])))

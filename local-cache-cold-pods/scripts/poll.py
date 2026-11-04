@@ -16,15 +16,19 @@ def pods_loop():
         while not stop.is_set():
             t = time.time()
             try:
-                with urllib.request.urlopen(API + "/api/v1/namespaces/default/pods?labelSelector=app%3Dapp", timeout=5) as r:
+                with urllib.request.urlopen(API + "/api/v1/namespaces/default/pods", timeout=5) as r:
                     pods = json.loads(r.read())
                 rows = []
                 for p in pods["items"]:
                     ready = next((c for c in p["status"].get("conditions") or [] if c["type"] == "Ready"), {})
-                    rows.append({"pod": p["metadata"]["name"], "created": p["metadata"]["creationTimestamp"],
+                    rows.append({"pod": p["metadata"]["name"], "uid": p["metadata"]["uid"],
+                                 "created": p["metadata"]["creationTimestamp"],
                                  "deleting": p["metadata"].get("deletionTimestamp"),
                                  "phase": p["status"].get("phase"), "ready": ready.get("status") == "True",
-                                 "ready_since": ready.get("lastTransitionTime")})
+                                 "ready_since": ready.get("lastTransitionTime"),
+                                 "containers": {c["name"]: {"restarts": c.get("restartCount"), "ready": c.get("ready"),
+                                                            "state": c.get("state")}
+                                                for c in p["status"].get("containerStatuses") or []}})
                 f.write(json.dumps({"t": t, "pods": rows}) + "\n")
             except Exception as e:
                 f.write(json.dumps({"t": t, "error": str(e)}) + "\n")

@@ -19,15 +19,24 @@ def pg(ip):
     ])
 
 
-def app(strategy):
+def app():
     labels = {"app": "app"}
     env = {
         "DATABASE_URL": "postgres://postgres:pg@pg:5432/postgres?sslmode=disable",
         "POOL_MAX": e["POOL_MAX"],
-        "CACHE_SIZE": e["CACHE_SIZE"],
-        "CACHE_TTL_SECONDS": e["CACHE_TTL_SECONDS"],
+        "LOCAL_SIZE": e["LOCAL_SIZE"],
+        "LOCAL_TTL_SECONDS": e["LOCAL_TTL_SECONDS"],
+        "REDIS_TTL_SECONDS": e["REDIS_TTL_SECONDS"],
+        "VALUE_BYTES": e["VALUE_BYTES"],
+        "READ_BYTES": e["READ_BYTES"],
+        "GO_REDIS": e["GO_REDIS"],
         "STATS_DIR": "/stats",
     }
+    if e["REDIS"].startswith("single"):
+        env.update({"REDIS_MODE": "single", "REDIS_ADDR": "redis:6379"})
+    elif e["REDIS"] == "sentinel":
+        env.update({"REDIS_MODE": "sentinel", "SENTINEL_MASTER": "mymaster",
+                    "SENTINEL_ADDRS": ",".join("redis-ha-announce-%d:26379" % i for i in range(3))})
     envs = [{"name": k, "value": v} for k, v in env.items()]
     envs.append({"name": "POD_NAME", "valueFrom": {"fieldRef": {"fieldPath": "metadata.name"}}})
     spec = {"replicas": 4, "selector": {"matchLabels": labels},
@@ -38,10 +47,6 @@ def app(strategy):
                 "readinessProbe": {"httpGet": {"path": "/ready", "port": 8080}, "periodSeconds": 1},
                 "volumeMounts": [{"name": "stats", "mountPath": "/stats"}]}],
                 "volumes": [{"name": "stats", "hostPath": {"path": "/stats", "type": "Directory"}}]}}}
-    if strategy.startswith("surge1"):
-        spec["strategy"] = {"type": "RollingUpdate", "rollingUpdate": {"maxSurge": 1, "maxUnavailable": 0}}
-    if strategy in ("surge1", "default-ready"):
-        spec["minReadySeconds"] = int(e["MIN_READY"])
     return lst([
         {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "app"}, "spec": spec},
         {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "app"},
@@ -49,13 +54,56 @@ def app(strategy):
     ])
 
 
+def probe(script, delay=30):
+    return {"initialDelaySeconds": delay, "periodSeconds": 15, "timeoutSeconds": 15,
+            "successThreshold": 1, "failureThreshold": 5,
+            "exec": {"command": ["sh", "-c", "/health/" + script]}}
+
+
+def redis(persist):
+    labels = {"app": "redis"}
+    save = "900 1" if persist else ""
+    mounts = [{"name": "health", "mountPath": "/health"}]
+    if persist:
+        mounts.append({"name": "data", "mountPath": "/data"})
+    sts = {
+        "apiVersion": "apps/v1", "kind": "StatefulSet", "metadata": {"name": "redis"},
+        "spec": {"serviceName": "redis-headless", "replicas": 1, "selector": {"matchLabels": labels},
+                 "template": {"metadata": {"labels": labels}, "spec": {
+                     "terminationGracePeriodSeconds": 60,
+                     "containers": [{
+                         "name": "redis", "image": e["REDIS_TAG"], "imagePullPolicy": "IfNotPresent",
+                         "args": ["redis-server", "--dir", "/data", "--save", save,
+                                  "--maxmemory-policy", "volatile-lru"],
+                         "ports": [{"name": "redis", "containerPort": 6379}],
+                         "livenessProbe": probe("redis_liveness.sh"),
+                         "readinessProbe": probe("redis_readiness.sh", int(e["READY_DELAY_SECONDS"])),
+                         "startupProbe": probe("redis_readiness.sh", int(e["READY_DELAY_SECONDS"])),
+                         "volumeMounts": mounts}],
+                     "volumes": [{"name": "health", "configMap": {"name": "redis-health", "defaultMode": 0o755}}]}}},
+    }
+    if persist:
+        sts["spec"]["volumeClaimTemplates"] = [{
+            "metadata": {"name": "data"},
+            "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": "10Gi"}}}}]
+    return lst([
+        sts,
+        {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "redis"},
+         "spec": {"selector": labels, "ports": [{"port": 6379, "targetPort": 6379}]}},
+        {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "redis-headless"},
+         "spec": {"clusterIP": "None", "selector": labels, "ports": [{"port": 6379, "targetPort": 6379}]}},
+    ])
+
+
 def k6(seconds):
     env = {"BASE": "http://app", "RATE": e["RATE"], "SECONDS": str(seconds),
            "KEYS": e["KEYS"], "ZIPF_S": e["ZIPF_S"], "GOGC": e["K6_GOGC"],
+           "GOMEMLIMIT": e["K6_MEMLIMIT"], "PREALLOC_VUS": e["PREALLOC_VUS"], "MAX_VUS": e["MAX_VUS"],
+           "PREFILL": "0" if e["REDIS"] == "none" else "1",
            "START_RATE": e["START_RATE"], "RAMP": e["RAMP"]}
     return {
         "apiVersion": "batch/v1", "kind": "Job", "metadata": {"name": "k6"},
-        "spec": {"backoffLimit": 0, "activeDeadlineSeconds": seconds + 60, "template": {"spec": {
+        "spec": {"backoffLimit": 0, "activeDeadlineSeconds": seconds + 60, "template": {"metadata": {"labels": {"app": "k6"}}, "spec": {
             "restartPolicy": "Never",
             "securityContext": {"sysctls": [{"name": "net.ipv4.ip_local_port_range", "value": "1024 65535"}]},
             "containers": [{
@@ -74,7 +122,9 @@ def k6(seconds):
 if what == "pg":
     out = pg(sys.argv[2])
 elif what == "app":
-    out = app(sys.argv[2])
+    out = app()
+elif what == "redis":
+    out = redis(sys.argv[2] == "rdb")
 elif what == "k6":
     out = k6(int(sys.argv[2]))
 print(json.dumps(out, indent=1))

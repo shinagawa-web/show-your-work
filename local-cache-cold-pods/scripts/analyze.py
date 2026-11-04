@@ -3,13 +3,13 @@ import json
 import math
 import os
 import re
-import statistics
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 
 results, cond = sys.argv[1], sys.argv[2]
 R = lambda *p: os.path.join(results, *p)
+ERR = ["loading", "refused", "timeout", "readonly", "other"]
 
 
 def kv(path):
@@ -21,83 +21,12 @@ def kv(path):
     return out
 
 
-params = dict(line.strip().split("=", 1) for line in open(R("params.txt")) if "=" in line and " " not in line.strip())
-head = dict(x.split("=") for x in open(R("params.txt")).readline().split())
-add = int(head["add"])
-timeline = kv(R("timeline.txt"))
-op = float(timeline["op"])
-op_s = math.floor(op)
-initial = set(open(R("initial-pods.txt")).read().split())
-final = set(open(R("final-pods.txt")).read().split())
-
-stats = {}
-for f in glob.glob(R("stats", "*.jsonl")):
-    rows = [json.loads(x) for x in open(f) if x.strip()]
-    if rows:
-        stats[rows[0]["pod"]] = rows
-
-per = defaultdict(lambda: defaultdict(float))
-COUNTERS = ["req", "hit", "miss", "db_start", "db_done", "dup",
-            "errs", "pool_acquire_count", "pool_empty_acquire", "pool_empty_wait_ns", "pool_acquire_ns"]
-new_first_req = None
-for pod, rows in stats.items():
-    grp = "old" if pod in initial else "new"
-    prev = None
-    for r in rows:
-        s = round(r["t"]) - 1
-        if prev is not None and round(prev["t"]) == s:
-            for c in COUNTERS:
-                if c.startswith("pool_") and not prev["ready"]:
-                    continue
-                d = r[c] - prev[c]
-                per[s][c] += d
-                per[s][grp + "_" + c] += d
-            if grp == "new" and r["req"] - prev["req"] > 0 and (new_first_req is None or s < new_first_req):
-                new_first_req = s
-        per[s]["db_inflight"] += r["db_inflight"]
-        per[s]["pool_acquired"] += r["pool_acquired"]
-        per[s]["pool_max"] += r["pool_max"]
-        prev = r
-
-lat = defaultdict(list)
-status_bad = defaultdict(int)
-timeouts = 0
-stop_ms = float(timeline.get("k6_interrupted", "inf")) * 1000
-for line in open(R("k6", "k6.log")):
-    p = line.split()
-    if p and p[0] == "r" and int(p[1]) < stop_ms:
-        s = (int(p[1]) + int(p[2])) // 1000
-        ok = p[4] == "200"
-        lat[s].append(float(p[3]) if ok else float(p[2]))
-        if not ok:
-            status_bad[s] += 1
-            if int(p[2]) >= 29000:
-                timeouts += 1
-
 def ncpus(spec):
     n = 0
     for part in spec.split(","):
         a, _, b = part.partition("-")
         n += int(b or a) - int(a) + 1
     return n
-
-
-cpu = {}
-stalls = []
-prev = None
-for line in open(R("cpu.jsonl")):
-    r = json.loads(line)
-    if "error" in r:
-        continue
-    if prev:
-        dt = r["t"] - prev["t"]
-        s = math.floor(prev["t"] + dt / 2)
-        ticks = sum(v[0] - prev["proc_stat"][c][0] for c, v in r["proc_stat"].items()) / dt
-        if ticks < 0.75 * 100 * len(r["proc_stat"]):
-            stalls.append((s, ticks))
-        cpu[s] = {"pg": (r["pg_usec"] - prev["pg_usec"]) / dt / 1e4 / ncpus(params["PG_CPUS"]),
-                  "node": (r["node_usec"] - prev["node_usec"]) / dt / 1e4 / ncpus(params["NODE_CPUS"])}
-    prev = r
 
 
 def pct(xs, q):
@@ -107,228 +36,320 @@ def pct(xs, q):
     return xs[min(len(xs) - 1, int(math.ceil(q * len(xs))) - 1)]
 
 
-k6_end = max(lat) if lat else op_s
-secs = [s for s in sorted(lat) if s in per and s < k6_end]
-table = []
-for s in secs:
-    d = per[s]
-    row = {"rel": s - op_s, "req": d["req"], "db": d["db_start"],
-           "ratio": d["db_start"] / d["req"] if d["req"] else None,
-           "old_hit": d["old_hit"] / d["old_req"] if d["old_req"] else None,
-           "new_req": d["new_req"], "new_hit": d["new_hit"] / d["new_req"] if d["new_req"] else None,
-           "new_db": d["new_db_start"], "dup": d["dup"],
-           "k6_n": len(lat[s]), "p50": pct(lat[s], 0.5), "p99": pct(lat[s], 0.99), "bad": status_bad[s],
-           "pool_wait_ms": d["pool_empty_wait_ns"] / d["pool_empty_acquire"] / 1e6 if d["pool_empty_acquire"] else 0.0,
-           "pool_empty": d["pool_empty_acquire"], "inflight": d["db_inflight"],
-           "pool_acq": d["pool_acquired"], "pool_max": d["pool_max"]}
-    c = cpu.get(s)
-    row.update({"pg_cpu": c["pg"], "node_cpu": c["node"]} if c else {"pg_cpu": None, "node_cpu": None})
-    table.append(row)
-
-with open(R("timeseries.tsv"), "w") as f:
-    cols = list(table[0].keys())
-    f.write("\t".join(cols) + "\n")
-    for row in table:
-        f.write("\t".join("" if row[c] is None else ("%.4f" % row[c] if isinstance(row[c], float) else str(row[c])) for c in cols) + "\n")
-
-base = [r for r in table if -15 <= r["rel"] <= -1]
-after = [r for r in table if r["rel"] >= 0]
-b_p99 = statistics.median(r["p99"] for r in base)
-b_p50 = statistics.median(r["p50"] for r in base)
-b_req = statistics.mean(r["req"] for r in base)
-b_db = statistics.mean(r["db"] for r in base)
-b_old_hit = sum(per[op_s + r["rel"]]["old_hit"] for r in base) / sum(per[op_s + r["rel"]]["old_req"] for r in base)
-b_pg = statistics.mean(r["pg_cpu"] for r in base if r["pg_cpu"] is not None)
-reading = [r["rel"] for r in after if r["db"] >= 10]
-recovered_s = float(timeline["recovered"]) - op if "recovered" in timeline else None
-window_end = (max(reading) if reading else 0) + 3
-if recovered_s is not None:
-    window_end = max(window_end, math.ceil(recovered_s))
-event = [r for r in after if r["rel"] <= window_end]
-peak = max(after, key=lambda r: r["db"])
-pool = lambda lo, hi: pct([x for s in range(op_s + lo, op_s + hi) for x in lat.get(s, [])], 0.99)
-b_p99_pooled = pool(-15, 0)
-a_p99_pooled = pool(0, 30)
-p99_peak = max(event, key=lambda r: r["p99"])
-threshold = max(2 * b_p99, b_p99 + 10)
-p99_high = [r["rel"] for r in after if r["p99"] > threshold]
-pool_wait = [r["rel"] for r in after if r["pool_wait_ms"] >= 1.0]
-pg_full = [r["rel"] for r in after if r["pg_cpu"] is not None and r["pg_cpu"] >= 90]
-
-fill = None
-if new_first_req is not None:
-    rows = [r for r in table if op_s + r["rel"] >= new_first_req]
-    for i, r in enumerate(rows):
-        win = rows[i:i + 3]
-        if len(win) == 3 and all(w["new_hit"] is not None and w["new_hit"] >= 0.99 * b_old_hit for w in win):
-            fill = r["rel"] - (new_first_req - op_s)
-            break
-
-new_pods = sorted(p for p in stats if p not in initial)
-new_db_total = sum(stats[p][-1]["db_start"] for p in new_pods)
-new_dup_total = sum(stats[p][-1]["dup"] for p in new_pods)
-new_req_total = sum(stats[p][-1]["req"] for p in new_pods)
-excess_db = sum(r["db"] for r in after) - b_db * len(after)
+def rel(t):
+    return None if t is None else round(t - op, 3)
 
 
-def since_op(name):
-    n = 0
-    for rows in stats.values():
-        before_op = [r[name] for r in rows if r["t"] <= op]
-        n += rows[-1][name] - (before_op[-1] if before_op else 0)
-    return n
+def iso(s):
+    s = re.sub(r"(\.\d{6})\d*", r"\1", s).replace("Z", "+00:00")
+    return datetime.fromisoformat(s).timestamp()
 
 
-reads = {k: since_op(k) for k in ("db_start", "db_done", "db_err", "db_canceled", "pool_canceled")}
+params = dict(line.strip().split("=", 1) for line in open(R("params.txt")) if "=" in line and " " not in line.strip())
+head = dict(x.split("=") for x in open(R("params.txt")).readline().split())
+timeline = kv(R("timeline.txt"))
+op = float(timeline["op"])
+stop = float(next(x.split()[1] for x in open(R("timeline.txt")) if x.startswith("stop ")))
+stop_reason = next(x.split()[2] for x in open(R("timeline.txt")) if x.startswith("stop "))
+interrupted = float(timeline.get("k6_interrupted", stop))
+op_s = math.floor(op)
 
-env = open(R("00-environment.txt")).read()
-fields = dict(re.findall(r"^([A-Za-z ()]+?):\s+(.*)$", env, re.M))
-cpu_model = fields.get("Model name", "-")
-if cpu_model == "-":
-    cpu_model = fields.get("Vendor ID", "-")
-tps = float(re.search(r"^tps = ([0-9.]+)", open(R("pgbench.txt")).read(), re.M).group(1))
+COUNTERS = ["req", "local_hit", "redis_hit", "redis_absent", "redis_failed", "redis_set_ok", "miss",
+            "db_start", "db_done", "db_err", "dup", "errs"]
+per = defaultdict(lambda: defaultdict(float))
+window = defaultdict(float)
+other_msgs = defaultdict(int)
+for f in glob.glob(R("stats", "*.jsonl")):
+    rows = [json.loads(x) for x in open(f) if x.strip()]
+    prev = None
+    other_before = {}
+    last_other = {}
+    for r in rows:
+        s = round(r["t"]) - 1
+        vals = {c: r[c] for c in COUNTERS}
+        for group in ("get_err", "set_err"):
+            for e in ERR:
+                vals[group + "_" + e] = r[group][e]
+        base = prev or {k: 0 for k in vals}
+        for k, v in vals.items():
+            d = v - base[k]
+            per[s][k] += d
+            if op <= r["t"] - 0.5 <= stop:
+                window[k] += d
+        per[s]["db_inflight"] += r["db_inflight"]
+        if r["t"] < op:
+            other_before = r.get("other_err", {})
+        if r["t"] <= stop + 1:
+            last_other = r.get("other_err", {})
+        prev = vals
+    for k, v in last_other.items():
+        d = v - other_before.get(k, 0)
+        if d:
+            other_msgs[k] += d
 
-deploy_min_ready = json.load(open(R("deploy-final.json")))["spec"].get("minReadySeconds", 0)
+lat = defaultdict(list)
+by_start = defaultdict(list)
+bad = defaultdict(int)
+stop_ms = interrupted * 1000
+for line in open(R("k6", "k6.log")):
+    p = line.split()
+    if len(p) == 5 and p[0] == "r" and int(p[1]) < stop_ms:
+        start_ms, elapsed = int(p[1]), int(p[2])
+        s = (start_ms + elapsed) // 1000
+        ok = p[4] == "200"
+        v = float(p[3]) if ok else float(elapsed)
+        lat[s].append(v)
+        if not ok:
+            bad[s] += 1
+        if op * 1000 <= start_ms <= stop * 1000:
+            by_start[int((start_ms - op * 1000) // 100)].append(elapsed)
 
-
-def since_epoch(iso):
-    return datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
-
-
-ready_at = {}
-gone_at = {}
-seen = {}
-for line in open(R("pods.jsonl")):
+cpu = {}
+prev = None
+for line in open(R("cpu.jsonl")):
     r = json.loads(line)
     if "error" in r:
         continue
-    names = set()
-    for p in r["pods"]:
-        names.add(p["pod"])
-        seen.setdefault(p["pod"], r["t"])
-        if p["ready"] and not p["deleting"] and p["pod"] not in ready_at:
-            ready_at[p["pod"]] = r["t"]
-        if p["deleting"] and p["pod"] not in gone_at:
-            gone_at[p["pod"]] = r["t"]
-new_ready = sorted(ready_at[p] - op for p in new_pods if p in ready_at)
+    if prev:
+        dt = r["t"] - prev["t"]
+        s = math.floor(prev["t"] + dt / 2)
+        cpu[s] = {"pg": (r["pg_usec"] - prev["pg_usec"]) / dt / 1e4 / ncpus(params["PG_CPUS"]),
+                  "node": (r["node_usec"] - prev["node_usec"]) / dt / 1e4 / ncpus(params["NODE_CPUS"])}
+    prev = r
 
-resolved = {"max_pods": None, "min_available": None, "max_replicas": None}
-if os.path.exists(R("rollout-resolved.txt")):
-    rs = [line.split() for line in open(R("rollout-resolved.txt")) if len(line.split()) == 3]
-    resolved["max_replicas"] = max((int(x[2]) for x in rs), default=None)
-    min_ready = int(deploy_min_ready)
-    for line in open(R("pods.jsonl")):
-        r = json.loads(line)
-        if "error" in r or not op <= r["t"] <= float(timeline["rollout_done"]):
+win_secs = [s for s in sorted(set(lat) | set(cpu)) if op_s <= s <= math.floor(stop)]
+hot = [s for s in win_secs if s in cpu and cpu[s]["node"] >= 95]
+base_secs = [s for s in sorted(lat) if op_s - 10 <= s < op_s]
+all_lat = [x for s in win_secs for x in lat.get(s, [])]
+cool_lat = [x for s in win_secs if s not in hot for x in lat.get(s, [])]
+base_lat = [x for s in base_secs for x in lat[s]]
+
+with open(R("timeseries.tsv"), "w") as f:
+    cols = ["rel", "req", "local_hit", "redis_hit", "redis_absent", "redis_failed", "miss", "db_start", "db_inflight",
+            "set_ok", "get_err", "set_err", "k6_n", "bad", "p50", "p99", "pg_cpu", "node_cpu"]
+    print("\t".join(cols), file=f)
+    for s in sorted(lat):
+        d = per.get(s, {})
+        c = cpu.get(s, {})
+        row = [s - op_s, d.get("req", 0), d.get("local_hit", 0), d.get("redis_hit", 0), d.get("redis_absent", 0),
+               d.get("redis_failed", 0), d.get("miss", 0), d.get("db_start", 0), d.get("db_inflight", 0),
+               d.get("redis_set_ok", 0), sum(d.get("get_err_" + e, 0) for e in ERR),
+               sum(d.get("set_err_" + e, 0) for e in ERR), len(lat[s]), bad[s],
+               pct(lat[s], 0.5), pct(lat[s], 0.99), c.get("pg"), c.get("node")]
+        print("\t".join("" if v is None else (("%.1f" % v) if isinstance(v, float) else str(v)) for v in row), file=f)
+
+events = []
+for f in glob.glob(R("stats", "*.events")):
+    pod = os.path.basename(f).rsplit(".", 1)[0]
+    for line in open(f):
+        if line.strip():
+            r = json.loads(line)
+            r["pod"] = pod
+            events.append(r)
+events.sort(key=lambda r: r["t"])
+ev_win = [r for r in events if r["t"] >= op - 1 and r["t"] <= stop + 1]
+
+
+def spans(down, up):
+    out = defaultdict(list)
+    open_down = {}
+    for r in ev_win:
+        if r["ev"] == down:
+            open_down.setdefault(r["pod"], r)
+        elif r["ev"] == up and r["pod"] in open_down:
+            d = open_down.pop(r["pod"])
+            out[r["pod"]].append((d["last_ok"], r["t"], d["kind"], d["err"]))
+    for pod, d in open_down.items():
+        out[pod].append((d["last_ok"], stop, d["kind"], d["err"] + " (still down at stop)"))
+    return out
+
+
+intervals = {pod: [x for x in v if x[1] >= op] for pod, v in spans("probe_down", "probe_up").items()}
+longest = [max(v, key=lambda x: x[1] - x[0]) for v in intervals.values() if v]
+flat = sorted(longest)
+stopped = None
+per_pod = []
+short_spans = []
+if flat:
+    stopped = {"from": min(x[0] for x in flat) - op, "to": max(x[1] for x in flat) - op}
+    stopped["seconds"] = stopped["to"] - stopped["from"]
+    per_pod = [b - a for a, b, _, _ in flat]
+    short_spans = sorted(round(x[0] - op, 2) for v in intervals.values() for x in v if x not in longest)
+first_errors = sorted({(x[2], x[3]) for x in flat})
+served = sorted(x for v in spans("down", "up").values() for x in v)
+first_request_error = min((r["t"] for r in ev_win if r["ev"] == "down"), default=None)
+last_request_error = max((x[1] for x in served), default=None)
+
+polls = []
+for line in open(R("pods.jsonl")):
+    r = json.loads(line)
+    if "pods" in r:
+        polls.append(r)
+
+
+def log_lines(pod, container):
+    path = R("logs", "%s.%s.log" % (pod, container))
+    if not os.path.exists(path):
+        return []
+    seen, out = set(), []
+    for line in open(path, errors="replace"):
+        if line in seen:
             continue
-        alive = [p for p in r["pods"] if not p["deleting"]]
-        avail = [p for p in alive if p["ready"] and p["ready_since"] and r["t"] - since_epoch(p["ready_since"]) >= min_ready]
-        resolved["max_pods"] = max(resolved["max_pods"] or 0, len(alive))
-        resolved["min_available"] = len(avail) if resolved["min_available"] is None else min(resolved["min_available"], len(avail))
-old_deleted = sorted(gone_at[p] - op for p in initial if p in gone_at)
+        seen.add(line)
+        ts, _, rest = line.partition(" ")
+        try:
+            out.append((iso(ts), rest.rstrip()))
+        except ValueError:
+            pass
+    out.sort(key=lambda x: x[0])
+    return out
 
-if os.path.exists(R("k6", "summary.json")):
-    m = json.load(open(R("k6", "summary.json")))["metrics"]
-    dropped = m.get("dropped_iterations", {}).get("values", {}).get("count", 0)
-    iters = m["iterations"]["values"]["count"]
-else:
-    dropped, iters = 0, sum(len(v) for v in lat.values())
-bad_total = sum(status_bad.values())
-rollout = float(timeline["rollout_done"]) - op if "rollout_done" in timeline else None
 
-invalid = []
-vm_stalls = [s - op_s for s, _ in stalls if op_s - 15 <= s <= op_s + window_end]
-if vm_stalls:
-    invalid.append("the VM got less than 75%% of its CPU time from the host at seconds %s after the operation" % vm_stalls)
-if "k6_incomplete" in timeline:
-    invalid.append("k6 did not complete")
-if b_old_hit < 0.98:
-    invalid.append("hit rate of the existing Pods before the operation is %.4f (< 0.98): caches were not filled" % b_old_hit)
-if dropped > 0.01 * (iters + dropped):
-    invalid.append("dropped_iterations %d is over 1%% of the iterations" % dropped)
-restarted = cond.startswith("restart")
-if restarted and final & initial:
-    invalid.append("Pods from before the restart remain: %s" % sorted(final & initial))
-if restarted and (rollout is None or not any(l.startswith("rollout_done ") and l.split()[-1] == "exit=0" for l in open(R("timeline.txt")))):
-    invalid.append("rollout status did not succeed")
+def first(lines, needle, after=0):
+    for t, msg in lines:
+        if t >= after and needle in msg:
+            return t, msg
+    return None, None
 
-frac = add / (4 + add) if add else None
-stop_reason = next((l.split()[2] for l in open(R("timeline.txt")) if l.startswith("stop ")), None)
+
+def ready_after(pod, uid_not=None, after=0):
+    for p in polls:
+        if p["t"] < after:
+            continue
+        for x in p["pods"]:
+            if x["pod"] == pod and x["ready"] and x.get("uid") != uid_not:
+                return p["t"]
+    return None
+
+
+def uid_before(pod):
+    for p in reversed(polls):
+        if p["t"] < op:
+            for x in p["pods"]:
+                if x["pod"] == pod:
+                    return x.get("uid")
+    return None
+
+
+steps = {}
+redis_pod = None
+load_seconds = None
+if head["redis"].startswith("single"):
+    redis_pod = "redis-0"
+elif head["op"] == "sentinel-restart":
+    redis_pod = "redis-ha-server-2"
+elif head["redis"] == "sentinel":
+    redis_pod = "redis-ha-server-0"
+if redis_pod and head["op"] in ("redis-restart", "sentinel-restart", "sentinel-kill"):
+    lines = log_lines(redis_pod, "redis")
+    term, _ = first(lines, "Received SIGTERM", op)
+    saved, _ = first(lines, "DB saved on disk", op)
+    bye, _ = first(lines, "ready to exit", op)
+    began = bye or op
+    start_t, _ = first(lines, "Redis is starting", op)
+    loaded, msg = first(lines, "DB loaded from disk", op)
+    if msg:
+        load_seconds = float(re.search(r"([\d.]+) seconds", msg).group(1))
+    accept, _ = first(lines, "Ready to accept connections", op)
+    ready = ready_after(redis_pod, uid_not=uid_before(redis_pod) if head["op"] != "sentinel-kill" else None, after=(accept or op))
+    steps = {"sigterm": rel(term), "rdb_saved": rel(saved), "exit": rel(bye), "process_start": rel(start_t),
+             "db_loaded": rel(loaded), "accepting": rel(accept), "pod_ready": rel(ready)}
+    if flat:
+        steps["first_pod_back"] = rel(min(x[1] for x in flat))
+        steps["last_pod_back"] = rel(max(x[1] for x in flat))
+
+sentinel = []
+if head["redis"] == "sentinel":
+    for i in range(3):
+        for t, msg in log_lines("redis-ha-server-%d" % i, "sentinel"):
+            if t >= op - 1 and re.search(r"\+sdown|-sdown|\+odown|-odown|\+try-failover|\+failover-state-|\+switch-master|\+failover-end|\+reboot|\+slave |\+promoted|-failover", msg):
+                sentinel.append({"t": rel(t), "pod": i, "msg": msg.split(" ", 4)[-1][:110]})
+    sentinel.sort(key=lambda x: x["t"])
+
+
+def run_of(pred):
+    best = cur = 0
+    for b in range(0, (max(by_start) + 1) if by_start else 0):
+        if pred(by_start.get(b, [])):
+            cur += 1
+            best = max(best, cur)
+        else:
+            cur = 0
+    return best / 10
+
+
+stall_longest = run_of(lambda xs: bool(xs) and sorted(xs)[len(xs) // 2] >= 100)
+slow = sum(1 for xs in by_start.values() for v in xs if v >= 100)
+k6 = json.load(open(R("k6", "summary.json")))["metrics"] if os.path.exists(R("k6", "summary.json")) else {}
+pgbench = re.search(r"tps = ([\d.]+)", open(R("pgbench.txt")).read())
+dbsize = lambda path: dict(re.findall(r"== (\S+)\n(?:\(integer\) )?(\S+)", open(path).read())) if os.path.exists(path) else {}
+
+miss_window = window["miss"]
 out = {
-    "cond": cond, "params": params, "add": add,
-    "baseline": {"req_per_s": b_req, "db_per_s": b_db, "old_hit_rate": b_old_hit, "p50_ms": b_p50, "p99_ms": b_p99,
-                 "pg_cpu_pct": b_pg},
-    "peak_db": {"rel_s": peak["rel"], "db_per_s": peak["db"], "req_per_s": peak["req"], "ratio": peak["ratio"],
-                "predicted_ratio": frac, "new_share": peak["new_req"] / peak["req"] if peak["req"] else None,
-                "new_hit": peak["new_hit"]},
-    "p99_pooled_ms": {"before_15s": b_p99_pooled, "after_30s": a_p99_pooled},
-    "window_end_s": window_end,
-    "p99_peak": {"rel_s": p99_peak["rel"], "p99_ms": p99_peak["p99"], "p50_ms": p99_peak["p50"]},
-    "p99_rise_threshold_ms": threshold, "p99_above_threshold_s": p99_high,
-    "pool_wait_ge_1ms_s": pool_wait, "pg_cpu_ge_90_s": pg_full,
-    "new_pods": new_pods, "new_db_total": new_db_total, "new_dup_total": new_dup_total,
-    "new_req_total": new_req_total,
-    "excess_db_after_op": excess_db,
-    "fill_s": fill, "new_ready_rel_s": new_ready, "old_deleting_rel_s": old_deleted, "rollout_s": rollout,
-    "dropped_iterations": dropped, "iterations": iters, "non_200": bad_total, "non_200_timeouts": timeouts,
-    "recovered_s": recovered_s, "stop": stop_reason, "reads_after_op": reads, "resolved": resolved,
-    "cpu_model": cpu_model, "pgbench_tps": tps,
-    "pool_wait_peak_ms": max(r["pool_wait_ms"] for r in after),
-    "node_cpu_peak_pct": max((r["node_cpu"] for r in after if r["node_cpu"] is not None), default=None),
-    "pg_cpu_peak_pct": max((r["pg_cpu"] for r in after if r["pg_cpu"] is not None), default=None),
-    "final_pods_equal_initial": final == initial if add else None,
-    "invalid": invalid,
+    "cond": cond,
+    "redis": head["redis"],
+    "op": head["op"],
+    "cpu_model": (re.search(r"Model name:\s+(.*)", open(R("00-environment.txt")).read()) or [None, None])[1],
+    "vendor": (re.search(r"Vendor ID:\s+(.*)", open(R("00-environment.txt")).read()) or [None, None])[1],
+    "pgbench_tps": float(pgbench.group(1)) if pgbench else None,
+    "observed_seconds": stop - op,
+    "stop_reason": stop_reason,
+    "stopped": stopped,
+    "stopped_per_pod": [round(x, 2) for x in sorted(per_pod)],
+    "probe_blips_rel": short_spans,
+    "first_request_error": rel(first_request_error),
+    "last_request_error": rel(last_request_error),
+    "first_errors": first_errors,
+    "steps": steps,
+    "load_seconds": load_seconds,
+    "sentinel": sentinel,
+    "req": window["req"],
+    "miss": miss_window,
+    "miss_redis_failed": window["redis_failed"],
+    "miss_redis_absent": window["redis_absent"],
+    "local_hit": window["local_hit"],
+    "redis_hit": window["redis_hit"],
+    "redis_set_ok": window["redis_set_ok"],
+    "db_reads": window["db_start"],
+    "db_done": window["db_done"],
+    "db_err": window["db_err"],
+    "dup": window["dup"],
+    "app_errors": window["errs"],
+    "get_err": {e: window["get_err_" + e] for e in ERR},
+    "set_err": {e: window["set_err_" + e] for e in ERR},
+    "other_messages": dict(other_msgs),
+    "p99_baseline_ms": pct(base_lat, 0.99),
+    "p99_ms": pct(all_lat, 0.99),
+    "p99_excluding_hot_ms": pct(cool_lat, 0.99),
+    "p99_peak_second_ms": max((pct(lat[s], 0.99) for s in win_secs if s in lat), default=None),
+    "requests_in_window": len(all_lat),
+    "bad_status": sum(bad[s] for s in win_secs),
+    "node_cpu_95_seconds": len(hot),
+    "node_cpu_95_rel": [s - op_s for s in hot],
+    "node_cpu_baseline": sum(cpu[s]["node"] for s in base_secs if s in cpu) / max(1, len([s for s in base_secs if s in cpu])),
+    "db_cpu_peak": max((cpu[s]["pg"] for s in win_secs if s in cpu), default=None),
+    "stall_longest_seconds": stall_longest,
+    "requests_over_100ms": slow,
+    "k6_dropped": k6.get("dropped_iterations", {}).get("values", {}).get("count", 0),
+    "k6_vus_max": k6.get("vus_max", {}).get("values", {}).get("max"),
+    "k6_iterations": k6.get("iterations", {}).get("values", {}).get("count"),
+    "dbsize_before": dbsize(R("redis-before.txt")),
+    "dbsize_after": dbsize(R("redis-after.txt")),
+    "elapsed": open(R("elapsed.txt")).read().split("\n"),
 }
+
+problems = []
+if "k6_incomplete" in timeline:
+    problems.append("k6 did not finish (%s)" % next(x.split()[2] for x in open(R("timeline.txt")) if x.startswith("k6_incomplete")))
+if redis_pod:
+    sizes = set(out["dbsize_before"].values())
+    if head["redis"] == "sentinel" and sizes != {params["KEYS"]}:
+        problems.append("Redis held %s keys before the operation, expected %s on every server" % (sizes, params["KEYS"]))
+    if head["redis"] != "sentinel" and sizes != {params["KEYS"]}:
+        problems.append("Redis held %s keys before the operation, expected %s" % (sizes, params["KEYS"]))
+out["problems"] = problems
 json.dump(out, open(R("metrics.json"), "w"), indent=1)
-
-
-def f(x, fmt="%.1f"):
-    return "-" if x is None else fmt % x
-
-
-print("## %s" % cond)
-print()
-for msg in invalid:
-    print("RUN INVALID: " + msg)
-print("```")
-print("params: " + " ".join("%s=%s" % kv for kv in params.items()))
-print("baseline (15 s before the operation): req/s %.0f, DB reads/s %.1f, hit rate of existing Pods %.4f, p50 %.1f ms, p99 %.1f ms, DB CPU %.0f%%"
-      % (b_req, b_db, b_old_hit, b_p50, b_p99, b_pg))
-print("peak DB reads/s: %.0f at +%ds, requests/s %.0f, ratio %s (N/(4+N) = %s)"
-      % (peak["db"], peak["rel"], peak["req"], f(peak["ratio"], "%.3f"), f(frac, "%.3f")))
-print("in that second: share of requests to the new Pods %s, hit rate of the new Pods %s"
-      % (f(out["peak_db"]["new_share"], "%.3f"), f(peak["new_hit"], "%.3f")))
-print("p99 of all requests in the 15 s before the operation %.1f ms, in the 30 s from the operation %.1f ms"
-      % (b_p99_pooled, a_p99_pooled))
-print("DB reads by the new Pods (total until the end of the load): %d, of which overlapped with an in-flight read of the same key in the same Pod: %d"
-      % (new_db_total, new_dup_total))
-print("seconds until the new Pods' hit rate reached 99%% of the existing Pods': %s" % f(fill, "%d"))
-print("p99 peak from the operation until 3 s after the last second with >= 10 DB reads (+%ds): %.1f ms at +%ds (p50 %.1f ms)"
-      % (window_end, p99_peak["p99"], p99_peak["rel"], p99_peak["p50"]))
-print("seconds with p99 > %.1f ms: %s" % (threshold, p99_high))
-print("seconds with mean pgxpool empty-acquire wait >= 1 ms: %s" % pool_wait)
-print("seconds with DB container CPU >= 90%%: %s" % pg_full)
-print("new Pods Ready at (s after the operation): %s" % ", ".join("%.1f" % x for x in new_ready))
-if rollout is not None and restarted:
-    print("rollout restart took %.1f s (kubectl rollout status); old Pods marked for deletion at: %s"
-          % (rollout, ", ".join("%.1f" % x for x in old_deleted)))
-print("k6: iterations %d, dropped_iterations %d, non-200 %d (of which %d timed out at 30 s)" % (iters, dropped, bad_total, timeouts))
-print("stopped: %s; seconds until recovered: %s" % (stop_reason, f(recovered_s)))
-print("DB reads after the operation: started %d, completed %d, failed %d, canceled %d; pool acquires canceled %d"
-      % (reads["db_start"], reads["db_done"], reads["db_err"], reads["db_canceled"], reads["pool_canceled"]))
-print("CPU model %s; pgbench tps %.1f; peak pool wait %.1f ms" % (cpu_model, tps, out["pool_wait_peak_ms"]))
-if resolved["max_pods"] is not None and restarted:
-    print("rollout: max-replicas annotation %s; most Pods not terminating %s; fewest available %s"
-          % (resolved["max_replicas"], resolved["max_pods"], resolved["min_available"]))
-print("node CPU peak %s%% of its CPUs, DB CPU peak %s%% of its CPUs" % (f(out["node_cpu_peak_pct"], "%.0f"), f(out["pg_cpu_peak_pct"], "%.0f")))
-if add:
-    print("Pods after scaling back to 4 are the initial 4: %s" % (final == initial))
-print("```")
-print()
-print("| s | req/s | DB reads/s | ratio | new hit | p50 ms | p99 ms | pool wait ms | DB CPU % | node CPU % |")
-print("|---|---|---|---|---|---|---|---|---|---|")
-for r in table:
-    if -5 <= r["rel"]:
-        print("| %+d | %.0f | %.0f | %s | %s | %s | %s | %.1f | %s | %s |" % (
-            r["rel"], r["req"], r["db"], f(r["ratio"], "%.3f"), f(r["new_hit"], "%.3f"), f(r["p50"]), f(r["p99"]),
-            r["pool_wait_ms"], f(r["pg_cpu"], "%.0f"), f(r["node_cpu"], "%.0f")))
+for p in problems:
+    print("RUN INVALID: " + p)
+print("# %s\n" % cond)
+print("```json\n%s\n```" % json.dumps({k: v for k, v in out.items() if k != "elapsed"}, indent=1))

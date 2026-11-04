@@ -29,7 +29,8 @@ def stats():
                          capture_output=True, text=True).stdout
     rows = [json.loads(line) for line in out.splitlines() if line.strip()]
     live = [r for r in rows if r["t"] >= now - 3]
-    return sum(r["db_start"] for r in rows), sum(r["db_inflight"] for r in live), len(live)
+    errors = sum(sum(r.get("get_err", {}).values()) for r in rows)
+    return sum(r["db_start"] for r in rows), sum(r["db_inflight"] for r in live), len(live), errors
 
 
 def samples():
@@ -50,17 +51,17 @@ def percent(a, b):
 
 before = [r for r in samples() if op - 10 <= r[0] < op]
 base = percent(before[0], before[-1])
-prev = stats()[0]
+prev, _, _, prev_err = stats()
 streak = None
 nxt = time.time() + 1
 while True:
     time.sleep(max(0, nxt - time.time()))
     nxt += 1
-    total, inflight, live = stats()
+    total, inflight, live, err = stats()
     rows = samples()
     now = time.time()
-    quiet = live > 0 and total - prev < quiet_reads and inflight == 0 and percent(rows[-2], rows[-1]) <= base + quiet_db_cpu
-    prev = total
+    quiet = live > 0 and total - prev < quiet_reads and inflight == 0 and err == prev_err and percent(rows[-2], rows[-1]) <= base + quiet_db_cpu
+    prev, prev_err = total, err
     streak = (streak or now) if quiet else None
     if streak and now - streak >= quiet_seconds - 1:
         print("recovered %.3f" % streak)

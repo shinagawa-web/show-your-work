@@ -15,17 +15,19 @@ defaults:
 jobs:
   run:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 6
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { section: "3", condition: add-1 }
-          - { section: "3", condition: add-4 }
-          - { section: "3, 4", condition: restart-default }
-          - { section: "4", condition: restart-surge1 }
-          - { section: "4", condition: restart-surge1-noready }
-          - { section: "4", condition: restart-default-ready }
+          - { section: "2", condition: app-restart-local }
+          - { section: "3-1", condition: app-restart-redis }
+          - { section: "3-3", condition: redis-restart-none-short }
+          - { section: "4-1", condition: redis-restart-none }
+          - { section: "4-2", condition: redis-restart-rdb }
+          - { section: "4-3", condition: sentinel-restart }
+          - { section: "4-3", condition: sentinel-kill }
+          - { section: "4-4", condition: redis-restart-none-local }
     name: ${{ matrix.section }} (${{ matrix.condition }})
     steps:
       - uses: actions/checkout@v7
@@ -54,7 +56,7 @@ jobs:
           path: local-cache-cold-pods/artifacts/
       - run: |
           mkdir -p results
-          python3 -B scripts/report.py artifacts/*/ > results/summary.md
+          python3 -B scripts/report.py artifacts/*/*/ > results/summary.md
           cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
       - if: github.event_name == 'push'
         env:
