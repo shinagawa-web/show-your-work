@@ -12,8 +12,9 @@ Check:
 3. Do the numbers carry the claims? Repetitions, spread, sample count, precision for "no change"
 4. For claims about how software behaves that no run shows, quote a primary source pinned to the version the runs used, or say it is unsupported
 
-Return each finding as:
+Return each finding, highest impact first, as:
 
+    - Impact: Required before publishing / Fixing strengthens the claim / Rewording is enough / Optional
     - Claim:
     - Problem: (with path:line or log line)
     - Change: (condition to add and what to measure, or how to narrow the claim)
