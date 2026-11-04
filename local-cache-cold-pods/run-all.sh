@@ -3,13 +3,13 @@ set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-$here/results}
 cond=${1:-}
-case $cond in add-1|add-4|restart-default|restart-surge1) ;; *) echo "usage: run-all.sh add-1|add-4|restart-default|restart-surge1 [NAME=value ...]" >&2; exit 2 ;; esac
+case $cond in add-1|add-4|restart-default|restart-default-ready|restart-surge1|restart-surge1-noready) ;; *) echo "usage: run-all.sh add-1|add-4|restart-default|restart-default-ready|restart-surge1|restart-surge1-noready [NAME=value ...]" >&2; exit 2 ;; esac
 shift
 . "$here/scripts/versions.env"
 . "$here/scripts/params.env"
 for a in "$@"; do case $a in [A-Z]*=*) eval "${a%%=*}=\${a#*=}" ;; *) echo "bad argument $a" >&2; exit 2 ;; esac; done
 export PATH=$here/.bin:$PATH
-export KIND_NODE_IMAGE APP_IMAGE K6_TAG CLUSTER PG NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S CACHE_SIZE CACHE_TTL_SECONDS POOL_MAX JOIN_ROWS USERS WARM MIN_READY MAX_OBS QUIET_READS QUIET_SECONDS K6_GOGC
+export KIND_NODE_IMAGE APP_IMAGE K6_TAG CLUSTER PG NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S CACHE_SIZE CACHE_TTL_SECONDS POOL_MAX JOIN_ROWS USERS WARM MIN_READY MAX_OBS QUIET_READS QUIET_SECONDS QUIET_DB_CPU K6_GOGC
 start=$(date +%s)
 rm -rf "$results"
 mkdir -p "$results"
@@ -19,11 +19,13 @@ node=$CLUSTER-control-plane
 strategy=default add=0
 case $cond in
   add-*) add=${cond#add-} ;;
+  restart-default-ready) strategy=default-ready ;;
   restart-surge1) strategy=surge1 ;;
+  restart-surge1-noready) strategy=surge1-noready ;;
 esac
 {
   echo "cond=$cond strategy=$strategy add=$add warm=$WARM"
-  for v in NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S CACHE_SIZE CACHE_TTL_SECONDS POOL_MAX JOIN_ROWS USERS MIN_READY MAX_OBS QUIET_READS QUIET_SECONDS K6_GOGC; do echo "$v=${!v}"; done
+  for v in NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S CACHE_SIZE CACHE_TTL_SECONDS POOL_MAX JOIN_ROWS USERS MIN_READY MAX_OBS QUIET_READS QUIET_SECONDS QUIET_DB_CPU K6_GOGC; do echo "$v=${!v}"; done
 } > "$results/params.txt"
 
 "$here/scripts/setup.sh" > "$results/setup.log" 2>&1 || { tail -30 "$results/setup.log"; abort "setup.sh failed"; }
@@ -92,7 +94,8 @@ esac
 left=$(python3 -c 'import sys, time; print(max(1, int(float(sys.argv[1]) + int(sys.argv[2]) - time.time())))' "$op" "$MAX_OBS")
 kubectl rollout status deploy/app --timeout=${left}s >> "$results/operation.txt" 2>&1
 echo "rollout_done $(date +%s.%N) exit=$?" >> "$results/timeline.txt"
-py watch.py "$node" "$op" "$MAX_OBS" "$QUIET_READS" "$QUIET_SECONDS" >> "$results/timeline.txt"
+kubectl get rs -o json | jq -r '.items[] | [.metadata.name, .metadata.annotations["deployment.kubernetes.io/desired-replicas"], .metadata.annotations["deployment.kubernetes.io/max-replicas"]] | @tsv' > "$results/rollout-resolved.txt"
+py watch.py "$results" "$node" "$op" >> "$results/timeline.txt"
 k6pod=$(kubectl get pod -l job-name=k6 -o jsonpath='{.items[0].metadata.name}')
 kubectl exec "$k6pod" -- kill -INT 1 >/dev/null 2>&1
 echo "k6_interrupted $(date +%s.%N)" >> "$results/timeline.txt"

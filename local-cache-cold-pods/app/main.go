@@ -33,8 +33,8 @@ WHERE i.id = $1
 GROUP BY i.id, i.name`
 
 type counters struct {
-	req, hit, miss, dbStart, dbDone, dbErr, dup, errs atomic.Int64
-	dbInflight                                        atomic.Int64
+	req, hit, miss, dbStart, dbDone, dbErr, dbCanceled, dup, errs atomic.Int64
+	dbInflight                                                    atomic.Int64
 }
 
 type server struct {
@@ -65,6 +65,9 @@ func (s *server) fromDB(ctx context.Context, id int) (item, error) {
 	err := s.pool.QueryRow(ctx, query, id).Scan(&it.ID, &it.Name, &it.Reviews, &it.Score, &it.Countries)
 	if err != nil {
 		s.c.dbErr.Add(1)
+		if errors.Is(err, context.Canceled) {
+			s.c.dbCanceled.Add(1)
+		}
 		return it, err
 	}
 	s.c.dbDone.Add(1)
@@ -144,6 +147,7 @@ func (s *server) statsLoop(path, pod string, start time.Time) {
 			"db_start":           s.c.dbStart.Load(),
 			"db_done":            s.c.dbDone.Load(),
 			"db_err":             s.c.dbErr.Load(),
+			"db_canceled":        s.c.dbCanceled.Load(),
 			"db_inflight":        s.c.dbInflight.Load(),
 			"dup":                s.c.dup.Load(),
 			"errs":               s.c.errs.Load(),
@@ -156,6 +160,7 @@ func (s *server) statsLoop(path, pod string, start time.Time) {
 			"pool_acquire_ns":    st.AcquireDuration().Nanoseconds(),
 			"pool_empty_acquire": st.EmptyAcquireCount(),
 			"pool_empty_wait_ns": st.EmptyAcquireWaitTime().Nanoseconds(),
+			"pool_canceled":      st.CanceledAcquireCount(),
 		})
 	}
 }

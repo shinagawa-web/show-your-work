@@ -2,10 +2,11 @@ import glob
 import json
 import math
 import os
+import re
 import statistics
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 results, cond = sys.argv[1], sys.argv[2]
 R = lambda *p: os.path.join(results, *p)
@@ -60,14 +61,18 @@ for pod, rows in stats.items():
 
 lat = defaultdict(list)
 status_bad = defaultdict(int)
+timeouts = 0
 stop_ms = float(timeline.get("k6_interrupted", "inf")) * 1000
 for line in open(R("k6", "k6.log")):
     p = line.split()
     if p and p[0] == "r" and int(p[1]) < stop_ms:
-        s = int(p[1]) // 1000
-        lat[s].append(float(p[3]))
-        if p[4] != "200":
+        s = (int(p[1]) + int(p[2])) // 1000
+        ok = p[4] == "200"
+        lat[s].append(float(p[3]) if ok else float(p[2]))
+        if not ok:
             status_bad[s] += 1
+            if int(p[2]) >= 29000:
+                timeouts += 1
 
 def ncpus(spec):
     n = 0
@@ -135,7 +140,10 @@ b_db = statistics.mean(r["db"] for r in base)
 b_old_hit = sum(per[op_s + r["rel"]]["old_hit"] for r in base) / sum(per[op_s + r["rel"]]["old_req"] for r in base)
 b_pg = statistics.mean(r["pg_cpu"] for r in base if r["pg_cpu"] is not None)
 reading = [r["rel"] for r in after if r["db"] >= 10]
+recovered_s = float(timeline["recovered"]) - op if "recovered" in timeline else None
 window_end = (max(reading) if reading else 0) + 3
+if recovered_s is not None:
+    window_end = max(window_end, math.ceil(recovered_s))
 event = [r for r in after if r["rel"] <= window_end]
 peak = max(after, key=lambda r: r["db"])
 pool = lambda lo, hi: pct([x for s in range(op_s + lo, op_s + hi) for x in lat.get(s, [])], 0.99)
@@ -162,6 +170,31 @@ new_dup_total = sum(stats[p][-1]["dup"] for p in new_pods)
 new_req_total = sum(stats[p][-1]["req"] for p in new_pods)
 excess_db = sum(r["db"] for r in after) - b_db * len(after)
 
+
+def since_op(name):
+    n = 0
+    for rows in stats.values():
+        before_op = [r[name] for r in rows if r["t"] <= op]
+        n += rows[-1][name] - (before_op[-1] if before_op else 0)
+    return n
+
+
+reads = {k: since_op(k) for k in ("db_start", "db_done", "db_err", "db_canceled", "pool_canceled")}
+
+env = open(R("00-environment.txt")).read()
+fields = dict(re.findall(r"^([A-Za-z ()]+?):\s+(.*)$", env, re.M))
+cpu_model = fields.get("Model name", "-")
+if cpu_model == "-":
+    cpu_model = fields.get("Vendor ID", "-")
+tps = float(re.search(r"^tps = ([0-9.]+)", open(R("pgbench.txt")).read(), re.M).group(1))
+
+deploy_min_ready = json.load(open(R("deploy-final.json")))["spec"].get("minReadySeconds", 0)
+
+
+def since_epoch(iso):
+    return datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+
+
 ready_at = {}
 gone_at = {}
 seen = {}
@@ -178,6 +211,20 @@ for line in open(R("pods.jsonl")):
         if p["deleting"] and p["pod"] not in gone_at:
             gone_at[p["pod"]] = r["t"]
 new_ready = sorted(ready_at[p] - op for p in new_pods if p in ready_at)
+
+resolved = {"max_pods": None, "min_available": None, "max_replicas": None}
+if os.path.exists(R("rollout-resolved.txt")):
+    rs = [line.split() for line in open(R("rollout-resolved.txt")) if len(line.split()) == 3]
+    resolved["max_replicas"] = max((int(x[2]) for x in rs), default=None)
+    min_ready = int(deploy_min_ready)
+    for line in open(R("pods.jsonl")):
+        r = json.loads(line)
+        if "error" in r or not op <= r["t"] <= float(timeline["rollout_done"]):
+            continue
+        alive = [p for p in r["pods"] if not p["deleting"]]
+        avail = [p for p in alive if p["ready"] and p["ready_since"] and r["t"] - since_epoch(p["ready_since"]) >= min_ready]
+        resolved["max_pods"] = max(resolved["max_pods"] or 0, len(alive))
+        resolved["min_available"] = len(avail) if resolved["min_available"] is None else min(resolved["min_available"], len(avail))
 old_deleted = sorted(gone_at[p] - op for p in initial if p in gone_at)
 
 if os.path.exists(R("k6", "summary.json")):
@@ -206,6 +253,7 @@ if restarted and (rollout is None or not any(l.startswith("rollout_done ") and l
     invalid.append("rollout status did not succeed")
 
 frac = add / (4 + add) if add else None
+stop_reason = next((l.split()[2] for l in open(R("timeline.txt")) if l.startswith("stop ")), None)
 out = {
     "cond": cond, "params": params, "add": add,
     "baseline": {"req_per_s": b_req, "db_per_s": b_db, "old_hit_rate": b_old_hit, "p50_ms": b_p50, "p99_ms": b_p99,
@@ -222,7 +270,10 @@ out = {
     "new_req_total": new_req_total,
     "excess_db_after_op": excess_db,
     "fill_s": fill, "new_ready_rel_s": new_ready, "old_deleting_rel_s": old_deleted, "rollout_s": rollout,
-    "dropped_iterations": dropped, "iterations": iters, "non_200": bad_total,
+    "dropped_iterations": dropped, "iterations": iters, "non_200": bad_total, "non_200_timeouts": timeouts,
+    "recovered_s": recovered_s, "stop": stop_reason, "reads_after_op": reads, "resolved": resolved,
+    "cpu_model": cpu_model, "pgbench_tps": tps,
+    "pool_wait_peak_ms": max(r["pool_wait_ms"] for r in after),
     "node_cpu_peak_pct": max((r["node_cpu"] for r in after if r["node_cpu"] is not None), default=None),
     "pg_cpu_peak_pct": max((r["pg_cpu"] for r in after if r["pg_cpu"] is not None), default=None),
     "final_pods_equal_initial": final == initial if add else None,
@@ -261,7 +312,14 @@ print("new Pods Ready at (s after the operation): %s" % ", ".join("%.1f" % x for
 if rollout is not None and restarted:
     print("rollout restart took %.1f s (kubectl rollout status); old Pods marked for deletion at: %s"
           % (rollout, ", ".join("%.1f" % x for x in old_deleted)))
-print("k6: iterations %d, dropped_iterations %d, non-200 %d" % (iters, dropped, bad_total))
+print("k6: iterations %d, dropped_iterations %d, non-200 %d (of which %d timed out at 30 s)" % (iters, dropped, bad_total, timeouts))
+print("stopped: %s; seconds until recovered: %s" % (stop_reason, f(recovered_s)))
+print("DB reads after the operation: started %d, completed %d, failed %d, canceled %d; pool acquires canceled %d"
+      % (reads["db_start"], reads["db_done"], reads["db_err"], reads["db_canceled"], reads["pool_canceled"]))
+print("CPU model %s; pgbench tps %.1f; peak pool wait %.1f ms" % (cpu_model, tps, out["pool_wait_peak_ms"]))
+if resolved["max_pods"] is not None and restarted:
+    print("rollout: max-replicas annotation %s; most Pods not terminating %s; fewest available %s"
+          % (resolved["max_replicas"], resolved["max_pods"], resolved["min_available"]))
 print("node CPU peak %s%% of its CPUs, DB CPU peak %s%% of its CPUs" % (f(out["node_cpu_peak_pct"], "%.0f"), f(out["pg_cpu_peak_pct"], "%.0f")))
 if add:
     print("Pods after scaling back to 4 are the initial 4: %s" % (final == initial))

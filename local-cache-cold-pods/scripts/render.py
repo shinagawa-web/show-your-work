@@ -19,7 +19,7 @@ def pg(ip):
     ])
 
 
-def app(surge1):
+def app(strategy):
     labels = {"app": "app"}
     env = {
         "DATABASE_URL": "postgres://postgres:pg@pg:5432/postgres?sslmode=disable",
@@ -38,8 +38,9 @@ def app(surge1):
                 "readinessProbe": {"httpGet": {"path": "/ready", "port": 8080}, "periodSeconds": 1},
                 "volumeMounts": [{"name": "stats", "mountPath": "/stats"}]}],
                 "volumes": [{"name": "stats", "hostPath": {"path": "/stats", "type": "Directory"}}]}}}
-    if surge1:
+    if strategy.startswith("surge1"):
         spec["strategy"] = {"type": "RollingUpdate", "rollingUpdate": {"maxSurge": 1, "maxUnavailable": 0}}
+    if strategy in ("surge1", "default-ready"):
         spec["minReadySeconds"] = int(e["MIN_READY"])
     return lst([
         {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "app"}, "spec": spec},
@@ -73,7 +74,7 @@ def k6(seconds):
 if what == "pg":
     out = pg(sys.argv[2])
 elif what == "app":
-    out = app(sys.argv[2] == "surge1")
+    out = app(sys.argv[2])
 elif what == "k6":
     out = k6(int(sys.argv[2]))
 print(json.dumps(out, indent=1))

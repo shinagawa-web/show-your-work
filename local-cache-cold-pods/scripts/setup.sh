@@ -13,7 +13,7 @@ if ! "$bin/kubectl" version --client 2>/dev/null | grep -q "$KUBECTL_VERSION"; t
   curl -fsSLo "$bin/kubectl" "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/$arch/kubectl"
   chmod +x "$bin/kubectl"
 fi
-docker rm -f "$PG" >/dev/null 2>&1 || true
+docker rm -fv "$PG" >/dev/null 2>&1 || true
 "$bin/kind" delete cluster --name "$CLUSTER" 2>/dev/null || true
 "$bin/kind" create cluster --name "$CLUSTER" --image "$KIND_NODE_IMAGE" --config "$here/k8s/kind.yaml" --wait 120s &
 create=$!
