@@ -4,9 +4,9 @@ here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-$here/results}
 server=${1:-}
 mode=${2:-run}
-case $server in gunicorn|tomcat|tomcat-virtual|node|go) ;; build) ;; *) server= ;; esac
+case $server in gunicorn|tomcat|tomcat-virtual|tomcat-mgmt|node|go) ;; build) ;; *) server= ;; esac
 case $mode in run|capacity) ;; *) server= ;; esac
-[ -n "$server" ] || { echo "usage: run-all.sh gunicorn|tomcat|tomcat-virtual|node|go [capacity] | run-all.sh build" >&2; exit 2; }
+[ -n "$server" ] || { echo "usage: run-all.sh gunicorn|tomcat|tomcat-virtual|tomcat-mgmt|node|go [capacity] | run-all.sh build" >&2; exit 2; }
 . "$here/scripts/versions.env"
 . "$here/scripts/capacity.env"
 export PATH=$here/.bin:$PATH CLUSTER K6_TAG PROBER_TAG $(compgen -v | grep -E '^(WORK_MS|RPS)_')

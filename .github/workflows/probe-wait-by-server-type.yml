@@ -33,8 +33,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server: [gunicorn, tomcat, tomcat-virtual, node, go]
-    name: 1, 3, 4 (${{ matrix.server }})
+        include:
+          - { server: gunicorn, sections: "1, 3, 4" }
+          - { server: tomcat, sections: "1, 3, 4" }
+          - { server: tomcat-virtual, sections: "1, 3, 4" }
+          - { server: node, sections: "1, 3, 4" }
+          - { server: go, sections: "1, 3, 4" }
+          - { server: tomcat-mgmt, sections: "5" }
+    name: ${{ matrix.sections }} (${{ matrix.server }})
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8

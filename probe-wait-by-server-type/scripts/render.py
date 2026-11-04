@@ -9,10 +9,11 @@ from servers import SERVERS
 cluster = os.environ["CLUSTER"]
 what, server, mode = sys.argv[1], sys.argv[2], sys.argv[3]
 s = SERVERS[server]
+probe_port = s.get("probe_port", 8080)
 
 
 def probe(path):
-    return {"httpGet": {"path": path, "port": 8080}, "timeoutSeconds": 1,
+    return {"httpGet": {"path": path, "port": probe_port}, "timeoutSeconds": 1,
             "periodSeconds": 10, "failureThreshold": 3, "successThreshold": 1}
 
 
@@ -21,7 +22,7 @@ def app():
     container = {
         "name": "app", "image": s["image"], "imagePullPolicy": "Never",
         "command": s["command"], "env": env,
-        "ports": [{"containerPort": 8080}],
+        "ports": [{"containerPort": p} for p in sorted({8080, probe_port})],
         "resources": {"requests": {"cpu": "100m", "memory": "64Mi"}},
         "livenessProbe": probe(s["probes"][0]),
         "readinessProbe": probe(s["probes"][1]),
@@ -79,7 +80,7 @@ def prober(targets):
             "nodeSelector": {"kubernetes.io/hostname": cluster + "-control-plane"},
             "containers": [{
                 "name": "prober", "image": os.environ["PROBER_TAG"], "imagePullPolicy": "Never",
-                "command": ["python", "-u", "/scripts/prober.py", s["probes"][0]] + targets,
+                "command": ["python", "-u", "/scripts/prober.py", s["probes"][0], str(probe_port)] + targets,
                 "volumeMounts": [{"name": "script", "mountPath": "/scripts"}],
             }],
             "volumes": [{"name": "script", "configMap": {"name": "prober-script"}}],

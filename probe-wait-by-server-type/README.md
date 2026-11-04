@@ -1,6 +1,6 @@
 # probe-wait-by-server-type
 
-This runs the same overload against five kinds of HTTP server in a kind cluster (gunicorn with sync workers, Spring Boot on Tomcat with its default thread pool, the same Spring Boot with virtual threads, Node.js `node:http`, and Go `net/http`), and records how long a probe request waits in each, the values that show the waiting (Recv-Q, Tomcat metrics, event loop delay, goroutines, open file descriptors), what the default liveness and readiness probes do, and what the client sees.
+This runs the same overload against five kinds of HTTP server in a kind cluster (gunicorn with sync workers, Spring Boot on Tomcat with its default thread pool, the same Spring Boot with virtual threads, Node.js `node:http`, and Go `net/http`), and against the same Spring Boot on Tomcat with its management port separate, and records how long a probe request waits in each, the values that show the waiting (Recv-Q, Tomcat metrics, event loop delay, goroutines, open file descriptors), what the default liveness and readiness probes do, and what the client sees.
 
 ## Run
 
@@ -8,8 +8,9 @@ This runs the same overload against five kinds of HTTP server in a kind cluster 
 
 | Job | What it runs |
 |---|---|
-| `build` | `./run-all.sh build`, which builds the Spring Boot image once into `.images/` and passes it to the other jobs as the `probe-wait-by-server-type-image` artifact. The `tomcat` and `tomcat-virtual` jobs load it, and the other jobs build their own image |
+| `build` | `./run-all.sh build`, which builds the Spring Boot image once into `.images/` and passes it to the other jobs as the `probe-wait-by-server-type-image` artifact. The `tomcat`, `tomcat-virtual` and `tomcat-mgmt` jobs load it, and the other jobs build their own image |
 | `1, 3, 4 (<server>)` | `./run-all.sh <server>`, once for each of `gunicorn`, `tomcat`, `tomcat-virtual`, `node` and `go`, each job on its own runner and cluster. `1, 3, 4` are the sections of the article the job supports |
+| `5 (tomcat-mgmt)` | `./run-all.sh tomcat-mgmt`, in the same way. `5` is the section of the article the job supports |
 | `report` | Merges the results of the server jobs into `results/summary.md` (`scripts/report.py`) |
 
 Each server job writes its own `results/summary.md` to its job summary and uploads `results/` as the `probe-wait-by-server-type-run-<server>` artifact. The `report` job writes the merged `results/summary.md` to its job summary, uploads it as the `probe-wait-by-server-type-summary` artifact, and on a push posts it as a comment on the open pull request for the branch, replacing the earlier one.
@@ -20,7 +21,7 @@ A server job fails with a `RUN INVALID` line at the top of its summary when k6 d
 
 `scripts/setup.sh` creates a kind cluster with a control-plane node and a worker node from `k8s/kind.yaml`, builds the server image with `scripts/build.sh`, or loads it from `.images/` when the `build` job made it, and loads it into the worker and the k6 and prober images into the control-plane node. The control-plane taint is removed so that k6 and the prober run there, and the server Pods are pinned to the worker.
 
-The server is a Deployment of 3 Pods (`scripts/render.py`, `scripts/servers.py`) with the server as PID 1. Every server serves `/work` and a probe path on port 8080:
+The server is a Deployment of 3 Pods (`scripts/render.py`, `scripts/servers.py`) with the server as PID 1. Every server serves `/work` on port 8080, and a probe path on port 8080, except `tomcat-mgmt`, which serves it on port 8081:
 
 - `/work` takes a first-come-first-served semaphore with 4 permits, sleeps `WORK_MS` (`scripts/capacity.env`) inside it, and returns 200. It keeps waiting when the client goes away
 - The probe path does not touch the semaphore. The liveness and readiness probes use it with `timeoutSeconds: 1`, `periodSeconds: 10` and `failureThreshold: 3`
@@ -31,6 +32,7 @@ The server is a Deployment of 3 Pods (`scripts/render.py`, `scripts/servers.py`)
 | `gunicorn` | `servers/gunicorn/` | `/healthz` | 4 sync workers, `--preload` so that the workers share the semaphore |
 | `tomcat` | `servers/spring/` | `/actuator/health/liveness`, `/actuator/health/readiness` | Spring Boot defaults, with `server.tomcat.mbeanregistry.enabled=true` so that the Tomcat metrics exist |
 | `tomcat-virtual` | `servers/spring/` | same as `tomcat` | `SPRING_THREADS_VIRTUAL_ENABLED=true` |
+| `tomcat-mgmt` | `servers/spring/` | same as `tomcat`, on port 8081 | `MANAGEMENT_SERVER_PORT=8081`, with the `WORK_MS` and the per-Pod rate of `tomcat` |
 | `node` | `servers/node/` | `/healthz` | A SIGTERM handler that exits, because Node.js as PID 1 ignores SIGTERM otherwise |
 | `go` | `servers/go/` | `/healthz` | The semaphore is a buffered channel |
 

@@ -5,7 +5,8 @@ import threading
 import time
 
 path = sys.argv[1]
-targets = [a.split("=", 1) for a in sys.argv[2:]]
+port = int(sys.argv[2])
+targets = [a.split("=", 1) for a in sys.argv[3:]]
 lock = threading.Lock()
 
 
@@ -16,7 +17,7 @@ def out(line):
 
 
 def probe(pod, ip, t0):
-    conn = http.client.HTTPConnection(ip, 8080, timeout=30)
+    conn = http.client.HTTPConnection(ip, port, timeout=30)
     result = "ok"
     try:
         conn.request("GET", path, headers={"Connection": "close"})

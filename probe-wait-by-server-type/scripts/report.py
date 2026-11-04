@@ -4,7 +4,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from servers import ORDER, SERVERS
+from servers import MGMT, ORDER, SERVERS
 
 runs = {}
 for d in sys.argv[1:]:
@@ -17,7 +17,7 @@ SECTIONS = "1, 3, 4"
 
 
 def job(s):
-    return "%s (%s)" % (SECTIONS, s)
+    return "%s (%s)" % ("5" if s == MGMT else SECTIONS, s)
 
 
 def g(v, nd=2):
@@ -44,6 +44,10 @@ def minof(d):
 
 def present():
     return [s for s in ORDER if s in runs]
+
+
+def every():
+    return [s for s in ORDER + [MGMT] if s in runs]
 
 
 def failures(m):
@@ -81,14 +85,14 @@ print()
 print("One run per server. t = 0 is the start of the 1.2C stage (720 rps for 60 s, after 450 rps for 15 s, then 450 rps "
       "for 105 s). The probe wait is from the separate prober "
       "(a new connection to each Pod IP every second). The numbers for each server come from the job "
-      "`%s (<server>)`." % SECTIONS)
+      "`%s (<server>)`, and those for the management port separate from the job `%s`." % (SECTIONS, job(MGMT)))
 print()
-invalid = [s for s in present() if runs[s]["invalid"]]
+invalid = [s for s in every() if runs[s]["invalid"]]
 if invalid:
     for s in invalid:
         print("RUN INVALID in `%s`: %s" % (job(s), "; ".join(runs[s]["invalid"])))
     print()
-missing = [s for s in ORDER if s not in runs]
+missing = [s for s in ORDER + [MGMT] if s not in runs]
 if missing:
     print("No results for: %s" % ", ".join("`%s`" % job(s) for s in missing))
     print()
@@ -210,18 +214,29 @@ table("Open file descriptors per Pod, counted from the node in `/proc/<pid>/fd` 
       ["Server", "Before (largest of the 3 Pod medians)", "Max over the 3 Pods"],
       [[SERVERS[s]["name"], g(maxof(runs[s]["fd_before"])), g(maxof(W(runs[s], "fd_max")))] for s in present()])
 
+print("## 5. Countermeasure")
+print()
+table("The same overload with `MANAGEMENT_SERVER_PORT=8081`, which moves the actuator and so the default probes to a second embedded "
+      "Tomcat on port 8081 while `/work` stays on port 8080; the columns are the ones of section 3.",
+      ["Server", "Probe wait over 1 s", "Restarted", "timeout", "reset", "eof", "refused"],
+      [[SERVERS[s]["name"], over_timeout(runs[s]), "yes" if restarted(runs[s]) else "no", "yes" if runs[s]["k6"].get("timeout") else "no",
+        k6n(runs[s], "reset"), k6n(runs[s], "eof"), k6n(runs[s], "refused")] for s in ("tomcat", MGMT) if s in runs])
+if MGMT in runs:
+    print("- `tomcat.threads.busy` max over the 3 Pods, management port separate: %s" % g(maxof(W(runs[MGMT], "busy_max"))))
+    print()
+
 print("## Numbers not used")
 print()
 print("Local capacity measurement and sleep time per server (`scripts/capacity.env`, as recorded in each run):")
 print()
 print("| Server | WORK_MS | Per-Pod rate measured locally (rps) |")
 print("|---|---|---|")
-for s in present():
+for s in every():
     print("| %s | %s | %s |" % (SERVERS[s]["name"], runs[s]["work_ms"], g(runs[s]["expected_rps_per_pod"], 1)))
 print()
 print("| Job | Rate per Pod while requests waited (rps) | Invalid | Dropped iterations | Achieved rps per stage | Seconds with 0 Ready endpoints | Ready endpoints min | kubelet `prober_probe_total` | Events |")
 print("|---|---|---|---|---|---|---|---|---|")
-for s in present():
+for s in every():
     m = runs[s]
     print("| `%s` | %s | %s | %d | %s | %s | %s | %s | %s |" % (
         job(s), g(m["rate_per_pod"], 1), "; ".join(m["invalid"]) or "no", m["dropped"],
@@ -230,14 +245,18 @@ for s in present():
         ", ".join("%s %d" % (k, v) for k, v in sorted(m["kubelet_probes"].items())),
         ", ".join("%s ×%d" % (k, v) for k, v in sorted(m["events"].items()))))
 print()
-print("Values per server that are not in sections 1 to 4. Values per Pod are listed in Pod name order. \"Whole load\" is t = 0 to 165 s, including restarted containers; "
+print("Values per server that are not in sections 1 to 5. Values per Pod are listed in Pod name order. \"Whole load\" is t = 0 to 165 s, including restarted containers; "
       "a whole-load line is listed only where it differs from the period of section 3, and \"same\" marks a Pod whose value is the one "
       "for the period of section 3.")
 print()
 
 
 def pods_excl(d, shown, label, nd=2):
-    return ", ".join(label if d[k] == shown else g(d[k], nd) for k in sorted(d))
+    return ", ".join(label if shown is not None and d[k] == shown else g(d[k], nd) for k in sorted(d))
+
+
+def in_sections(s, d):
+    return None if s == MGMT else maxof(d)
 
 
 def whole(m, win_key, vals, nd=2, fmt=None):
@@ -252,7 +271,7 @@ def never(v):
     return "never" if v is None else g(v, 1)
 
 
-for s in present():
+for s in every():
     m = runs[s]
     sm = m["server_metrics"]
     cand = [("probe wait first over 1 s per Pod, period of section 3 (t, s)", first_over_win(m)),
@@ -262,37 +281,41 @@ for s in present():
     if s in ("gunicorn", "tomcat"):
         cand.append(("probe wait max per Pod, whole load (s, at t)",
                      whole(m, "probe_max", m["probe_max"], fmt=lambda k: "%s (t=%s)" % (g(m["probe_max"][k], 3), g(m["probe_max_t"][k], 1)))))
-    if s in ("tomcat-virtual", "node"):
+    if s in ("tomcat-virtual", "node", MGMT):
         aft = {k: (v.get("after") or {}) for k, v in (m.get("probe_windows") or {}).items()}
         cand.append(("probe wait max per Pod after the 1.2C stage (t = 60 to 165 s), outside the period of section 3",
                      ", ".join("in the list below" if (aft[k].get("wait") or 0) > 0.05 else g(aft[k].get("wait"), 3) for k in sorted(aft))))
     rq = W(m, "recvq_max")
-    cand.append(("Recv-Q max per Pod, period of section 3", pods_excl(rq, maxof(rq), "the max in section 3")))
+    cand.append(("Recv-Q max per Pod, period of section 3", pods_excl(rq, in_sections(s, rq), "the max in section 3")))
     cand.append(("Recv-Q max per Pod, whole load", whole(m, "recvq_max", m["recvq_max"])))
-    if s == "tomcat":
+    if s in ("tomcat", MGMT):
         cand.append(("executor queue max per Pod, period of section 3", per_pod(W(m, "queue_max"))))
         cand.append(("executor queue max per Pod, whole load", whole(m, "queue_max", sm["queue_max"])))
     fdw = W(m, "fd_max")
     cand.append(("open file descriptors before the 1.2C stage per Pod (median from t = -15 to 0 s)",
-                 pods_excl(m["fd_before"], maxof(m["fd_before"]), "the value in section 4")))
-    cand.append(("open file descriptors max per Pod, period of section 3", pods_excl(fdw, maxof(fdw), "the max in section 4")))
+                 pods_excl(m["fd_before"], in_sections(s, m["fd_before"]), "the value in section 4")))
+    cand.append(("open file descriptors max per Pod, period of section 3", pods_excl(fdw, in_sections(s, fdw), "the max in section 4")))
     cand.append(("open file descriptors max per Pod, whole load", whole(m, "fd_max", m["fd_max"])))
     cand.append(("k6 timeout count, whole run", str(m["k6"].get("timeout", 0))))
     for key, name in (("busy_max", "`tomcat.threads.busy`"), ("conns_max", "`tomcat.connections.current`"), ("goroutines_max", "goroutines")):
-        if (s == "tomcat" and key in ("busy_max", "conns_max")) or (s == "tomcat-virtual" and key == "conns_max") or (s == "go" and key == "goroutines_max"):
+        if (s in ("tomcat", MGMT) and key in ("busy_max", "conns_max")) or (s == "tomcat-virtual" and key == "conns_max") or (s == "go" and key == "goroutines_max"):
             d = W(m, key)
-            cand.append(("%s max per Pod, period of section 3" % name, pods_excl(d, maxof(d), "the max in section 3")))
-    if s == "tomcat":
+            if s == MGMT and key == "busy_max":
+                shown, label = maxof(d), "the max in section 5"
+            else:
+                shown, label = in_sections(s, d), "the max in section 3"
+            cand.append(("%s max per Pod, period of section 3" % name, pods_excl(d, shown, label)))
+    if s in ("tomcat", MGMT):
         cand.append(("`tomcat.threads.busy` first at 200 per Pod, period of section 3 (t, s)", per_pod(W(m, "busy_first_200"), 1)))
     if s == "gunicorn":
         cand.append(("ListenOverflows increase per Pod, whole run", per_pod(m["listen_overflows"])))
-    if s in ("gunicorn", "tomcat"):
+    if s in ("gunicorn", "tomcat", MGMT):
         cand += [("k6 reset / eof from 1 s before to 2 s after each liveness Killing Event", restart_windows(m)),
                  ("k6 refused, by when it ended", refused(m))]
     if s == "tomcat-virtual":
         cand += [("`tomcat.threads.busy` values seen per Pod, whole run", ", ".join("/".join(g(x) for x in v) for k, v in sorted(sm["busy_values"].items()))),
                  ("probe waits over 1 s per Pod, whole load", over_1s(m))]
-    if s in ("tomcat-virtual", "node"):
+    if s in ("tomcat-virtual", "node", MGMT):
         cand.append(("kubelet `prober_probe_total` Readiness failed per Pod", readiness(m)))
     if s == "node":
         cand.append(("`/work` requests in the handler (waiting and running) max per Pod, period of section 3", per_pod(W(m, "inflight_max"))))
@@ -313,7 +336,7 @@ if "node" in runs:
     print()
 print("CPU in the 1.2C stage: busy share of the VM from `/proc/stat` on the worker node (median, max) and cores used per Pod from its cgroup (median, max):")
 print()
-for s in present():
+for s in every():
     m = runs[s]
     h = m.get("host_cpu_busy") or {}
     print("- `%s`: VM %s, %s (before the 1.2C stage %s); Pods %s / %s" % (
@@ -335,11 +358,11 @@ def spike(m, x):
     return "t=%s Pod %s %s (VM %s, stat %s s)" % (g(x["t"], 1), x["pod"], wait, g(x["host_cpu_busy"]), g(x.get("stat_interval_max")))
 
 
-for s in [x for x in present() if x in ("tomcat-virtual", "node", "go")]:
+for s in [x for x in every() if x in ("tomcat-virtual", MGMT, "node", "go")]:
     sp = runs[s].get("probe_spikes") or []
     print("- `%s`: %s" % (job(s), "; ".join(spike(runs[s], x) for x in sp) or "none"))
 print()
 print("Predictions recomputed from the rate per Pod of each run:")
 print()
-for s in present():
+for s in every():
     print("- `%s`: %s" % (job(s), json.dumps(runs[s]["prediction"])))

@@ -9,9 +9,13 @@ SERVERS = {
     "tomcat-virtual": {"name": "Spring Boot, Tomcat with virtual threads", "image": "pws-spring:dev", "build": "spring",
                        "command": ["java", "-jar", "/app/app.jar"],
                        "env": {"SPRING_THREADS_VIRTUAL_ENABLED": "true"}, "probes": SPRING_PROBES},
+    "tomcat-mgmt": {"name": "Spring Boot, Tomcat default, management port separate", "image": "pws-spring:dev", "build": "spring",
+                    "command": ["java", "-jar", "/app/app.jar"],
+                    "env": {"MANAGEMENT_SERVER_PORT": "8081"}, "probes": SPRING_PROBES, "probe_port": 8081},
     "node": {"name": "Node.js node:http", "image": "pws-node:dev", "build": "node",
              "command": ["node", "/app/server.mjs"], "env": {}, "probes": ("/healthz", "/healthz")},
     "go": {"name": "Go net/http", "image": "pws-go:dev", "build": "go",
            "command": ["/server"], "env": {}, "probes": ("/healthz", "/healthz")},
 }
 ORDER = ["gunicorn", "tomcat", "tomcat-virtual", "node", "go"]
+MGMT = "tomcat-mgmt"
