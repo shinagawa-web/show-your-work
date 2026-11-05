@@ -31,6 +31,14 @@ node=$CLUSTER-control-plane
   for v in NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S LOCAL_SIZE LOCAL_TTL_SECONDS REDIS_TTL_SECONDS VALUE_BYTES READ_BYTES POOL_MAX JOIN_ROWS USERS MAX_OBS QUIET_READS QUIET_SECONDS QUIET_DB_CPU K6_GOGC K6_MEMLIMIT PREALLOC_VUS MAX_VUS READY_DELAY_SECONDS GO_REDIS; do echo "$v=${!v}"; done
 } > "$results/params.txt"
 
+(
+  for i in 1 2 3 4; do
+    docker build -q --build-arg GO_IMAGE="$GO_IMAGE" --build-arg BASE_IMAGE="$BASE_IMAGE" -t "$APP_IMAGE" "$here/app" && exit 0
+    sleep 3
+  done
+  exit 1
+) > "$results/build.log" 2>&1 &
+build=$!
 "$here/scripts/setup.sh" > "$results/setup.log" 2>&1 || { tail -30 "$results/setup.log"; abort "setup.sh failed"; }
 "$here/scripts/seed.sh" >> "$results/setup.log" 2>&1 &
 seed=$!
@@ -50,6 +58,8 @@ case $REDIS in
     ;;
 esac
 
+wait "$build" || { tail -30 "$results/build.log"; abort "build of the app failed"; }
+docker save "$APP_IMAGE" | docker exec -i "$node" ctr -n k8s.io images import - >> "$results/build.log" 2>&1 || abort "import of the app image failed"
 wait "$seed" || abort "seed failed"
 pgip=$(docker inspect -f '{{.NetworkSettings.Networks.kind.IPAddress}}' "$PG")
 py render.py pg "$pgip" | kubectl apply -f - >/dev/null 2>&1 || abort "apply of the pg Service failed"
@@ -67,7 +77,6 @@ kubectl get pod -l app=app -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{
 
 case $REDIS in
   single-*) kubectl rollout status statefulset/redis --timeout=150s >/dev/null || abort "Redis not Ready" ;;
-  sentinel) kubectl rollout status statefulset/redis-ha-server --timeout=200s >/dev/null || abort "redis-ha not Ready" ;;
 esac
 
 redis_state() {
@@ -87,12 +96,23 @@ announce() { kubectl get svc "redis-ha-announce-$1" -o jsonpath='{.spec.clusterI
 if [ "$REDIS" = sentinel ]; then
   target=0
   [ "$OP" = sentinel-restart ] && target=2
+  for i in $(seq 200); do
+    [ -n "$(sentinel_master)" ] && break
+    sleep 0.5
+  done
   if [ "$(sentinel_master)" != "$(announce "$target")" ]; then
+    for i in $(seq 120); do
+      [ "$(kubectl exec "redis-ha-server-$target" -c redis -- redis-cli info replication 2>/dev/null | tr -d '\r' | grep -c '^master_link_status:up')" = 1 ] && break
+      sleep 0.5
+    done
     for i in 0 1 2; do
       [ "$i" = "$target" ] || kubectl exec "redis-ha-server-$i" -c redis -- redis-cli config set replica-priority 0 >/dev/null
     done
     sleep 11
-    kubectl exec redis-ha-server-0 -c sentinel -- redis-cli -p 26379 sentinel failover mymaster >/dev/null 2>&1
+    for i in $(seq 20); do
+      [ "$(kubectl exec redis-ha-server-0 -c sentinel -- redis-cli -p 26379 sentinel failover mymaster 2>/dev/null)" = OK ] && break
+      sleep 1
+    done
     for i in $(seq 40); do
       [ "$(sentinel_master)" = "$(announce "$target")" ] && break
       sleep 0.5
@@ -106,6 +126,7 @@ if [ "$REDIS" = sentinel ]; then
     [ "$(kubectl exec "redis-ha-server-$target" -c redis -- redis-cli info replication | tr -d '\r' | grep -c 'state=online')" = 2 ] && break
     sleep 0.5
   done
+  kubectl rollout status statefulset/redis-ha-server --timeout=200s >/dev/null || abort "redis-ha not Ready"
 fi
 
 followers=()
