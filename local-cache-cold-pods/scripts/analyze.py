@@ -61,11 +61,8 @@ op_s = math.floor(op)
 COUNTERS = ["req", "local_hit", "redis_hit", "redis_absent", "redis_failed", "redis_set_ok", "miss", "db_start"]
 per = defaultdict(lambda: defaultdict(float))
 window = defaultdict(float)
-pod_miss = {}
 other_msgs = defaultdict(int)
 for f in glob.glob(R("stats", "*.jsonl")):
-    pod = os.path.basename(f).rsplit(".", 1)[0]
-    pod_miss[pod] = 0
     rows = [json.loads(x) for x in open(f) if x.strip()]
     prev = None
     other_before = {}
@@ -82,8 +79,6 @@ for f in glob.glob(R("stats", "*.jsonl")):
             per[s][k] += d
             if op <= r["t"] - 0.5 <= stop:
                 window[k] += d
-                if k == "miss":
-                    pod_miss[pod] += d
         per[s]["db_inflight"] += r["db_inflight"]
         if r["t"] < op:
             other_before = r.get("other_err", {})
@@ -125,7 +120,6 @@ for line in open(R("cpu.jsonl")):
 win_secs = [s for s in sorted(set(lat) | set(cpu)) if op_s <= s <= math.floor(stop)]
 base_secs = [s for s in sorted(lat) if op_s - 10 <= s < op_s]
 all_lat = [x for s in win_secs for x in lat.get(s, [])]
-base_lat = [x for s in base_secs for x in lat[s]]
 
 with open(R("timeseries.tsv"), "w") as f:
     cols = ["rel", "req", "local_hit", "redis_hit", "redis_absent", "redis_failed", "miss", "db_start", "db_inflight",
@@ -226,7 +220,6 @@ def uid_before(pod):
 
 steps = {}
 redis_pod = None
-load_seconds = None
 if head["redis"].startswith("single"):
     redis_pod = "redis-0"
 elif head["op"] == "sentinel-restart":
@@ -236,31 +229,36 @@ elif head["redis"] == "sentinel":
 if redis_pod and head["op"] in ("redis-restart", "sentinel-restart", "sentinel-kill"):
     lines = log_lines(redis_pod, "redis")
     term, _ = first(lines, "Received SIGTERM", op)
+    save_start, _ = first(lines, "Saving the final RDB snapshot before exiting", op)
     bye, _ = first(lines, "ready to exit", op)
     start_t, _ = first(lines, "Redis is starting", op)
-    _, msg = first(lines, "DB loaded from disk", op)
-    if msg:
-        load_seconds = float(re.search(r"([\d.]+) seconds", msg).group(1))
     accept, _ = first(lines, "Ready to accept connections", op)
     ready = ready_after(redis_pod, uid_not=uid_before(redis_pod) if head["op"] != "sentinel-kill" else None, after=(accept or op))
-    steps = {"sigterm": rel(term), "exit": rel(bye), "process_start": rel(start_t),
+    steps = {"sigterm": rel(term), "save_start": rel(save_start), "exit": rel(bye), "process_start": rel(start_t),
              "accepting": rel(accept), "pod_ready": rel(ready)}
     if longest:
         steps["last_pod_back"] = rel(max(x[1] for x in longest))
 
 sentinel = {}
+switch_master_lines = 0
+replicas = {}
 if head["redis"] == "sentinel":
     lines = sorted(x for i in range(3) for x in log_lines("redis-ha-server-%d" % i, "sentinel"))
-    for name, needle in (("+sdown", "+sdown master"), ("+try-failover", "+try-failover"), ("+switch-master", "+switch-master")):
+    for name, needle in (("+sdown", "+sdown master"), ("+switch-master", "+switch-master")):
         t, _ = first(lines, needle, op - 1)
         if t is not None:
             sentinel[name] = rel(t)
+    switch_master_lines = sum(1 for t, msg in lines if t >= op - 1 and "+switch-master" in msg)
+if head["op"] == "sentinel-kill":
+    for pod in ("redis-ha-server-1", "redis-ha-server-2"):
+        lines = log_lines(pod, "redis")
+        flushed, _ = first(lines, "Flushing old data", op)
+        _, msg = first(lines, "keys loaded:", op)
+        replicas[pod] = {"flushed": rel(flushed), "keys_loaded": int(re.search(r"keys loaded: (\d+)", msg).group(1)) if msg else None}
 
 k6 = json.load(open(R("k6", "summary.json")))["metrics"] if os.path.exists(R("k6", "summary.json")) else {}
 dropped = k6.get("dropped_iterations", {}).get("values", {}).get("count", 0)
 dbsize = lambda path: dict(re.findall(r"== (\S+)\n(?:\(integer\) )?(\S+)", open(path).read())) if os.path.exists(path) else {}
-initial_pods = open(R("initial-pods.txt")).read().split()
-new_pod_miss = [v for pod, v in pod_miss.items() if pod not in initial_pods]
 
 out = {
     "cond": cond,
@@ -268,8 +266,9 @@ out = {
     "observed_seconds": stop - op,
     "stopped_seconds": max(x[1] for x in longest) - min(x[0] for x in longest) if longest else 0.0,
     "steps": steps,
-    "load_seconds": load_seconds,
     "sentinel": sentinel,
+    "switch_master_lines": switch_master_lines,
+    "replicas": replicas,
     "req": window["req"],
     "miss": window["miss"],
     "miss_redis_failed": window["redis_failed"],
@@ -277,16 +276,10 @@ out = {
     "refused": window["get_err_refused"] + window["set_err_refused"],
     "timeout": window["get_err_timeout"] + window["set_err_timeout"],
     "noreplicas": sum(v for k, v in other_msgs.items() if k.startswith("NOREPLICAS")),
-    "db_reads": window["db_start"],
     "db_reads_before": mean([reads(s) for s in base_secs]),
     "db_reads_peak": db_second(max(win_secs, key=reads)),
     "db_later": db_second(op_s + LATER_SECOND),
-    "new_pod_miss_min": min(new_pod_miss, default=None),
-    "new_pod_miss_max": max(new_pod_miss, default=None),
-    "p99_baseline_ms": pct(base_lat, 0.99),
     "p99_ms": pct(all_lat, 0.99),
-    "dbsize_before": dbsize(R("redis-before.txt")),
-    "dbsize_after": dbsize(R("redis-after.txt")),
 }
 
 problems = []
@@ -295,7 +288,7 @@ if "k6_incomplete" in timeline:
 if dropped:
     problems.append("k6 dropped %d requests" % dropped)
 if redis_pod:
-    sizes = set(out["dbsize_before"].values())
+    sizes = set(dbsize(R("redis-before.txt")).values())
     if head["redis"] == "sentinel" and sizes != {params["KEYS"]}:
         problems.append("Redis held %s keys before the operation, expected %s on every server" % (sizes, params["KEYS"]))
     if head["redis"] != "sentinel" and sizes != {params["KEYS"]}:
