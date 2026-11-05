@@ -2,18 +2,26 @@ import json
 import os
 import sys
 
-DEFINITIONS = (
-    "Requests are counted from the operation until the job stopped. "
-    "A miss is a request that the caches did not answer and that went to the DB. "
-    "Misses during the stop are those whose Redis read failed, refill misses those whose key was not in Redis. "
-    "Seconds stopped runs from the last Redis read that succeeded to the first that succeeded again, across the 4 app Pods. "
-    "connection refused, timeout and NOREPLICAS count the Redis commands that failed after go-redis finished its retries. "
-    "p99 is from k6 by completion, for all requests from the operation until the job stopped. "
-    "p99 before is for the 10 seconds before the operation. "
-    "DB reads are the queries sent to PostgreSQL. "
-    "DB CPU is the CPU usage of the PostgreSQL container as a percentage of its CPU set."
-)
-STOP_COLUMNS = ["seconds stopped", "misses during the stop", "refill misses", "p99 (ms)"]
+K6_TIMEOUT_MS = 30000
+RESTARTED = {"sentinel-restart": "redis-ha-server-2", "sentinel-kill": "redis-ha-server-0"}
+STOP_COLUMNS = ["seconds Redis could not be read", "requests sent to the DB because the Redis read failed",
+                "requests sent to the DB because the key was not in Redis", "p99 (ms)"]
+EVENTS = {
+    "sentinel-restart": (
+        ("SIGTERM", "sigterm", "The master received SIGTERM from the rollout"),
+        ("old master exit", "exit", "The Redis process of the old master exited"),
+        ("last app Pod reads again", "last_pod_back", "The last of the 4 app Pods read Redis successfully again"),
+    ),
+    "sentinel-kill": (
+        ("old master process start", "process_start", "The killed Redis process started again"),
+        ("last app Pod reads again", "last_pod_back", "The last of the 4 app Pods read Redis successfully again"),
+    ),
+}
+SENTINEL_EVENTS = {
+    "+sdown": "Sentinel marked the master as unreachable",
+    "+try-failover": "Sentinel started a failover",
+    "+switch-master": "Sentinel announced the new master",
+}
 
 
 def f(v, fmt="%.1f"):
@@ -40,74 +48,129 @@ def table(header, rows):
     print()
 
 
+def job_table(number, header, rows, values):
+    if len(rows) == 1:
+        table(header, [values(rows[0])])
+    else:
+        table(["job"] + header, [[job(number, m)] + values(m) for m in rows])
+
+
+def period(rows):
+    if len(rows) == 1:
+        return "from the operation until measuring stopped, %.1f s after it" % rows[0]["observed_seconds"]
+    return "from the operation until measuring stopped, %s" % " and ".join(
+        "%.1f s after it in `%s`" % (m["observed_seconds"], m["cond"]) for m in rows)
+
+
+def stop_note(rows):
+    note = ("Counted %s. Seconds Redis could not be read run from the last Redis read that succeeded to the first that "
+            "succeeded again, across the 4 app Pods. p99 is the 99th percentile of the request latency measured by k6 for "
+            "the requests that completed in the same period." % period(rows))
+    if any(m["p99_ms"] is not None and m["p99_ms"] >= K6_TIMEOUT_MS for m in rows):
+        note += " k6 gives up on a request after 30 s, so a p99 of %d ms is cut off at that limit." % K6_TIMEOUT_MS
+    print(note + "\n")
+
+
 def stop_values(m):
     return [f(m["stopped_seconds"]), i(m["miss_redis_failed"]), i(m["miss_redis_absent"]), f(m["p99_ms"])]
 
 
 def local_only(number, rows):
     for m in rows:
-        print("%s. DB reads and DB CPU, by second from the operation.\n" % job(number, m))
+        print("DB reads are the queries the app sent to PostgreSQL in one second. DB CPU is the CPU usage of the PostgreSQL "
+              "container in that second, as a percentage of the CPUs it was given. The first row is the mean of the 10 "
+              "seconds before the operation. The other rows are single seconds.\n")
         peak = m["db_reads_peak"]
         later = m["db_later"]
-        table(["second", "DB reads per second", "DB CPU (%)"], [
-            ["mean of the 10 s before", f(m["db_reads_before"]), f(m["db_cpu_before"])],
-            ["%d, most reads" % peak["second"], i(peak["reads"]), f(peak["cpu"])],
+        table(["seconds after the operation", "DB reads per second", "DB CPU (%)"], [
+            ["mean of the 10 s before the operation", f(m["db_reads_before"]), f(m["db_cpu_before"])],
+            ["%d (the second with the most reads)" % peak["second"], i(peak["reads"]), f(peak["cpu"])],
             ["%d" % later["second"], i(later["reads"]), f(later["cpu"])],
         ])
-    table(["job", "peak DB CPU (%)", "DB reads until the job stopped", "fewest misses of a new Pod", "most misses of a new Pod", "p99 (ms)", "p99 before (ms)"],
-          [[job(number, m), f(m["db_cpu_peak"]), i(m["db_reads"]), i(m["new_pod_miss_min"]), i(m["new_pod_miss_max"]),
-            f(m["p99_ms"]), f(m["p99_baseline_ms"])] for m in rows])
+        print("Totals %s. A new Pod is one of the 4 Pods the rollout started, with an empty local cache.\n" % period([m]))
+        table(["DB reads in the %.1f s after the operation, all Pods" % m["observed_seconds"],
+               "DB reads by the new Pod that sent the fewest", "DB reads by the new Pod that sent the most"],
+              [[i(m["db_reads"]), i(m["new_pod_miss_min"]), i(m["new_pod_miss_max"])]])
+        print("p99 of the request latency measured by k6, for the requests that completed in each period.\n")
+        table(["period", "p99 (ms)"], [
+            ["the 10 s before the operation", f(m["p99_baseline_ms"])],
+            [period([m]), f(m["p99_ms"])],
+        ])
 
 
 def app_restart(number, rows):
-    table(["job", "requests", "misses"], [[job(number, m), i(m["req"]), i(m["miss"])] for m in rows])
+    print("Totals %s.\n" % period(rows))
+    job_table(number, ["requests", "requests sent to the DB"], rows, lambda m: [i(m["req"]), i(m["miss"])])
 
 
 def stop_only(number, rows):
-    table(["job"] + STOP_COLUMNS, [[job(number, m)] + stop_values(m) for m in rows])
+    stop_note(rows)
+    job_table(number, STOP_COLUMNS, rows, stop_values)
 
 
 def no_persistence(number, rows):
-    table(["job"] + STOP_COLUMNS + ["connection refused", "timeout"],
-          [[job(number, m)] + stop_values(m) + [i(m["refused"]), i(m["timeout"])] for m in rows])
-    print("Seconds of each step, from the operation until the last app Pod read Redis again.\n")
-    table(["job", "termination", "Pod start", "load", "probe", "back in Service"], [[
-        job(number, m), f(t.get("exit"), "%.2f"), f(diff(t.get("exit"), t.get("process_start")), "%.2f"),
-        f(diff(t.get("process_start"), t.get("accepting")), "%.2f"), f(diff(t.get("accepting"), t.get("pod_ready")), "%.2f"),
-        f(diff(t.get("pod_ready"), t.get("last_pod_back")), "%.2f")] for m in rows for t in [m["steps"]]])
+    stop_note(rows)
+    print("The last two columns count the Redis commands that failed with that error after go-redis finished its retries, "
+          "in the same period.\n")
+    job_table(number, STOP_COLUMNS + ["Redis commands failed with connection refused", "Redis commands failed with timeout"],
+              rows, lambda m: stop_values(m) + [i(m["refused"]), i(m["timeout"])])
+    for m in rows:
+        t = m["steps"]
+        print("Each step runs from one point to the next, from the operation until the last app Pod read Redis again.\n")
+        table(["step", "from", "to", "seconds"], [
+            ["termination", "the operation", "the old Redis process exited", f(t.get("exit"), "%.2f")],
+            ["Pod start", "the old Redis process exited", "the new Redis process started",
+             f(diff(t.get("exit"), t.get("process_start")), "%.2f")],
+            ["load", "the new Redis process started", "Redis accepted connections",
+             f(diff(t.get("process_start"), t.get("accepting")), "%.2f")],
+            ["probe", "Redis accepted connections", "the readiness probe passed and the Pod was Ready",
+             f(diff(t.get("accepting"), t.get("pod_ready")), "%.2f")],
+            ["back in Service", "the Pod was Ready", "the last app Pod read Redis again",
+             f(diff(t.get("pod_ready"), t.get("last_pod_back")), "%.2f")],
+        ])
 
 
 def rdb(number, rows):
-    table(["job"] + STOP_COLUMNS + ["termination (s)", "`DB loaded from disk` (s)"],
-          [[job(number, m)] + stop_values(m) + [f(m["steps"].get("exit"), "%.2f"), f(m["load_seconds"], "%.3f")] for m in rows])
+    stop_note(rows)
+    job_table(number, STOP_COLUMNS, rows, stop_values)
+    for m in rows:
+        print("Two steps inside the time Redis could not be read.\n")
+        table(["step", "what it measures", "seconds"], [
+            ["termination", "from the operation until the old Redis process exited", f(m["steps"].get("exit"), "%.2f")],
+            ["`DB loaded from disk`", "the load time Redis wrote in this log line", f(m["load_seconds"], "%.3f")],
+        ])
 
 
 def sentinel(number, rows):
-    stop_only(number, rows)
+    stop_note(rows)
+    job_table(number, STOP_COLUMNS, rows, stop_values)
     for m in rows:
-        print("%s. Seconds from the operation.\n" % job(number, m))
         t = m["steps"]
-        names = (("SIGTERM on the master", "sigterm"), ("old master exit", "exit"), ("last app Pod reads again", "last_pod_back"))
+        note = " A Sentinel event is the first time any of the 3 Sentinels logged it." if m["sentinel"] else ""
+        print("`%s`, what happened after the operation.%s\n" % (m["cond"], note))
+        events = [(t[key], name, text) for name, key, text in EVENTS[m["cond"]] if t.get(key) is not None]
+        events += [(s, name, SENTINEL_EVENTS[name]) for name, s in m["sentinel"].items()]
+        table(["seconds after the operation", "event", "what happened"],
+              [["%.2f" % s, name, text] for s, name, text in sorted(events)])
+        print("`%s`, keys held by each Redis server, read just before the operation and after the load stopped.\n" % m["cond"])
+        after = lambda p: m["dbsize_after"].get(p, "-")
+        table(["server", "keys before the operation", "keys after the load stopped"],
+              [[p, m["dbsize_before"].get(p, "-"),
+                "unavailable (restarting)" if p == RESTARTED[m["cond"]] and not after(p).isdigit() else after(p)]
+               for p in sorted(m["dbsize_before"])])
         if m["cond"] == "sentinel-kill":
-            names = (("old master process start", "process_start"), ("last app Pod reads again", "last_pod_back"))
-        events = [(t[key], name) for name, key in names if t.get(key) is not None]
-        events += [(s, name) for name, s in m["sentinel"].items()]
-        table(["event", "s"], [[name, "%.2f" % s] for s, name in sorted(events)])
-        print("%s. Keys per server.\n" % job(number, m))
-        table(["server", "before", "after"],
-              [[p, m["dbsize_before"].get(p, "-"), m["dbsize_after"].get(p, "-")] for p in sorted(m["dbsize_before"])])
-        if m["cond"] == "sentinel-kill":
-            print("%s. NOREPLICAS errors: %d.\n" % (job(number, m), m["noreplicas"]))
+            print("`sentinel-kill`, %s: Redis refused %d writes with `NOREPLICAS Not enough good replicas to write`.\n"
+                  % (period([m]), m["noreplicas"]))
 
 
 SECTIONS = [
-    ("2", "Local cache only. `kubectl rollout restart` of the 4 app Pods.", ["app-restart-local"], local_only),
-    ("3-1", "Redis only, single instance with PVC. `kubectl rollout restart` of the 4 app Pods.", ["app-restart-redis"], app_restart),
-    ("3-3", "Redis only, single instance, `save \"\"` and no PVC, go-redis with DialTimeout, ReadTimeout, WriteTimeout and PoolTimeout 500 ms, DialerRetries 1 and MaxRetries 1. `kubectl rollout restart` of Redis.", ["redis-restart-none-short"], stop_only),
-    ("4-1", "Redis only, single instance, `save \"\"` and no PVC. `kubectl rollout restart` of Redis.", ["redis-restart-none"], no_persistence),
-    ("4-2", "Redis only, single instance, PVC and `save 900 1`. `kubectl rollout restart` of Redis (SIGTERM).", ["redis-restart-rdb"], rdb),
-    ("4-3", "Redis only, redis-ha chart, Sentinel with `down-after-milliseconds` 5000. `sentinel-restart` replaces only the master, `redis-ha-server-2`, with `kubectl rollout restart` and a partition of 2. `sentinel-kill` sends SIGKILL to the master, `redis-ha-server-0`.", ["sentinel-restart", "sentinel-kill"], sentinel),
-    ("4-4", "Single instance, `save \"\"` and no PVC, with a local cache of 120 entries in front of Redis. `kubectl rollout restart` of Redis.", ["redis-restart-none-local"], stop_only),
+    ("2", "Cache: a local cache in each app Pod, no Redis. Operation: `kubectl rollout restart` of the 4 app Pods.", ["app-restart-local"], local_only),
+    ("3-1", "Cache: Redis only, a single instance with a PVC. Operation: `kubectl rollout restart` of the 4 app Pods.", ["app-restart-redis"], app_restart),
+    ("3-3", "Cache: Redis only, a single instance with `save \"\"` and no PVC. go-redis uses DialTimeout, ReadTimeout, WriteTimeout and PoolTimeout of 500 ms, DialerRetries 1 and MaxRetries 1. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-short"], stop_only),
+    ("4-1", "Cache: Redis only, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none"], no_persistence),
+    ("4-2", "Cache: Redis only, a single instance with a PVC and `save 900 1`. Operation: `kubectl rollout restart` of Redis, which sends it SIGTERM.", ["redis-restart-rdb"], rdb),
+    ("4-3", "Cache: Redis only, the redis-ha chart with Sentinel and `down-after-milliseconds` 5000. Operation of `sentinel-restart`: `kubectl rollout restart` with a partition of 2, which replaces only the master, `redis-ha-server-2`. Operation of `sentinel-kill`: SIGKILL to the master, `redis-ha-server-0`.", ["sentinel-restart", "sentinel-kill"], sentinel),
+    ("4-4", "Cache: a local cache of 120 entries in front of Redis, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-local"], stop_only),
 ]
 
 metrics = {}
@@ -125,9 +188,10 @@ for m in metrics.values():
     for problem in m["problems"]:
         print("RUN INVALID (%s): %s\n" % (m["cond"], problem))
 if metrics:
-    print(DEFINITIONS + "\n")
+    print("In every job k6 sends a constant %d requests per second to the app. The operation of each section runs during that load.\n"
+          % next(iter(metrics.values()))["rate"])
 for number, condition, conds, render in SECTIONS:
     rows = [metrics[c] for c in conds if c in metrics]
     if rows:
-        print("## %s\n\n%s\n" % (number, condition))
+        print("## %s\n\nJob: %s. %s\n" % (number, ", ".join("`%s`" % job(number, m) for m in rows), condition))
         render(number, rows)

@@ -264,6 +264,8 @@ new_pod_miss = [v for pod, v in pod_miss.items() if pod not in initial_pods]
 
 out = {
     "cond": cond,
+    "rate": int(params["RATE"]),
+    "observed_seconds": stop - op,
     "stopped_seconds": max(x[1] for x in longest) - min(x[0] for x in longest) if longest else 0.0,
     "steps": steps,
     "load_seconds": load_seconds,
@@ -280,7 +282,6 @@ out = {
     "db_cpu_before": mean([cpu[s]["pg"] for s in base_secs if s in cpu]),
     "db_reads_peak": db_second(max(win_secs, key=reads)),
     "db_later": db_second(op_s + LATER_SECOND),
-    "db_cpu_peak": max((cpu[s]["pg"] for s in win_secs if s in cpu), default=None),
     "new_pod_miss_min": min(new_pod_miss, default=None),
     "new_pod_miss_max": max(new_pod_miss, default=None),
     "p99_baseline_ms": pct(base_lat, 0.99),
