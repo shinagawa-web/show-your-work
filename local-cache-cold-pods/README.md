@@ -26,13 +26,13 @@ Each job is named after its article section and condition. Each condition runs u
 - PostgreSQL runs outside kind as a Docker container on `PG_CPUS` (`--cpuset-cpus`, `--network kind`) with the default configuration. The Pods reach it through the Service `pg`, whose Endpoints hold the container's IP
 - `app/main.go` serves `/item?id=<key>`. It reads the local cache (`hashicorp/golang-lru/v2` `expirable`) when enabled, then Redis (`redis/go-redis`) when enabled, then PostgreSQL through a `pgxpool` pool with `MaxConns` from `POOL_MAX`. A value read from PostgreSQL is written back to the caches. A Redis error is counted by type and the request goes to PostgreSQL. go-redis keeps its default timeouts and retries, apart from `redis-restart-none-short`. The redis-ha conditions use `NewFailoverClient`
 - Every value in Redis is `VALUE_BYTES` long, so that RDB loading shows in the time Redis is stopped. It is a JSON header of 256 bytes followed by incompressible bytes. The app reads `READ_BYTES` from the start of the value with `GETRANGE`
-- Each app Pod also runs a probe with its own go-redis client: one read every 100 ms, a 300 ms limit and no retries. Its start and end of failure, written to `/stats/<pod>.events`, give the time Redis was stopped. The errors returned to requests are written to the same file
+- Each app Pod also runs a probe with its own go-redis client: one read every 100 ms, a 300 ms limit and no retries. Its start and end of failure, written to `/stats/<pod>.events`, give the time Redis was stopped.
 - Every second each Pod appends its counters to `/stats/<pod>.jsonl` on the node
 - The single instance is a StatefulSet of the official image with the probes of the chart: `k8s/redis_readiness.sh`, `k8s/redis_liveness.sh` and the same delays, periods and thresholds. The PVC uses the default StorageClass of kind
 - The redis-ha chart keeps its defaults apart from `k8s/redis-ha-values.yaml`. `podManagementPolicy: Parallel` starts the 3 servers together, so that the setup fits the job. The `init` container of each server waits for Sentinels to answer before it starts Redis
 - The chart renders only the `type` of the update strategy, so `sentinel-restart` sets the partition with `kubectl patch`. Clients read the master only, so the replicas are not replaced. The chart's `preStop` failover runs as usual
 - k6 runs in the cluster with `ramping-arrival-rate` and `noConnectionReuse: true`, so that each request opens a new connection. The rate rises from `START_RATE` to `RATE` over `RAMP` seconds, then stays at `RATE`. Keys follow a Zipf distribution. In the conditions with Redis, k6 first reads every key once in `setup()`, one at a time, so that Redis is filled before the load starts. The operation runs `WARM` seconds after k6 starts. `scripts/watch.py` stops k6 once, for `QUIET_SECONDS` seconds, the reads sent to PostgreSQL stay below `QUIET_READS` per second, no read is in flight, no Redis read failed and the CPU of the PostgreSQL container is within `QUIET_DB_CPU` points of its value before the operation, or `MAX_OBS` seconds after the operation
-- `scripts/poll.py` records the Pods every 0.5 s and the CPU usage of the PostgreSQL container, the node container and each CPU every second
+- `scripts/poll.py` records the Pods every 0.5 s and the CPU usage of the PostgreSQL container and the node container every second
 
 `scripts/params.env` holds the request rates, number of keys, Zipf exponent, cache sizes and TTLs, value size, pool size, table sizes, VUs, warm-up seconds and the stop conditions. `READY_DELAY_SECONDS` is the `initialDelaySeconds` of the readiness and startup probes of the single instance. Its value matches the chart.
 
@@ -50,7 +50,6 @@ Each job is named after its article section and condition. Each condition runs u
 | `<condition>/pods.jsonl`, `cpu.jsonl` | Pod states and CPU samples |
 | `<condition>/timeline.txt` | when k6 started, the operation, the end of the rollout and of the load |
 | `<condition>/pgbench.txt` | `pgbench` with the app's query, run before the app starts |
-| `<condition>/00-environment.txt` | versions, CPU sets, PostgreSQL and Redis settings, the query plan |
 
 ## Pinned versions
 

@@ -25,6 +25,5 @@ for c in "${conds[@]}"; do
   [ -z "$reuse" ] || reuse=yes
 done
 python3 -B "$here/scripts/report.py" "$results"/*/ > "$results/summary.md" || rc=1
-{ echo; echo "Seconds per condition, under \`timeout 300\` (exit 124 means it was cut):"; echo; echo "| job | s | exit |"; echo "|---|---|---|"; awk '{print "| " $1 " | " $2 " | " $3 " |"}' "$results/times.txt"; } >> "$results/summary.md"
 cat "$results/summary.md"
 exit "$rc"

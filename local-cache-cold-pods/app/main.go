@@ -71,26 +71,19 @@ func (e *errCounts) snapshot() map[string]int64 {
 
 type counters struct {
 	req, localHit, redisHit, redisAbsent, redisFailed, miss atomic.Int64
-	dbStart, dbDone, dbErr, dbCanceled, dup, errs           atomic.Int64
-	dbInflight, redisSetOK                                  atomic.Int64
+	dbStart, dbInflight, redisSetOK                         atomic.Int64
 	getErr, setErr                                          errCounts
 }
 
 type server struct {
-	pool     *pgxpool.Pool
-	local    *expirable.LRU[int, item]
-	rdb      redis.UniversalClient
-	ttl      time.Duration
-	read     int
-	values   sync.Pool
-	c        counters
-	ready    atomic.Bool
-	mu       sync.Mutex
-	inflight map[int]int
-
-	stateMu sync.Mutex
-	down    bool
-	lastOK  float64
+	pool    *pgxpool.Pool
+	local   *expirable.LRU[int, item]
+	rdb     redis.UniversalClient
+	ttl     time.Duration
+	read    int
+	values  sync.Pool
+	c       counters
+	ready   atomic.Bool
 	otherMu sync.Mutex
 	other   map[string]int64
 
@@ -127,7 +120,7 @@ func classify(err error) string {
 	return "other"
 }
 
-func (s *server) noteErr(counts *errCounts, err error) string {
+func (s *server) noteErr(counts *errCounts, err error) {
 	kind := classify(err)
 	counts.add(kind)
 	if kind == "other" {
@@ -136,7 +129,6 @@ func (s *server) noteErr(counts *errCounts, err error) string {
 		s.other[msg]++
 		s.otherMu.Unlock()
 	}
-	return kind
 }
 
 func now() float64 {
@@ -151,57 +143,13 @@ func (s *server) emit(ev map[string]any) {
 	}
 }
 
-func (s *server) observe(err error, kind string) {
-	s.stateMu.Lock()
-	defer s.stateMu.Unlock()
-	t := now()
-	if err == nil {
-		if s.down {
-			s.down = false
-			s.emit(map[string]any{"ev": "up", "t": t})
-		}
-		s.lastOK = t
-		return
-	}
-	if !s.down {
-		s.down = true
-		s.emit(map[string]any{"ev": "down", "t": t, "last_ok": s.lastOK, "kind": kind, "err": addrPattern.ReplaceAllString(err.Error(), "ADDR")})
-	}
-}
-
 func (s *server) fromDB(ctx context.Context, id int) (item, error) {
 	s.c.dbStart.Add(1)
 	s.c.dbInflight.Add(1)
 	defer s.c.dbInflight.Add(-1)
 	var it item
 	err := s.pool.QueryRow(ctx, query, id).Scan(&it.ID, &it.Name, &it.Reviews, &it.Score, &it.Countries)
-	if err != nil {
-		s.c.dbErr.Add(1)
-		if errors.Is(err, context.Canceled) {
-			s.c.dbCanceled.Add(1)
-		}
-		return it, err
-	}
-	s.c.dbDone.Add(1)
-	return it, nil
-}
-
-func (s *server) load(ctx context.Context, id int) (item, error) {
-	s.mu.Lock()
-	if s.inflight[id] > 0 {
-		s.c.dup.Add(1)
-	}
-	s.inflight[id]++
-	s.mu.Unlock()
-	defer func() {
-		s.mu.Lock()
-		s.inflight[id]--
-		if s.inflight[id] == 0 {
-			delete(s.inflight, id)
-		}
-		s.mu.Unlock()
-	}()
-	return s.fromDB(ctx, id)
+	return it, err
 }
 
 func key(id int) string {
@@ -212,12 +160,10 @@ func (s *server) fromRedis(ctx context.Context, id int) (item, bool) {
 	var it item
 	head, err := s.rdb.GetRange(ctx, key(id), 0, int64(s.read-1)).Bytes()
 	if err != nil && !errors.Is(err, redis.Nil) {
-		kind := s.noteErr(&s.c.getErr, err)
-		s.observe(err, kind)
+		s.noteErr(&s.c.getErr, err)
 		s.c.redisFailed.Add(1)
 		return it, false
 	}
-	s.observe(nil, "")
 	if len(head) == 0 {
 		s.c.redisAbsent.Add(1)
 		return it, false
@@ -264,7 +210,7 @@ func (s *server) get(ctx context.Context, id int) (item, error) {
 		}
 	}
 	s.c.miss.Add(1)
-	it, err := s.load(ctx, id)
+	it, err := s.fromDB(ctx, id)
 	if err != nil {
 		return it, err
 	}
@@ -281,13 +227,11 @@ func (s *server) handleItem(w http.ResponseWriter, r *http.Request) {
 	s.c.req.Add(1)
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil {
-		s.c.errs.Add(1)
 		http.Error(w, "bad id", http.StatusBadRequest)
 		return
 	}
 	it, err := s.get(r.Context(), id)
 	if err != nil {
-		s.c.errs.Add(1)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -337,7 +281,7 @@ func (s *server) probeLoop(client redis.UniversalClient) {
 	}
 }
 
-func (s *server) statsLoop(path, pod string, start time.Time) {
+func (s *server) statsLoop(path string) {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		log.Fatalf("stats file: %v", err)
@@ -347,43 +291,20 @@ func (s *server) statsLoop(path, pod string, start time.Time) {
 		now := time.Now()
 		time.Sleep(now.Truncate(time.Second).Add(time.Second).Sub(now))
 		t := time.Now()
-		st := s.pool.Stat()
-		localLen := 0
-		if s.local != nil {
-			localLen = s.local.Len()
-		}
 		enc.Encode(map[string]any{
-			"t":                  float64(t.UnixNano()) / 1e9,
-			"pod":                pod,
-			"start":              float64(start.UnixNano()) / 1e9,
-			"ready":              s.ready.Load(),
-			"req":                s.c.req.Load(),
-			"local_hit":          s.c.localHit.Load(),
-			"redis_hit":          s.c.redisHit.Load(),
-			"redis_absent":       s.c.redisAbsent.Load(),
-			"redis_failed":       s.c.redisFailed.Load(),
-			"redis_set_ok":       s.c.redisSetOK.Load(),
-			"miss":               s.c.miss.Load(),
-			"db_start":           s.c.dbStart.Load(),
-			"db_done":            s.c.dbDone.Load(),
-			"db_err":             s.c.dbErr.Load(),
-			"db_canceled":        s.c.dbCanceled.Load(),
-			"db_inflight":        s.c.dbInflight.Load(),
-			"dup":                s.c.dup.Load(),
-			"errs":               s.c.errs.Load(),
-			"get_err":            s.c.getErr.snapshot(),
-			"set_err":            s.c.setErr.snapshot(),
-			"other_err":          s.otherSnapshot(),
-			"local_len":          localLen,
-			"pool_max":           st.MaxConns(),
-			"pool_total":         st.TotalConns(),
-			"pool_acquired":      st.AcquiredConns(),
-			"pool_idle":          st.IdleConns(),
-			"pool_acquire_count": st.AcquireCount(),
-			"pool_acquire_ns":    st.AcquireDuration().Nanoseconds(),
-			"pool_empty_acquire": st.EmptyAcquireCount(),
-			"pool_empty_wait_ns": st.EmptyAcquireWaitTime().Nanoseconds(),
-			"pool_canceled":      st.CanceledAcquireCount(),
+			"t":            float64(t.UnixNano()) / 1e9,
+			"req":          s.c.req.Load(),
+			"local_hit":    s.c.localHit.Load(),
+			"redis_hit":    s.c.redisHit.Load(),
+			"redis_absent": s.c.redisAbsent.Load(),
+			"redis_failed": s.c.redisFailed.Load(),
+			"redis_set_ok": s.c.redisSetOK.Load(),
+			"miss":         s.c.miss.Load(),
+			"db_start":     s.c.dbStart.Load(),
+			"db_inflight":  s.c.dbInflight.Load(),
+			"get_err":      s.c.getErr.snapshot(),
+			"set_err":      s.c.setErr.snapshot(),
+			"other_err":    s.otherSnapshot(),
 		})
 	}
 }
@@ -442,13 +363,11 @@ func main() {
 		log.Fatal(err)
 	}
 	s := &server{
-		pool:     pool,
-		rdb:      newRedis(),
-		ttl:      time.Duration(envInt("REDIS_TTL_SECONDS", 600)) * time.Second,
-		read:     envInt("READ_BYTES", headerBytes),
-		inflight: map[int]int{},
-		other:    map[string]int64{},
-		lastOK:   now(),
+		pool:  pool,
+		rdb:   newRedis(),
+		ttl:   time.Duration(envInt("REDIS_TTL_SECONDS", 600)) * time.Second,
+		read:  envInt("READ_BYTES", headerBytes),
+		other: map[string]int64{},
 	}
 	if size := envInt("LOCAL_SIZE", 0); size > 0 {
 		s.local = expirable.NewLRU[int, item](size, nil, time.Duration(envInt("LOCAL_TTL_SECONDS", 300))*time.Second)
@@ -471,7 +390,7 @@ func main() {
 			}
 			s.events = json.NewEncoder(f)
 		}
-		go s.statsLoop(dir+"/"+pod+".jsonl", pod, start)
+		go s.statsLoop(dir + "/" + pod + ".jsonl")
 		if s.rdb != nil {
 			go s.probeLoop(newProbe())
 		}

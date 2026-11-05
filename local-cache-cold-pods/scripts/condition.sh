@@ -19,12 +19,8 @@ case $cond in
   redis-restart-none-local) REDIS=single-none LOCAL_SIZE=$LOCAL_SIZE_PARTIAL OP=redis-restart WARM=$WARM_PARTIAL ;;
   *) echo "unknown condition $cond" >&2; exit 2 ;;
 esac
-if [ "$REDIS" = sentinel ]; then
-  K6_MEMLIMIT=$K6_MEMLIMIT_SENTINEL PREALLOC_VUS=$PREALLOC_VUS_SENTINEL MAX_VUS=$MAX_VUS_SENTINEL WARM=$WARM_SENTINEL MAX_OBS=$MAX_OBS_SENTINEL
-fi
 export PATH=$here/.bin:$PATH
 export KIND_NODE_IMAGE APP_IMAGE K6_TAG CLUSTER PG NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S LOCAL_SIZE LOCAL_TTL_SECONDS REDIS_TTL_SECONDS VALUE_BYTES READ_BYTES POOL_MAX JOIN_ROWS USERS WARM MAX_OBS QUIET_READS QUIET_SECONDS QUIET_DB_CPU K6_GOGC K6_MEMLIMIT PREALLOC_VUS MAX_VUS REDIS OP REDIS_TAG REUSE READY_DELAY_SECONDS GO_REDIS
-start=$(date +%s)
 rm -rf "$results"
 mkdir -p "$results" "$results/logs"
 abort() { echo "RUN INVALID: $1" | tee "$results/summary.md"; exit 1; }
@@ -36,7 +32,6 @@ node=$CLUSTER-control-plane
 } > "$results/params.txt"
 
 "$here/scripts/setup.sh" > "$results/setup.log" 2>&1 || { tail -30 "$results/setup.log"; abort "setup.sh failed"; }
-echo "setup $(( $(date +%s) - start ))s" > "$results/elapsed.txt"
 "$here/scripts/seed.sh" >> "$results/setup.log" 2>&1 &
 seed=$!
 
@@ -56,7 +51,6 @@ case $REDIS in
 esac
 
 wait "$seed" || abort "seed failed"
-echo "seeded $(( $(date +%s) - start ))s" >> "$results/elapsed.txt"
 pgip=$(docker inspect -f '{{.NetworkSettings.Networks.kind.IPAddress}}' "$PG")
 py render.py pg "$pgip" | kubectl apply -f - >/dev/null 2>&1 || abort "apply of the pg Service failed"
 q="SELECT i.id, i.name, count(r.id), avg(r.score)::float8, count(DISTINCT u.country) FROM items i JOIN reviews r ON r.item_id = i.id JOIN users u ON u.id = r.user_id WHERE i.id = :id GROUP BY i.id, i.name;"
@@ -75,32 +69,6 @@ case $REDIS in
   single-*) kubectl rollout status statefulset/redis --timeout=150s >/dev/null || abort "Redis not Ready" ;;
   sentinel) kubectl rollout status statefulset/redis-ha-server --timeout=200s >/dev/null || abort "redis-ha not Ready" ;;
 esac
-echo "redis_ready $(( $(date +%s) - start ))s" >> "$results/elapsed.txt"
-
-{
-  echo "\$ kind version"; kind version
-  echo "\$ kubectl version"; kubectl version 2>&1
-  echo "\$ helm version"; helm version --short
-  echo "\$ uname -srm; nproc"; uname -srm; nproc
-  echo "\$ lscpu"; lscpu
-  echo "\$ lscpu -e"; lscpu -e
-  echo "\$ cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list"
-  for f in /sys/devices/system/cpu/cpu[0-9]*/topology/thread_siblings_list; do echo "$f: $(cat "$f")"; done
-  echo "\$ docker inspect cpuset ($node, $PG)"; docker inspect -f '{{.Name}} {{.HostConfig.CpusetCpus}} {{.HostConfig.NanoCpus}}' "$node" "$PG"
-  echo "\$ grep Cpus_allowed_list /proc/1/status (in $node)"; docker exec "$node" grep Cpus_allowed_list /proc/1/status
-  echo "\$ grep Cpus_allowed_list /proc/1/status (in $PG)"; docker exec "$PG" grep Cpus_allowed_list /proc/1/status
-  echo "\$ postgres --version"; docker exec "$PG" postgres --version
-  echo "\$ SHOW max_connections, shared_buffers"; docker exec "$PG" psql -U postgres -h 127.0.0.1 -Atc "SHOW max_connections" -c "SHOW shared_buffers"
-  echo "\$ SELECT count(*) FROM items, users, reviews"; docker exec "$PG" psql -U postgres -h 127.0.0.1 -Atc "SELECT (SELECT count(*) FROM items), (SELECT count(*) FROM users), (SELECT count(*) FROM reviews)"
-  echo "\$ EXPLAIN ANALYZE (id=1)"; docker exec "$PG" psql -U postgres -h 127.0.0.1 -Atc "EXPLAIN ANALYZE ${q/:id/1}"
-  echo "\$ sysctl net.netfilter.nf_conntrack_max"; sysctl net.netfilter.nf_conntrack_max 2>&1
-  echo "\$ kubectl get pods -o wide"; kubectl get pods -o wide
-  for p in $redis_pods; do
-    echo "\$ redis-cli info server (in $p)"; kubectl exec "$p" -c redis -- redis-cli info server | grep -E 'redis_version|redis_mode'
-    echo "\$ redis-cli config get (in $p)"; kubectl exec "$p" -c redis -- redis-cli config get save
-    kubectl exec "$p" -c redis -- redis-cli config get maxmemory-policy
-  done
-} > "$results/00-environment.txt" 2>&1
 
 redis_state() {
   for p in $redis_pods; do
@@ -173,7 +141,6 @@ for i in $(seq 600); do
 done
 [ -n "$t0" ] || abort "k6 did not start"
 echo "k6_t0 $t0" > "$results/timeline.txt"
-echo "k6_started $(( $(date +%s) - start ))s" >> "$results/elapsed.txt"
 python3 -c 'import sys, time; time.sleep(max(0, int(sys.argv[1]) / 1000 + int(sys.argv[2]) - time.time() - 3))' "$t0" "$WARM"
 [ -z "$redis_pods" ] || redis_state > "$results/redis-before.txt" 2>&1
 victim=
@@ -242,7 +209,6 @@ kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.uid} {.metadata.nam
 kubectl get events --sort-by=.lastTimestamp > "$results/events.txt" 2>&1
 for p in $(kubectl get pod -l app=app -o name); do kubectl logs "$p" > "$results/logs/${p#pod/}.log" 2>&1; done
 docker stats --no-stream "$PG" "$node" > "$results/docker-stats-final.txt" 2>&1
-echo "total $(( $(date +%s) - start ))s" >> "$results/elapsed.txt"
 
 py analyze.py "$results" "$cond" > "$results/summary.md" || abort "analyze.py failed"
 cat "$results/summary.md"
