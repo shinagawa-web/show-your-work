@@ -77,15 +77,14 @@ def stop_values(m):
 
 def local_only(number, rows):
     for m in rows:
-        print("DB reads are the queries the app sent to PostgreSQL in one second. DB CPU is the CPU usage of the PostgreSQL "
-              "container in that second, as a percentage of the CPUs it was given. The first row is the mean of the 10 "
+        print("DB reads are the queries the app sent to PostgreSQL in one second. The first row is the mean of the 10 "
               "seconds before the operation. The other rows are single seconds.\n")
         peak = m["db_reads_peak"]
         later = m["db_later"]
-        table(["seconds after the operation", "DB reads per second", "DB CPU (%)"], [
-            ["mean of the 10 s before the operation", f(m["db_reads_before"]), f(m["db_cpu_before"])],
-            ["%d (the second with the most reads)" % peak["second"], i(peak["reads"]), f(peak["cpu"])],
-            ["%d" % later["second"], i(later["reads"]), f(later["cpu"])],
+        table(["seconds after the operation", "DB reads per second"], [
+            ["mean of the 10 s before the operation", f(m["db_reads_before"])],
+            ["%d (the second with the most reads)" % peak["second"], i(peak["reads"])],
+            ["%d" % later["second"], i(later["reads"])],
         ])
         print("Totals %s. A new Pod is one of the 4 Pods the rollout started, with an empty local cache.\n" % period([m]))
         table(["DB reads in the %.1f s after the operation, all Pods" % m["observed_seconds"],

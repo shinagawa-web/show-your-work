@@ -147,7 +147,7 @@ def reads(s):
 
 
 def db_second(s):
-    return {"second": s - op_s, "reads": reads(s), "cpu": cpu.get(s, {}).get("pg")}
+    return {"second": s - op_s, "reads": reads(s)}
 
 
 events = []
@@ -279,7 +279,6 @@ out = {
     "noreplicas": sum(v for k, v in other_msgs.items() if k.startswith("NOREPLICAS")),
     "db_reads": window["db_start"],
     "db_reads_before": mean([reads(s) for s in base_secs]),
-    "db_cpu_before": mean([cpu[s]["pg"] for s in base_secs if s in cpu]),
     "db_reads_peak": db_second(max(win_secs, key=reads)),
     "db_later": db_second(op_s + LATER_SECOND),
     "new_pod_miss_min": min(new_pod_miss, default=None),
