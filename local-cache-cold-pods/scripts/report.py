@@ -99,10 +99,8 @@ def no_persistence(m):
          f(diff(t.get("exit"), t.get("process_start")), "%.2f")],
         ["load", "the new Redis process started", "Redis accepted connections",
          f(diff(t.get("process_start"), t.get("accepting")), "%.2f")],
-        ["probe", "Redis accepted connections", "the readiness probe passed and the Pod was Ready",
-         f(diff(t.get("accepting"), t.get("pod_ready")), "%.2f")],
-        ["back in Service", "the Pod was Ready", "the last app Pod read Redis again",
-         f(diff(t.get("pod_ready"), t.get("last_pod_back")), "%.2f")],
+        ["probe and back in Service", "Redis accepted connections", "the last app Pod read Redis again",
+         f(diff(t.get("accepting"), t.get("last_pod_back")), "%.2f")],
     ])
 
 
@@ -164,11 +162,11 @@ def each(render):
 SECTIONS = [
     ("2", "Cache: a local cache in each app Pod, no Redis. Operation: `kubectl rollout restart` of the 4 app Pods.", ["app-restart-local"], each(local_only)),
     ("3-1", "Cache: Redis only, a single instance with a PVC. Operation: `kubectl rollout restart` of the 4 app Pods.", ["app-restart-redis"], each(app_restart)),
-    ("3-3", "Cache: Redis only, a single instance with `save \"\"` and no PVC. go-redis uses DialTimeout, ReadTimeout, WriteTimeout and PoolTimeout of 500 ms, DialerRetries 1 and MaxRetries 1. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-short"], each(short_timeouts)),
     ("4-1", "Cache: Redis only, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none"], each(no_persistence)),
-    ("4-2", "Cache: Redis only, a single instance with a PVC and `save 900 1`. Operation: `kubectl rollout restart` of Redis, which sends it SIGTERM.", ["redis-restart-rdb"], each(rdb)),
-    ("4-3", "Cache: Redis only, the redis-ha chart with Sentinel and `down-after-milliseconds` 5000. Operation of `sentinel-restart`: `kubectl rollout restart` with a partition of 2, which replaces only the master, `redis-ha-server-2`. Operation of `sentinel-kill`: SIGKILL to the master, `redis-ha-server-0`.", ["sentinel-restart", "sentinel-kill"], sentinel),
-    ("4-4", "Cache: a local cache of 120 entries in front of Redis, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-local"], each(cached_local)),
+    ("4-2", "Compared with 4-1, only the go-redis settings change: DialTimeout, ReadTimeout, WriteTimeout and PoolTimeout of 500 ms, DialerRetries 1 and MaxRetries 1. Cache: Redis only, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-short"], each(short_timeouts)),
+    ("4-3", "Cache: Redis only, a single instance with a PVC and `save 900 1`. Operation: `kubectl rollout restart` of Redis, which sends it SIGTERM.", ["redis-restart-rdb"], each(rdb)),
+    ("4-4", "Cache: Redis only, the redis-ha chart with Sentinel and `down-after-milliseconds` 5000. Operation of `sentinel-restart`: `kubectl rollout restart` with a partition of 2, which replaces only the master, `redis-ha-server-2`. Operation of `sentinel-kill`: SIGKILL to the master, `redis-ha-server-0`.", ["sentinel-restart", "sentinel-kill"], sentinel),
+    ("4-5", "Cache: a local cache of 120 entries in front of Redis, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-local"], each(cached_local)),
 ]
 
 metrics = {}

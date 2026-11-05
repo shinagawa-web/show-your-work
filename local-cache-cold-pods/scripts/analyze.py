@@ -167,13 +167,6 @@ for pod, d in open_down.items():
     intervals[pod].append((d["last_ok"], stop))
 longest = [max(v, key=lambda x: x[1] - x[0]) for v in ([x for x in v if x[1] >= op] for v in intervals.values()) if v]
 
-polls = []
-for line in open(R("pods.jsonl")):
-    r = json.loads(line)
-    if "pods" in r:
-        polls.append(r)
-
-
 def log_lines(pod, container):
     path = R("logs", "%s.%s.log" % (pod, container))
     if not os.path.exists(path):
@@ -199,25 +192,6 @@ def first(lines, needle, after=0):
     return None, None
 
 
-def ready_after(pod, uid_not=None, after=0):
-    for p in polls:
-        if p["t"] < after:
-            continue
-        for x in p["pods"]:
-            if x["pod"] == pod and x["ready"] and x.get("uid") != uid_not:
-                return p["t"]
-    return None
-
-
-def uid_before(pod):
-    for p in reversed(polls):
-        if p["t"] < op:
-            for x in p["pods"]:
-                if x["pod"] == pod:
-                    return x.get("uid")
-    return None
-
-
 steps = {}
 redis_pod = None
 if head["redis"].startswith("single"):
@@ -233,9 +207,8 @@ if redis_pod and head["op"] in ("redis-restart", "sentinel-restart", "sentinel-k
     bye, _ = first(lines, "ready to exit", op)
     start_t, _ = first(lines, "Redis is starting", op)
     accept, _ = first(lines, "Ready to accept connections", op)
-    ready = ready_after(redis_pod, uid_not=uid_before(redis_pod) if head["op"] != "sentinel-kill" else None, after=(accept or op))
     steps = {"sigterm": rel(term), "save_start": rel(save_start), "exit": rel(bye), "process_start": rel(start_t),
-             "accepting": rel(accept), "pod_ready": rel(ready)}
+             "accepting": rel(accept)}
     if longest:
         steps["last_pod_back"] = rel(max(x[1] for x in longest))
 

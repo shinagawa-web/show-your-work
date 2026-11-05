@@ -10,8 +10,8 @@ A Go service keeps its cache in the Pod, in Redis, or in both, in front of Postg
 |---|---|---|
 | `app-restart-local` | local cache only | `kubectl rollout restart` of the app |
 | `app-restart-redis` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of the app |
-| `redis-restart-none-short` | as `redis-restart-none`, with go-redis `DialTimeout`, `ReadTimeout`, `WriteTimeout` and `PoolTimeout` of 500 ms, `DialerRetries` 1 and `MaxRetries` 1 | `kubectl rollout restart` of Redis |
 | `redis-restart-none` | Redis only, single instance with `save ""` and no PVC | `kubectl rollout restart` of Redis |
+| `redis-restart-none-short` | as `redis-restart-none`, with go-redis `DialTimeout`, `ReadTimeout`, `WriteTimeout` and `PoolTimeout` of 500 ms, `DialerRetries` 1 and `MaxRetries` 1 | `kubectl rollout restart` of Redis |
 | `redis-restart-rdb` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of Redis |
 | `sentinel-restart` | Redis only, redis-ha chart | `kubectl rollout restart` of the redis-ha StatefulSet with a partition of 2, with `redis-ha-server-2` as master, so that only the master is replaced |
 | `sentinel-kill` | Redis only, redis-ha chart | SIGKILL to the redis-server process of `redis-ha-server-0`, the master |
