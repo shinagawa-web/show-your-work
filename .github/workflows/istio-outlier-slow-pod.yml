@@ -1,0 +1,75 @@
+name: istio-outlier-slow-pod
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "istio-outlier-slow-pod/**"
+      - ".github/workflows/istio-outlier-slow-pod.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: istio-outlier-slow-pod
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { section: "3-1", conds: "5xx-default 5xx-34 slow-34 slow-client-200ms slow-body-200ms" }
+          - { section: "3-2", conds: "route-20ms route-200ms route-1000ms" }
+    name: ${{ matrix.section }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh ${{ matrix.conds }}
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: istio-outlier-slow-pod-${{ matrix.section }}
+          path: istio-outlier-slow-pod/results/
+
+  report:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: istio-outlier-slow-pod-3-*
+          merge-multiple: true
+          path: istio-outlier-slow-pod/results/
+      - run: |
+          mkdir -p results
+          python3 -B scripts/report.py results $(./run-all.sh --list) > results/summary.md
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- istio-outlier-slow-pod -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: istio-outlier-slow-pod-summary
+          path: istio-outlier-slow-pod/results/summary.md
+      - run: "! grep -q '^RUN INVALID' results/summary.md"

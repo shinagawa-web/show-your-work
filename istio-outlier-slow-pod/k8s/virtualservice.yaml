@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: app
+  namespace: demo
+spec:
+  hosts:
+    - app.demo.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: app.demo.svc.cluster.local
+      timeout: @TIMEOUT@
