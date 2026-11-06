@@ -70,8 +70,6 @@ def local_only(m):
         ["%d (the second with the most reads)" % peak["second"], i(peak["reads"])],
         ["%d" % later["second"], i(later["reads"])],
     ])
-    print("Totals %s.\n" % period(m))
-    table(["requests in the %.1f s after the operation" % m["observed_seconds"], "of those, %s" % TOTAL], [[i(m["req"]), i(m["miss"])]])
 
 
 def app_restart(m):
@@ -147,9 +145,18 @@ def cached_local(m):
     table([STOPPED, FAILED], [[f(m["stopped_seconds"]), i(m["miss_redis_failed"])]])
 
 
+def short_probes(m):
+    print("### redis-restart-none-probe\n")
+    print("Compared with 4-1, only the readiness and startup probes of Redis change, to `initialDelaySeconds` 1 and "
+          "`periodSeconds` 1. Operation: `kubectl rollout restart` of Redis.\n")
+    stop_note(m, p99=True)
+    table([STOPPED, FAILED, ABSENT, P99], [[f(m["stopped_seconds"]), i(m["miss_redis_failed"]), i(m["miss_redis_absent"]), f(m["p99_ms"])]])
+
+
 def sentinel(rows):
+    render = {"redis-restart-none-probe": short_probes, "sentinel-restart": sentinel_restart, "sentinel-kill": sentinel_kill}
     for m in rows:
-        (sentinel_restart if m["cond"] == "sentinel-restart" else sentinel_kill)(m)
+        render[m["cond"]](m)
 
 
 def each(render):
@@ -162,11 +169,11 @@ def each(render):
 SECTIONS = [
     ("2", "Cache: a local cache in each app Pod, no Redis. Operation: `kubectl rollout restart` of the 4 app Pods.", ["app-restart-local"], each(local_only)),
     ("3-1", "Cache: Redis only, a single instance with a PVC. Operation: `kubectl rollout restart` of the 4 app Pods.", ["app-restart-redis"], each(app_restart)),
-    ("4-1", "Cache: Redis only, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none"], each(no_persistence)),
+    ("4-1", "Cache: Redis only, a single instance with `save \"\"` and no PVC. The readiness and startup probes of Redis use `initialDelaySeconds` 30 and `periodSeconds` 15, the defaults of the redis-ha chart. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none"], each(no_persistence)),
     ("4-2", "Compared with 4-1, only the go-redis settings change: DialTimeout, ReadTimeout, WriteTimeout and PoolTimeout of 500 ms, DialerRetries 1 and MaxRetries 1. Cache: Redis only, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-short"], each(short_timeouts)),
     ("4-3", "Cache: Redis only, a single instance with a PVC and `save 900 1`. Operation: `kubectl rollout restart` of Redis, which sends it SIGTERM.", ["redis-restart-rdb"], each(rdb)),
-    ("4-4", "Cache: Redis only, the redis-ha chart with Sentinel and `down-after-milliseconds` 5000. Operation of `sentinel-restart`: `kubectl rollout restart` with a partition of 2, which replaces only the master, `redis-ha-server-2`. Operation of `sentinel-kill`: SIGKILL to the master, `redis-ha-server-0`.", ["sentinel-restart", "sentinel-kill"], sentinel),
-    ("4-5", "Cache: a local cache of 120 entries in front of Redis, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-local"], each(cached_local)),
+    ("4-4", "`redis-restart-none-probe` is described below. Cache of the two Sentinel jobs: Redis only, the redis-ha chart 4.39.0 with the image `public.ecr.aws/docker/library/redis:8.8.0-alpine`, Sentinel and `down-after-milliseconds` 5000. Operation of `sentinel-restart`: `kubectl rollout restart` with a partition of 2, which replaces only the master, `redis-ha-server-2`. Operation of `sentinel-kill`: SIGKILL to the master, `redis-ha-server-0`.", ["redis-restart-none-probe", "sentinel-restart", "sentinel-kill"], sentinel),
+    ("4-5", "Cache: a local cache of 120 entries with a TTL of 300 s in front of Redis, a single instance with `save \"\"` and no PVC. Operation: `kubectl rollout restart` of Redis.", ["redis-restart-none-local"], each(cached_local)),
 ]
 
 metrics = {}

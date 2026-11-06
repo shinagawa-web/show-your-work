@@ -54,8 +54,8 @@ def app():
     ])
 
 
-def probe(script, delay=30):
-    return {"initialDelaySeconds": delay, "periodSeconds": 15, "timeoutSeconds": 15,
+def probe(script, delay=30, period=15):
+    return {"initialDelaySeconds": delay, "periodSeconds": period, "timeoutSeconds": 15,
             "successThreshold": 1, "failureThreshold": 5,
             "exec": {"command": ["sh", "-c", "/health/" + script]}}
 
@@ -77,8 +77,8 @@ def redis(persist):
                                   "--maxmemory-policy", "volatile-lru"],
                          "ports": [{"name": "redis", "containerPort": 6379}],
                          "livenessProbe": probe("redis_liveness.sh"),
-                         "readinessProbe": probe("redis_readiness.sh", int(e["READY_DELAY_SECONDS"])),
-                         "startupProbe": probe("redis_readiness.sh", int(e["READY_DELAY_SECONDS"])),
+                         "readinessProbe": probe("redis_readiness.sh", int(e["READY_DELAY_SECONDS"]), int(e["READY_PERIOD_SECONDS"])),
+                         "startupProbe": probe("redis_readiness.sh", int(e["READY_DELAY_SECONDS"]), int(e["READY_PERIOD_SECONDS"])),
                          "volumeMounts": mounts}],
                      "volumes": [{"name": "health", "configMap": {"name": "redis-health", "defaultMode": 0o755}}]}}},
     }
