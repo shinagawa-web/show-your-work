@@ -1,0 +1,11 @@
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: app
+  namespace: demo
+spec:
+  host: app.demo.svc.cluster.local
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 5
+      maxEjectionPercent: @MAX_EJECTION@
