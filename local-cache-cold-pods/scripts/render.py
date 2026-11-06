@@ -29,7 +29,6 @@ def app():
         "REDIS_TTL_SECONDS": e["REDIS_TTL_SECONDS"],
         "VALUE_BYTES": e["VALUE_BYTES"],
         "READ_BYTES": e["READ_BYTES"],
-        "GO_REDIS": e["GO_REDIS"],
         "STATS_DIR": "/stats",
     }
     if e["REDIS"].startswith("single"):

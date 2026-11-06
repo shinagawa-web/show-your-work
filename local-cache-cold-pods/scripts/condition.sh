@@ -12,16 +12,13 @@ case $cond in
   app-restart-local) REDIS=none LOCAL_SIZE=$LOCAL_SIZE_FULL OP=app-restart WARM=$WARM_LOCAL ;;
   app-restart-redis) REDIS=single-rdb LOCAL_SIZE=0 OP=app-restart ;;
   redis-restart-none) REDIS=single-none LOCAL_SIZE=0 OP=redis-restart ;;
-  redis-restart-none-short) REDIS=single-none LOCAL_SIZE=0 OP=redis-restart GO_REDIS=short ;;
-  redis-restart-rdb) REDIS=single-rdb LOCAL_SIZE=0 OP=redis-restart ;;
   redis-restart-none-probe) REDIS=single-none LOCAL_SIZE=0 OP=redis-restart READY_DELAY_SECONDS=1 READY_PERIOD_SECONDS=1 ;;
+  redis-restart-rdb) REDIS=single-rdb LOCAL_SIZE=0 OP=redis-restart ;;
   sentinel-restart) REDIS=sentinel LOCAL_SIZE=0 OP=sentinel-restart ;;
-  sentinel-kill) REDIS=sentinel LOCAL_SIZE=0 OP=sentinel-kill ;;
-  redis-restart-none-local) REDIS=single-none LOCAL_SIZE=$LOCAL_SIZE_PARTIAL OP=redis-restart WARM=$WARM_PARTIAL ;;
   *) echo "unknown condition $cond" >&2; exit 2 ;;
 esac
 export PATH=$here/.bin:$PATH
-export KIND_NODE_IMAGE APP_IMAGE K6_TAG CLUSTER PG NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S LOCAL_SIZE LOCAL_TTL_SECONDS REDIS_TTL_SECONDS VALUE_BYTES READ_BYTES POOL_MAX JOIN_ROWS USERS WARM MAX_OBS QUIET_READS QUIET_SECONDS QUIET_DB_CPU K6_GOGC K6_MEMLIMIT PREALLOC_VUS MAX_VUS REDIS OP REDIS_TAG REUSE READY_DELAY_SECONDS READY_PERIOD_SECONDS GO_REDIS
+export KIND_NODE_IMAGE APP_IMAGE K6_TAG CLUSTER PG NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S LOCAL_SIZE LOCAL_TTL_SECONDS REDIS_TTL_SECONDS VALUE_BYTES READ_BYTES POOL_MAX JOIN_ROWS USERS WARM MAX_OBS QUIET_READS QUIET_SECONDS QUIET_DB_CPU K6_GOGC K6_MEMLIMIT PREALLOC_VUS MAX_VUS REDIS OP REDIS_TAG REUSE READY_DELAY_SECONDS READY_PERIOD_SECONDS
 rm -rf "$results"
 mkdir -p "$results" "$results/logs"
 abort() { echo "RUN INVALID: $1" | tee "$results/summary.md"; exit 1; }
@@ -29,7 +26,7 @@ py() { python3 -B "$here/scripts/$@"; }
 node=$CLUSTER-control-plane
 {
   echo "cond=$cond redis=$REDIS op=$OP warm=$WARM"
-  for v in NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S LOCAL_SIZE LOCAL_TTL_SECONDS REDIS_TTL_SECONDS VALUE_BYTES READ_BYTES POOL_MAX JOIN_ROWS USERS MAX_OBS QUIET_READS QUIET_SECONDS QUIET_DB_CPU K6_GOGC K6_MEMLIMIT PREALLOC_VUS MAX_VUS READY_DELAY_SECONDS READY_PERIOD_SECONDS GO_REDIS; do echo "$v=${!v}"; done
+  for v in NODE_CPUS PG_CPUS RATE START_RATE RAMP KEYS ZIPF_S LOCAL_SIZE LOCAL_TTL_SECONDS REDIS_TTL_SECONDS VALUE_BYTES READ_BYTES POOL_MAX JOIN_ROWS USERS MAX_OBS QUIET_READS QUIET_SECONDS QUIET_DB_CPU K6_GOGC K6_MEMLIMIT PREALLOC_VUS MAX_VUS READY_DELAY_SECONDS READY_PERIOD_SECONDS; do echo "$v=${!v}"; done
 } > "$results/params.txt"
 
 (
@@ -95,8 +92,7 @@ sentinel_master() {
 }
 announce() { kubectl get svc "redis-ha-announce-$1" -o jsonpath='{.spec.clusterIP}'; }
 if [ "$REDIS" = sentinel ]; then
-  target=0
-  [ "$OP" = sentinel-restart ] && target=2
+  target=2
   for i in $(seq 200); do
     [ -n "$(sentinel_master)" ] && break
     sleep 0.5
@@ -165,12 +161,6 @@ done
 echo "k6_t0 $t0" > "$results/timeline.txt"
 python3 -c 'import sys, time; time.sleep(max(0, int(sys.argv[1]) / 1000 + int(sys.argv[2]) - time.time() - 3))' "$t0" "$WARM"
 [ -z "$redis_pods" ] || redis_state > "$results/redis-before.txt" 2>&1
-victim=
-if [ "$OP" = sentinel-kill ]; then
-  cid=$(kubectl get pod redis-ha-server-0 -o jsonpath='{.status.containerStatuses[?(@.name=="redis")].containerID}')
-  victim=$(docker exec "$node" crictl inspect -o go-template --template '{{.info.pid}}' "${cid#containerd://}")
-  [ -n "$victim" ] || abort "could not find the redis process"
-fi
 python3 -c 'import sys, time; time.sleep(max(0, int(sys.argv[1]) / 1000 + int(sys.argv[2]) - time.time()))' "$t0" "$WARM"
 if [ "$OP" = sentinel-restart ]; then
   kubectl patch statefulset redis-ha-server -p '{"spec":{"updateStrategy":{"rollingUpdate":{"partition":2}}}}' > "$results/partition.txt" 2>&1 || abort "patch of the partition failed"
@@ -181,7 +171,6 @@ case $OP in
   app-restart) kubectl rollout restart deploy/app > "$results/operation.txt" 2>&1 ;;
   redis-restart) kubectl rollout restart statefulset/redis > "$results/operation.txt" 2>&1 ;;
   sentinel-restart) kubectl rollout restart statefulset/redis-ha-server > "$results/operation.txt" 2>&1 ;;
-  sentinel-kill) docker exec "$node" kill -9 "$victim" > "$results/operation.txt" 2>&1 ;;
 esac
 left=$(python3 -c 'import sys, time; print(max(1, int(float(sys.argv[1]) + int(sys.argv[2]) - time.time())))' "$op" "$MAX_OBS")
 case $OP in

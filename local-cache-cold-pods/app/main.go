@@ -6,11 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -40,58 +38,24 @@ GROUP BY i.id, i.name`
 
 const headerBytes = 256
 
-type errCounts struct {
-	loading, refused, timeout, readonly, other atomic.Int64
-}
-
-func (e *errCounts) add(kind string) {
-	switch kind {
-	case "loading":
-		e.loading.Add(1)
-	case "refused":
-		e.refused.Add(1)
-	case "timeout":
-		e.timeout.Add(1)
-	case "readonly":
-		e.readonly.Add(1)
-	default:
-		e.other.Add(1)
-	}
-}
-
-func (e *errCounts) snapshot() map[string]int64 {
-	return map[string]int64{
-		"loading":  e.loading.Load(),
-		"refused":  e.refused.Load(),
-		"timeout":  e.timeout.Load(),
-		"readonly": e.readonly.Load(),
-		"other":    e.other.Load(),
-	}
-}
-
 type counters struct {
 	req, localHit, redisHit, redisAbsent, redisFailed, miss atomic.Int64
-	dbStart, dbInflight, redisSetOK                         atomic.Int64
-	getErr, setErr                                          errCounts
+	dbStart, dbInflight, redisSetOK, redisSetFailed         atomic.Int64
 }
 
 type server struct {
-	pool    *pgxpool.Pool
-	local   *expirable.LRU[int, item]
-	rdb     redis.UniversalClient
-	ttl     time.Duration
-	read    int
-	values  sync.Pool
-	c       counters
-	ready   atomic.Bool
-	otherMu sync.Mutex
-	other   map[string]int64
+	pool   *pgxpool.Pool
+	local  *expirable.LRU[int, item]
+	rdb    redis.UniversalClient
+	ttl    time.Duration
+	read   int
+	values sync.Pool
+	c      counters
+	ready  atomic.Bool
 
 	eventsMu sync.Mutex
 	events   *json.Encoder
 }
-
-var addrPattern = regexp.MustCompile(`\d+\.\d+\.\d+\.\d+:\d+`)
 
 func envInt(name string, def int) int {
 	if v := os.Getenv(name); v != "" {
@@ -102,33 +66,6 @@ func envInt(name string, def int) int {
 		return n
 	}
 	return def
-}
-
-func classify(err error) string {
-	msg := err.Error()
-	var nerr net.Error
-	switch {
-	case strings.HasPrefix(msg, "LOADING"):
-		return "loading"
-	case strings.HasPrefix(msg, "READONLY"):
-		return "readonly"
-	case errors.Is(err, syscall.ECONNREFUSED), strings.Contains(msg, "connection refused"):
-		return "refused"
-	case errors.Is(err, redis.ErrPoolTimeout), errors.Is(err, context.DeadlineExceeded), errors.As(err, &nerr) && nerr.Timeout():
-		return "timeout"
-	}
-	return "other"
-}
-
-func (s *server) noteErr(counts *errCounts, err error) {
-	kind := classify(err)
-	counts.add(kind)
-	if kind == "other" {
-		msg := addrPattern.ReplaceAllString(err.Error(), "ADDR")
-		s.otherMu.Lock()
-		s.other[msg]++
-		s.otherMu.Unlock()
-	}
 }
 
 func now() float64 {
@@ -160,7 +97,6 @@ func (s *server) fromRedis(ctx context.Context, id int) (item, bool) {
 	var it item
 	head, err := s.rdb.GetRange(ctx, key(id), 0, int64(s.read-1)).Bytes()
 	if err != nil && !errors.Is(err, redis.Nil) {
-		s.noteErr(&s.c.getErr, err)
 		s.c.redisFailed.Add(1)
 		return it, false
 	}
@@ -188,7 +124,7 @@ func (s *server) toRedis(ctx context.Context, it item) {
 		copy(b, enc)
 	}
 	if err := s.rdb.Set(ctx, key(it.ID), b, s.ttl).Err(); err != nil {
-		s.noteErr(&s.c.setErr, err)
+		s.c.redisSetFailed.Add(1)
 		return
 	}
 	s.c.redisSetOK.Add(1)
@@ -203,9 +139,6 @@ func (s *server) get(ctx context.Context, id int) (item, error) {
 	}
 	if s.rdb != nil {
 		if it, ok := s.fromRedis(ctx, id); ok {
-			if s.local != nil {
-				s.local.Add(id, it)
-			}
 			return it, nil
 		}
 	}
@@ -247,16 +180,6 @@ func (s *server) handleReady(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "ok")
 }
 
-func (s *server) otherSnapshot() map[string]int64 {
-	s.otherMu.Lock()
-	defer s.otherMu.Unlock()
-	out := make(map[string]int64, len(s.other))
-	for k, v := range s.other {
-		out[k] = v
-	}
-	return out
-}
-
 func (s *server) probeLoop(client redis.UniversalClient) {
 	down := false
 	lastOK := now()
@@ -268,7 +191,7 @@ func (s *server) probeLoop(client redis.UniversalClient) {
 		if err != nil && !errors.Is(err, redis.Nil) {
 			if !down {
 				down = true
-				s.emit(map[string]any{"ev": "probe_down", "t": t, "last_ok": lastOK, "kind": classify(err), "err": addrPattern.ReplaceAllString(err.Error(), "ADDR")})
+				s.emit(map[string]any{"ev": "probe_down", "t": t, "last_ok": lastOK, "err": err.Error()})
 			}
 		} else {
 			if down {
@@ -292,19 +215,17 @@ func (s *server) statsLoop(path string) {
 		time.Sleep(now.Truncate(time.Second).Add(time.Second).Sub(now))
 		t := time.Now()
 		enc.Encode(map[string]any{
-			"t":            float64(t.UnixNano()) / 1e9,
-			"req":          s.c.req.Load(),
-			"local_hit":    s.c.localHit.Load(),
-			"redis_hit":    s.c.redisHit.Load(),
-			"redis_absent": s.c.redisAbsent.Load(),
-			"redis_failed": s.c.redisFailed.Load(),
-			"redis_set_ok": s.c.redisSetOK.Load(),
-			"miss":         s.c.miss.Load(),
-			"db_start":     s.c.dbStart.Load(),
-			"db_inflight":  s.c.dbInflight.Load(),
-			"get_err":      s.c.getErr.snapshot(),
-			"set_err":      s.c.setErr.snapshot(),
-			"other_err":    s.otherSnapshot(),
+			"t":                float64(t.UnixNano()) / 1e9,
+			"req":              s.c.req.Load(),
+			"local_hit":        s.c.localHit.Load(),
+			"redis_hit":        s.c.redisHit.Load(),
+			"redis_absent":     s.c.redisAbsent.Load(),
+			"redis_failed":     s.c.redisFailed.Load(),
+			"redis_set_ok":     s.c.redisSetOK.Load(),
+			"redis_set_failed": s.c.redisSetFailed.Load(),
+			"miss":             s.c.miss.Load(),
+			"db_start":         s.c.dbStart.Load(),
+			"db_inflight":      s.c.dbInflight.Load(),
 		})
 	}
 }
@@ -312,16 +233,7 @@ func (s *server) statsLoop(path string) {
 func newRedis() redis.UniversalClient {
 	switch os.Getenv("REDIS_MODE") {
 	case "single":
-		opt := &redis.Options{Addr: os.Getenv("REDIS_ADDR")}
-		if os.Getenv("GO_REDIS") == "short" {
-			opt.DialTimeout = 500 * time.Millisecond
-			opt.DialerRetries = 1
-			opt.ReadTimeout = 500 * time.Millisecond
-			opt.WriteTimeout = 500 * time.Millisecond
-			opt.PoolTimeout = 500 * time.Millisecond
-			opt.MaxRetries = 1
-		}
-		return redis.NewClient(opt)
+		return redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_ADDR")})
 	case "sentinel":
 		return redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    os.Getenv("SENTINEL_MASTER"),
@@ -363,11 +275,10 @@ func main() {
 		log.Fatal(err)
 	}
 	s := &server{
-		pool:  pool,
-		rdb:   newRedis(),
-		ttl:   time.Duration(envInt("REDIS_TTL_SECONDS", 600)) * time.Second,
-		read:  envInt("READ_BYTES", headerBytes),
-		other: map[string]int64{},
+		pool: pool,
+		rdb:  newRedis(),
+		ttl:  time.Duration(envInt("REDIS_TTL_SECONDS", 600)) * time.Second,
+		read: envInt("READ_BYTES", headerBytes),
 	}
 	if size := envInt("LOCAL_SIZE", 0); size > 0 {
 		s.local = expirable.NewLRU[int, item](size, nil, time.Duration(envInt("LOCAL_TTL_SECONDS", 300))*time.Second)

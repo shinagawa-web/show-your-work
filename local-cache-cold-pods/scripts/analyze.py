@@ -9,7 +9,6 @@ from datetime import datetime
 
 results, cond = sys.argv[1], sys.argv[2]
 R = lambda *p: os.path.join(results, *p)
-ERR = ["loading", "refused", "timeout", "readonly", "other"]
 LATER_SECOND = 50
 
 
@@ -58,21 +57,15 @@ stop = float(next(x.split()[1] for x in open(R("timeline.txt")) if x.startswith(
 interrupted = float(timeline.get("k6_interrupted", stop))
 op_s = math.floor(op)
 
-COUNTERS = ["req", "local_hit", "redis_hit", "redis_absent", "redis_failed", "redis_set_ok", "miss", "db_start"]
+COUNTERS = ["req", "local_hit", "redis_hit", "redis_absent", "redis_failed", "redis_set_ok", "redis_set_failed", "miss", "db_start"]
 per = defaultdict(lambda: defaultdict(float))
 window = defaultdict(float)
-other_msgs = defaultdict(int)
 for f in glob.glob(R("stats", "*.jsonl")):
     rows = [json.loads(x) for x in open(f) if x.strip()]
     prev = None
-    other_before = {}
-    last_other = {}
     for r in rows:
         s = round(r["t"]) - 1
         vals = {c: r[c] for c in COUNTERS}
-        for group in ("get_err", "set_err"):
-            for e in ERR:
-                vals[group + "_" + e] = r[group][e]
         base = prev or {k: 0 for k in vals}
         for k, v in vals.items():
             d = v - base[k]
@@ -80,15 +73,7 @@ for f in glob.glob(R("stats", "*.jsonl")):
             if op <= r["t"] - 0.5 <= stop:
                 window[k] += d
         per[s]["db_inflight"] += r["db_inflight"]
-        if r["t"] < op:
-            other_before = r.get("other_err", {})
-        if r["t"] <= stop + 1:
-            last_other = r.get("other_err", {})
         prev = vals
-    for k, v in last_other.items():
-        d = v - other_before.get(k, 0)
-        if d:
-            other_msgs[k] += d
 
 lat = defaultdict(list)
 bad = defaultdict(int)
@@ -123,15 +108,14 @@ all_lat = [x for s in win_secs for x in lat.get(s, [])]
 
 with open(R("timeseries.tsv"), "w") as f:
     cols = ["rel", "req", "local_hit", "redis_hit", "redis_absent", "redis_failed", "miss", "db_start", "db_inflight",
-            "set_ok", "get_err", "set_err", "k6_n", "bad", "p50", "p99", "pg_cpu", "node_cpu"]
+            "set_ok", "set_failed", "k6_n", "bad", "p50", "p99", "pg_cpu", "node_cpu"]
     print("\t".join(cols), file=f)
     for s in sorted(lat):
         d = per.get(s, {})
         c = cpu.get(s, {})
         row = [s - op_s, d.get("req", 0), d.get("local_hit", 0), d.get("redis_hit", 0), d.get("redis_absent", 0),
                d.get("redis_failed", 0), d.get("miss", 0), d.get("db_start", 0), d.get("db_inflight", 0),
-               d.get("redis_set_ok", 0), sum(d.get("get_err_" + e, 0) for e in ERR),
-               sum(d.get("set_err_" + e, 0) for e in ERR), len(lat[s]), bad[s],
+               d.get("redis_set_ok", 0), d.get("redis_set_failed", 0), len(lat[s]), bad[s],
                pct(lat[s], 0.5), pct(lat[s], 0.99), c.get("pg"), c.get("node")]
         print("\t".join("" if v is None else (("%.1f" % v) if isinstance(v, float) else str(v)) for v in row), file=f)
 
@@ -196,11 +180,9 @@ steps = {}
 redis_pod = None
 if head["redis"].startswith("single"):
     redis_pod = "redis-0"
-elif head["op"] == "sentinel-restart":
-    redis_pod = "redis-ha-server-2"
 elif head["redis"] == "sentinel":
-    redis_pod = "redis-ha-server-0"
-if redis_pod and head["op"] in ("redis-restart", "sentinel-restart", "sentinel-kill"):
+    redis_pod = "redis-ha-server-2"
+if redis_pod and head["op"] in ("redis-restart", "sentinel-restart"):
     lines = log_lines(redis_pod, "redis")
     term, _ = first(lines, "Received SIGTERM", op)
     save_start, _ = first(lines, "Saving the final RDB snapshot before exiting", op)
@@ -213,21 +195,12 @@ if redis_pod and head["op"] in ("redis-restart", "sentinel-restart", "sentinel-k
         steps["last_pod_back"] = rel(max(x[1] for x in longest))
 
 sentinel = {}
-switch_master_lines = 0
-replicas = {}
 if head["redis"] == "sentinel":
     lines = sorted(x for i in range(3) for x in log_lines("redis-ha-server-%d" % i, "sentinel"))
     for name, needle in (("+sdown", "+sdown master"), ("+switch-master", "+switch-master")):
         t, _ = first(lines, needle, op - 1)
         if t is not None:
             sentinel[name] = rel(t)
-    switch_master_lines = sum(1 for t, msg in lines if t >= op - 1 and "+switch-master" in msg)
-if head["op"] == "sentinel-kill":
-    for pod in ("redis-ha-server-1", "redis-ha-server-2"):
-        lines = log_lines(pod, "redis")
-        flushed, _ = first(lines, "Flushing old data", op)
-        _, msg = first(lines, "keys loaded:", op)
-        replicas[pod] = {"flushed": rel(flushed), "keys_loaded": int(re.search(r"keys loaded: (\d+)", msg).group(1)) if msg else None}
 
 k6 = json.load(open(R("k6", "summary.json")))["metrics"] if os.path.exists(R("k6", "summary.json")) else {}
 dropped = k6.get("dropped_iterations", {}).get("values", {}).get("count", 0)
@@ -240,15 +213,10 @@ out = {
     "stopped_seconds": max(x[1] for x in longest) - min(x[0] for x in longest) if longest else 0.0,
     "steps": steps,
     "sentinel": sentinel,
-    "switch_master_lines": switch_master_lines,
-    "replicas": replicas,
     "req": window["req"],
     "miss": window["miss"],
     "miss_redis_failed": window["redis_failed"],
     "miss_redis_absent": window["redis_absent"],
-    "refused": window["get_err_refused"] + window["set_err_refused"],
-    "timeout": window["get_err_timeout"] + window["set_err_timeout"],
-    "noreplicas": sum(v for k, v in other_msgs.items() if k.startswith("NOREPLICAS")),
     "db_reads_before": mean([reads(s) for s in base_secs]),
     "db_reads_peak": db_second(max(win_secs, key=reads)),
     "db_later": db_second(op_s + LATER_SECOND),

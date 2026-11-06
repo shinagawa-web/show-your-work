@@ -1,6 +1,6 @@
 # local-cache-cold-pods
 
-A Go service keeps its cache in the Pod, in Redis, or in both, in front of PostgreSQL. Under a constant request rate the app Pods or Redis are restarted, and the app counts the requests that the caches did not answer, the Redis errors by type, and the time Redis could not be read. k6 records the latency of every request.
+A Go service keeps its cache in the Pod or in Redis, in front of PostgreSQL. Under a constant request rate the app Pods or Redis are restarted, and the app counts the requests that the cache did not answer and the time Redis could not be read. k6 records the latency of every request.
 
 ## Run
 
@@ -11,12 +11,9 @@ A Go service keeps its cache in the Pod, in Redis, or in both, in front of Postg
 | `app-restart-local` | local cache only | `kubectl rollout restart` of the app |
 | `app-restart-redis` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of the app |
 | `redis-restart-none` | Redis only, single instance with `save ""` and no PVC | `kubectl rollout restart` of Redis |
-| `redis-restart-none-short` | as `redis-restart-none`, with go-redis `DialTimeout`, `ReadTimeout`, `WriteTimeout` and `PoolTimeout` of 500 ms, `DialerRetries` 1 and `MaxRetries` 1 | `kubectl rollout restart` of Redis |
-| `redis-restart-rdb` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of Redis |
 | `redis-restart-none-probe` | as `redis-restart-none`, with the readiness and startup probes of Redis at `initialDelaySeconds` 1 and `periodSeconds` 1 | `kubectl rollout restart` of Redis |
+| `redis-restart-rdb` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of Redis |
 | `sentinel-restart` | Redis only, redis-ha chart | `kubectl rollout restart` of the redis-ha StatefulSet with a partition of 2, with `redis-ha-server-2` as master, so that only the master is replaced |
-| `sentinel-kill` | Redis only, redis-ha chart | SIGKILL to the redis-server process of `redis-ha-server-0`, the master |
-| `redis-restart-none-local` | a local cache of `LOCAL_SIZE_PARTIAL` entries in front of Redis, single instance with `save ""` and no PVC | `kubectl rollout restart` of Redis |
 
 Each job is named after its article section and condition. Each condition runs under `timeout 300`, writes `results/<condition>/` and adds its summary to the job summary. Each job uploads `results/` as an artifact. The `summary` job merges them with `scripts/report.py` into `summary.md`, adds it to its job summary, and posts it as a pull request comment, replacing the previous one.
 
@@ -25,7 +22,7 @@ Each job is named after its article section and condition. Each condition runs u
 - `scripts/cpus.sh` reads `thread_siblings_list` and gives the first half of the physical cores to the kind node and the second half to PostgreSQL
 - kind runs a single node limited to `NODE_CPUS` with `docker update --cpuset-cpus`. The app Pods, Redis and k6 run there
 - PostgreSQL runs outside kind as a Docker container on `PG_CPUS` (`--cpuset-cpus`, `--network kind`) with the default configuration. The Pods reach it through the Service `pg`, whose Endpoints hold the container's IP
-- `app/main.go` serves `/item?id=<key>`. It reads the local cache (`hashicorp/golang-lru/v2` `expirable`) when enabled, then Redis (`redis/go-redis`) when enabled, then PostgreSQL through a `pgxpool` pool with `MaxConns` from `POOL_MAX`. A value read from PostgreSQL is written back to the caches. A Redis error is counted by type and the request goes to PostgreSQL. go-redis keeps its default timeouts and retries, apart from `redis-restart-none-short`. The redis-ha conditions use `NewFailoverClient`
+- `app/main.go` serves `/item?id=<key>`. It reads the cache of the condition, the local cache (`hashicorp/golang-lru/v2` `expirable`) or Redis (`redis/go-redis`), then PostgreSQL through a `pgxpool` pool with `MaxConns` from `POOL_MAX`. A value read from PostgreSQL is written back to the cache. A failed Redis read is counted and the request goes to PostgreSQL. go-redis keeps its default timeouts and retries. The redis-ha condition uses `NewFailoverClient`
 - Every value in Redis is `VALUE_BYTES` long, so that RDB loading shows in the time Redis is stopped. It is a JSON header of 256 bytes followed by incompressible bytes. The app reads `READ_BYTES` from the start of the value with `GETRANGE`
 - Each app Pod also runs a probe with its own go-redis client: one read every 100 ms, a 300 ms limit and no retries. Its start and end of failure, written to `/stats/<pod>.events`, give the time Redis was stopped.
 - Every second each Pod appends its counters to `/stats/<pod>.jsonl` on the node
@@ -42,8 +39,8 @@ Each job is named after its article section and condition. Each condition runs u
 | file | content |
 |---|---|
 | `summary.md` | the numbers per article section |
-| `<condition>/metrics.json` | the values used by `scripts/report.py` |
-| `<condition>/timeseries.tsv` | per-second requests, hits, misses, errors, k6 p50 and p99 and CPU |
+| `<condition>/metrics.json` | the values `scripts/report.py` prints, and others to look into a run |
+| `<condition>/timeseries.tsv` | per-second requests, hits, misses, failed Redis reads and writes, k6 p50 and p99 and CPU |
 | `<condition>/stats/` | per-second counters and failure events of each Pod |
 | `<condition>/k6/` | `k6.log` with one line per request, `summary.json` |
 | `<condition>/logs/` | Redis and Sentinel logs with timestamps, app logs |

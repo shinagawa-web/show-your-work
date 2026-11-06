@@ -29,7 +29,7 @@ def stats():
                          capture_output=True, text=True).stdout
     rows = [json.loads(line) for line in out.splitlines() if line.strip()]
     live = [r for r in rows if r["t"] >= now - 3]
-    errors = sum(sum(r.get("get_err", {}).values()) for r in rows)
+    errors = sum(r["redis_failed"] for r in rows)
     return sum(r["db_start"] for r in rows), sum(r["db_inflight"] for r in live), len(live), errors
 
 

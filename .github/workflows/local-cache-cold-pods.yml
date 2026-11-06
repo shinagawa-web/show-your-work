@@ -23,12 +23,9 @@ jobs:
           - { section: "2", condition: app-restart-local }
           - { section: "3-1", condition: app-restart-redis }
           - { section: "4-1", condition: redis-restart-none }
-          - { section: "4-2", condition: redis-restart-none-short }
+          - { section: "4-2", condition: redis-restart-none-probe }
           - { section: "4-3", condition: redis-restart-rdb }
-          - { section: "4-4", condition: redis-restart-none-probe }
           - { section: "4-4", condition: sentinel-restart }
-          - { section: "4-4", condition: sentinel-kill }
-          - { section: "4-5", condition: redis-restart-none-local }
     name: ${{ matrix.section }} (${{ matrix.condition }})
     steps:
       - uses: actions/checkout@v7
