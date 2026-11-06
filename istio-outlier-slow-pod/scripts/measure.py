@@ -36,7 +36,7 @@ for line in (out / "k6.json").read_text().splitlines():
     m = rec["metric"]
     if m == "http_req_duration" and d["tags"].get("ep") == "app":
         end = ts(d["time"])
-        requests.append({"start": end - timedelta(milliseconds=d["value"]), "ms": d["value"], "status": d["tags"].get("status", "")})
+        requests.append({"start": end - timedelta(milliseconds=d["value"]), "ms": d["value"], "status": d["tags"].get("status", ""), "error": d["tags"].get("error", "")})
     elif m == "od_ejections_active":
         active.append((ts(d["time"]), int(d["value"])))
     elif m == "dropped_iterations":
@@ -104,6 +104,7 @@ json.dump({
     "requests": len(requests),
     "p99_ms": p99([r["ms"] for r in requests]),
     "status": dict(sorted(Counter(r["status"] for r in requests).items())),
+    "k6_outcomes": [{"status": k[0], "error": k[1], "requests": n} for k, n in sorted(Counter((r["status"], r["error"]) for r in requests).items())],
     "p99_while_ejected_ms": p99(during),
     "ejected_roles": [roles.get(ip, "unknown") for ip in ejected],
     "served": {k: dict(v) for k, v in sorted(served.items())},

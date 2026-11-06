@@ -2,7 +2,7 @@
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-$here/results}
-conds=(5xx-default 5xx-34 slow-34 slow-client-200ms route-20ms route-200ms route-1000ms)
+conds=(5xx-default 5xx-34 slow-34 slow-client-200ms slow-body-200ms route-20ms route-200ms route-1000ms)
 [ "${1:-}" = --list ] && { printf '%s\n' "${conds[@]}"; exit 0; }
 [ $# -gt 0 ] && conds=("$@")
 rm -rf "$results"

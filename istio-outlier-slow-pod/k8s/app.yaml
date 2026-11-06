@@ -37,6 +37,8 @@ spec:
               value: "@NORMAL_MS@"
             - name: STATUS
               value: "200"
+            - name: BODY_DELAY_MS
+              value: "0"
           ports:
             - containerPort: 8080
           readinessProbe:
@@ -72,6 +74,8 @@ spec:
               value: "@BAD_DELAY_MS@"
             - name: STATUS
               value: "@BAD_STATUS@"
+            - name: BODY_DELAY_MS
+              value: "@BAD_BODY_DELAY_MS@"
           ports:
             - containerPort: 8080
           readinessProbe:

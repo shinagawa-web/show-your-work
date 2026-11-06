@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { section: "3-1", conds: "5xx-default 5xx-34 slow-34 slow-client-200ms" }
+          - { section: "3-1", conds: "5xx-default 5xx-34 slow-34 slow-client-200ms slow-body-200ms" }
           - { section: "3-2", conds: "route-20ms route-200ms route-1000ms" }
     name: ${{ matrix.section }}
     steps:

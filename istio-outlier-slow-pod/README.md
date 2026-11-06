@@ -8,7 +8,7 @@ This runs one Service with three Pods and one caller Pod in a kind cluster with 
 
 | Job | What it runs |
 |---|---|
-| `3-1` | `./run-all.sh 5xx-default 5xx-34 slow-34 slow-client-200ms`. `3-1` is the section of the article the job supports |
+| `3-1` | `./run-all.sh 5xx-default 5xx-34 slow-34 slow-client-200ms slow-body-200ms`. `3-1` is the section of the article the job supports |
 | `3-2` | `./run-all.sh route-20ms route-200ms route-1000ms`. `3-2` is the section of the article the job supports |
 | `report` | Merges the results of the two jobs into `results/summary.md` (`scripts/report.py`) |
 
@@ -21,8 +21,8 @@ A job fails with a `RUN INVALID` line at the top of its summary when the setup f
 Every condition starts from a new `demo` namespace in the same cluster, built by `scripts/cond.sh`, and the rates and durations are in `scripts/params.env`.
 
 - One kind node with Istio installed by `istioctl` (`profile=minimal`), with the JSON access log on stdout (`scripts/setup.sh`)
-- The Deployments `app-normal` (two Pods) and `app-bad` (one Pod) under one Service (`k8s/app.yaml`). The server in `app/` waits `DELAY_MS` and returns `STATUS`
-- A DestinationRule with `consecutive5xxErrors: 5` (`k8s/destinationrule.yaml`), and in the `route-` conditions a VirtualService (`k8s/virtualservice.yaml`)
+- The Deployments `app-normal` (two Pods) and `app-bad` (one Pod) under one Service (`k8s/app.yaml`). The server in `app/` waits `DELAY_MS` and returns `STATUS`, and with `BODY_DELAY_MS` above 0 it flushes the headers and sends the body after that many milliseconds
+- A DestinationRule with `consecutive5xxErrors: 5` (`k8s/destinationrule.yaml`), and in the `route-` conditions and `slow-body-200ms` a VirtualService (`k8s/virtualservice.yaml`)
 - A `k6` Pod with a sidecar and a `proxyStatsMatcher` annotation for `outlier_detection` (`k8s/k6.yaml`). It runs `k6/load.js`, which has a `constant-arrival-rate` load and reads the Envoy admin stats on `127.0.0.1:15000` five times a second
 
 `scripts/preflight.py` waits until the caller's Envoy has the expected configuration and three healthy endpoints before the load starts.
@@ -39,6 +39,7 @@ Each condition is one argument of `run-all.sh`. With no argument, `run-all.sh` r
 | `5xx-34` | Returns 500 | 34 | None |
 | `slow-34` | Slow | 34 | None. This is the baseline |
 | `slow-client-200ms` | Slow | 34 | 200 ms in the k6 HTTP client |
+| `slow-body-200ms` | Headers at once, body slow | 34 | 200 ms on the route |
 | `route-20ms` | Slow | 34 | 20 ms on the route |
 | `route-200ms` | Slow | 34 | 200 ms on the route |
 | `route-1000ms` | Slow | 34 | 1000 ms on the route |

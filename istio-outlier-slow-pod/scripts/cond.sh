@@ -13,6 +13,7 @@ abort() { echo "$1" > "$out/invalid"; echo "RUN INVALID: $cond: $1" >&2; exit 1;
 
 bad_status=200
 bad_delay=$SLOW_MS
+bad_body_delay=0
 max=34
 route_timeout=
 client_timeout=
@@ -22,6 +23,7 @@ case $cond in
   5xx-34) bad_status=500; bad_delay=$NORMAL_MS ;;
   slow-34) ;;
   slow-client-200ms) client_timeout=200ms ;;
+  slow-body-200ms) bad_delay=0; bad_body_delay=$SLOW_MS; route_timeout=200ms ;;
   route-20ms) route_timeout=20ms; quiet=$QUIET ;;
   route-200ms) route_timeout=200ms; quiet=$QUIET ;;
   route-1000ms) route_timeout=1000ms; quiet=$QUIET ;;
@@ -31,7 +33,7 @@ esac
 kubectl delete namespace demo --ignore-not-found --wait=true >/dev/null 2>&1
 kubectl create namespace demo >/dev/null || abort "namespace"
 kubectl label namespace demo istio-injection=enabled >/dev/null || abort "namespace label"
-sed -e "s|@APP_TAG@|$APP_TAG|g" -e "s|@NORMAL_MS@|$NORMAL_MS|g" -e "s|@BAD_DELAY_MS@|$bad_delay|g" -e "s|@BAD_STATUS@|$bad_status|g" \
+sed -e "s|@APP_TAG@|$APP_TAG|g" -e "s|@NORMAL_MS@|$NORMAL_MS|g" -e "s|@BAD_DELAY_MS@|$bad_delay|g" -e "s|@BAD_STATUS@|$bad_status|g" -e "s|@BAD_BODY_DELAY_MS@|$bad_body_delay|g" \
   "$here/k8s/app.yaml" | kubectl apply -f - >/dev/null || abort "app"
 if [ -n "$max" ]; then
   sed -e "s|@MAX_EJECTION@|$max|g" "$here/k8s/destinationrule.yaml" | kubectl apply -f - >/dev/null || abort "destinationrule"
@@ -73,6 +75,7 @@ kubectl -n demo logs k6 -c istio-proxy > "$out/proxy.log" 2>&1
 
 cat > "$out/cond.env" <<V
 bad_status=$bad_status
+bad_body_delay=$bad_body_delay
 max=${max:-default}
 route_timeout=${route_timeout:-none}
 client_timeout=${client_timeout:-none}
