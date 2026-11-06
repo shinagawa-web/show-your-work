@@ -1,0 +1,64 @@
+import json
+import os
+import sys
+import threading
+import time
+import urllib.request
+
+results, pg_cgroup, node_cgroup = sys.argv[1:4]
+API = "http://127.0.0.1:8001"
+stop = threading.Event()
+
+
+def pods_loop():
+    with open(os.path.join(results, "pods.jsonl"), "w") as f:
+        nxt = time.time()
+        while not stop.is_set():
+            t = time.time()
+            try:
+                with urllib.request.urlopen(API + "/api/v1/namespaces/default/pods", timeout=5) as r:
+                    pods = json.loads(r.read())
+                rows = []
+                for p in pods["items"]:
+                    ready = next((c for c in p["status"].get("conditions") or [] if c["type"] == "Ready"), {})
+                    rows.append({"pod": p["metadata"]["name"], "uid": p["metadata"]["uid"],
+                                 "ready": ready.get("status") == "True"})
+                f.write(json.dumps({"t": t, "pods": rows}) + "\n")
+            except Exception as e:
+                f.write(json.dumps({"t": t, "error": str(e)}) + "\n")
+            f.flush()
+            nxt += 0.5
+            stop.wait(max(0, nxt - time.time()))
+
+
+def usage(path):
+    with open(os.path.join(path, "cpu.stat")) as f:
+        for line in f:
+            k, v = line.split()
+            if k == "usage_usec":
+                return int(v)
+
+
+def cpu_loop():
+    with open(os.path.join(results, "cpu.jsonl"), "w") as f:
+        nxt = time.time()
+        while not stop.is_set():
+            t = time.time()
+            try:
+                f.write(json.dumps({"t": t, "pg_usec": usage(pg_cgroup), "node_usec": usage(node_cgroup)}) + "\n")
+            except Exception as e:
+                f.write(json.dumps({"t": t, "error": str(e)}) + "\n")
+            f.flush()
+            nxt += 1
+            stop.wait(max(0, nxt - time.time()))
+
+
+threads = [threading.Thread(target=x) for x in (pods_loop, cpu_loop)]
+for th in threads:
+    th.start()
+stopfile = os.path.join(results, ".stop")
+while not os.path.exists(stopfile):
+    time.sleep(0.5)
+stop.set()
+for th in threads:
+    th.join()
