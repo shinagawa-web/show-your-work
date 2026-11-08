@@ -13,6 +13,7 @@ A Go service keeps its cache in the Pod or in Redis, in front of PostgreSQL. Und
 | `redis-restart-none` | Redis only, single instance with `save ""` and no PVC | `kubectl rollout restart` of Redis |
 | `redis-restart-none-probe` | as `redis-restart-none`, with the readiness and startup probes of Redis at `initialDelaySeconds` 1 and `periodSeconds` 1 | `kubectl rollout restart` of Redis |
 | `redis-restart-rdb` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of Redis |
+| `redis-restart-rdb-probe` | as `redis-restart-rdb`, with the readiness and startup probes of Redis at `initialDelaySeconds` 1 and `periodSeconds` 1 | `kubectl rollout restart` of Redis |
 | `sentinel-restart` | Redis only, redis-ha chart | `kubectl rollout restart` of the redis-ha StatefulSet with a partition of 2, with `redis-ha-server-2` as master, so that only the master is replaced |
 
 Each job is named after its article section and condition. Each condition runs under `timeout 300`, writes `results/<condition>/` and adds its summary to the job summary. Each job uploads `results/` as an artifact. The `summary` job merges them with `scripts/report.py` into `summary.md`, adds it to its job summary, and posts it as a pull request comment, replacing the previous one.
@@ -32,7 +33,7 @@ Each job is named after its article section and condition. Each condition runs u
 - k6 runs in the cluster with `ramping-arrival-rate` and `noConnectionReuse: true`, so that each request opens a new connection. The rate rises from `START_RATE` to `RATE` over `RAMP` seconds, then stays at `RATE`. Keys follow a Zipf distribution. In the conditions with Redis, k6 first reads every key once in `setup()`, one at a time, so that Redis is filled before the load starts. The operation runs `WARM` seconds after k6 starts. `scripts/watch.py` stops k6 once, for `QUIET_SECONDS` seconds, the reads sent to PostgreSQL stay below `QUIET_READS` per second, no read is in flight, no Redis read failed and the CPU of the PostgreSQL container is within `QUIET_DB_CPU` points of its value before the operation, or `MAX_OBS` seconds after the operation
 - `scripts/poll.py` records the Pods every 0.5 s and the CPU usage of the PostgreSQL container and the node container every second
 
-`scripts/params.env` holds the request rates, number of keys, Zipf exponent, cache sizes and TTLs, value size, pool size, table sizes, VUs, warm-up seconds and the stop conditions. `READY_DELAY_SECONDS` and `READY_PERIOD_SECONDS` are the `initialDelaySeconds` and `periodSeconds` of the readiness and startup probes of the single instance. Their values match the chart, apart from `redis-restart-none-probe`.
+`scripts/params.env` holds the request rates, number of keys, Zipf exponent, cache sizes and TTLs, value size, pool size, table sizes, VUs, warm-up seconds and the stop conditions. `READY_DELAY_SECONDS` and `READY_PERIOD_SECONDS` are the `initialDelaySeconds` and `periodSeconds` of the readiness and startup probes of the single instance. Their values match the chart, apart from `redis-restart-none-probe` and `redis-restart-rdb-probe`.
 
 ## Output
 

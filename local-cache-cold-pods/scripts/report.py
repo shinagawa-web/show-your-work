@@ -72,6 +72,7 @@ SECTIONS = [
     ("4-1", "redis-restart-none", "Cache: Redis only, a single instance with `save \"\"` and no PVC. The readiness and startup probes of Redis use `initialDelaySeconds` 30 and `periodSeconds` 15, the defaults of the redis-ha chart. Operation: `kubectl rollout restart` of Redis.", no_persistence),
     ("4-2", "redis-restart-none-probe", "Cache: Redis only, a single instance with `save \"\"` and no PVC, as in 4-1. The readiness and startup probes of Redis use `initialDelaySeconds` 1 and `periodSeconds` 1. Operation: `kubectl rollout restart` of Redis.", absent),
     ("4-3", "redis-restart-rdb", "Cache: Redis only, a single instance with a PVC and `save 900 1`. The readiness and startup probes of Redis are the same as in 4-1. Operation: `kubectl rollout restart` of Redis, which sends it SIGTERM.", rdb),
+    ("4-3", "redis-restart-rdb-probe", "Cache: Redis only, a single instance with a PVC and `save 900 1`, as in the job above. The readiness and startup probes of Redis use `initialDelaySeconds` 1 and `periodSeconds` 1, as in 4-2. Operation: `kubectl rollout restart` of Redis, which sends it SIGTERM.", rdb),
     ("4-4", "sentinel-restart", "Cache: Redis only, the redis-ha chart 4.39.0 with the image `public.ecr.aws/docker/library/redis:8.8.0-alpine`, Sentinel, `save 900 1` as in 4-3 and `down-after-milliseconds` 5000. Operation: `kubectl rollout restart` with a partition of 2, which replaces only the master, `redis-ha-server-2`.", absent),
 ]
 
@@ -92,7 +93,11 @@ for m in metrics.values():
 if metrics:
     print("In every job k6 sends a constant %d requests per second to the app. The operation of each section runs during that load.\n"
           % next(iter(metrics.values()))["rate"])
+shown = set()
 for number, cond, condition, render in SECTIONS:
     if cond in metrics:
-        print("## %s\n\nJob: `%s (%s)`. %s\n" % (number, number, cond, condition))
+        if number not in shown:
+            print("## %s\n" % number)
+            shown.add(number)
+        print("Job: `%s (%s)`. %s\n" % (number, cond, condition))
         render(metrics[cond])
