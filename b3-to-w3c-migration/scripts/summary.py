@@ -172,7 +172,12 @@ for n in SECTION_5_4:
 if rows:
     print("## Section 5-4 (jobs `section-3`, `section-5`)")
     print()
-    print("The comment on c's query in the PostgreSQL `log_statement=all` log, for one request.")
+    print(
+        "The comment on c's query in the PostgreSQL `log_statement=all` log, for one request, "
+        "at the stages before the migration, 5-1 apps read and write both, and after the migration (top to bottom). "
+        "In the first two, Envoy's zipkin tracer starts the trace with its default 64-bit trace ID, "
+        "so the left 16 hex digits are 0; after the migration, Envoy's OpenTelemetry tracer starts it with a 128-bit ID."
+    )
     print()
     table(["c's `OTEL_PROPAGATORS`", "SQL comment"], rows)
 
