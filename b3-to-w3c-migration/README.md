@@ -4,9 +4,15 @@ Three small Go HTTP servers (a calls b, b calls c, c runs one PostgreSQL query) 
 
 ## Run
 
-`.github/workflows/b3-to-w3c-migration.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. The job `section-3` runs `./run-all.sh 3` and the job `section-4` runs `./run-all.sh 4`. A final job merges their results.
+`.github/workflows/b3-to-w3c-migration.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. Each job is named after the section of the article it supplies, and runs the conditions of that section in `conditions.tsv` with `./run-all.sh <section>`.
 
-`results/summary.md` goes to the job summary. It has the trace headers c received from b at one stage, and, per condition, the number of traces for one request, the services in each trace, the root spans by service, the number of requests that recorded each kind of trace a request splits into under ratio sampling, whether a service recorded a span under a fixed `traceparent` it was sent, and the comment on the query in the PostgreSQL log. `results/` is uploaded as the `b3-to-w3c-migration-<section>` artifact. The job fails when a request does not return 200, a service does not leave the number of server spans its condition requires, c leaves no database span, or a span falls outside every request.
+| Job | What it runs |
+|---|---|
+| `section-3` | Section 3: before the migration, only b switched to W3C, and the same with ratio sampling |
+| `section-4` | Sections 2 and 4: each stage of the migration, the fixed `traceparent` checks and the query comments |
+| `report` | Merges the results of the other jobs into `results/summary.md` |
+
+`results/summary.md` goes to the job summary of each job, with one part per section and each part labelled with the job that produced it. It has the trace headers c received from b at one stage, and, per condition, the number of traces for one request, the services in each trace, the root spans by service, the number of requests that recorded each kind of trace a request splits into under ratio sampling, whether a service recorded a span under a fixed `traceparent` it was sent, and the comment on the query in the PostgreSQL log. Each job uploads `results/` as an artifact named `b3-to-w3c-migration-<section>`, and the `report` job writes the merged summary to its job summary, to a comment on the open pull request for the branch (the same comment is overwritten on every run), and to the `b3-to-w3c-migration-summary` artifact. A job fails when a request does not return 200, a service does not leave the number of server spans its condition requires, c leaves no database span, a span falls outside every request, a trace under ratio sampling has services other than envoy and a, b alone, or c alone, or a condition has no result.
 
 ## Conditions
 
