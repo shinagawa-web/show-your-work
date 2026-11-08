@@ -45,6 +45,11 @@ def root_list(a):
     return ", ".join(f"{s}: {n}" for s, n in a["root_spans"].items() if n) or "none"
 
 
+def roots_outside_entry(a):
+    entry = "a" if a["condition"]["envoy"] == "none" else "envoy"
+    return ", ".join(f"{s}: {n}" for s, n in a["root_spans"].items() if n and s != entry) or "none"
+
+
 def app(value):
     return "no SDK, forwards x-b3-* by hand" if value == "manual" else f"`{value}`"
 
@@ -106,10 +111,14 @@ present = [n for n in SECTION_5 if data.get(n)]
 if present:
     print("## Section 5 (job `section-5`)")
     print()
-    print("One `curl` without trace headers through Envoy for each stage, all requests sampled.")
+    print(
+        "One `curl` without trace headers through Envoy for each stage, all requests sampled. "
+        "The last column counts spans with no parent from every service except the entry, "
+        "which is envoy when Envoy starts the trace and a when Envoy has no tracer."
+    )
     print()
     table(
-        ["Stage", "Envoy", "a", "b", "c", "Traces for one request"],
+        ["Stage", "Envoy", "a", "b", "c", "Root spans outside the entry"],
         [
             [
                 c["label"],
@@ -117,7 +126,7 @@ if present:
                 app(c["a"]),
                 app(c["b"]),
                 app(c["c"]),
-                data[n]["trace_count"],
+                roots_outside_entry(data[n]),
             ]
             for n in present
             for c in [data[n]["condition"]]
