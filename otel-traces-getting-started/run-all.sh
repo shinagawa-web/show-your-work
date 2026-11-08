@@ -8,7 +8,6 @@ KUBECTL=v1.37.0
 HELM=v4.3.1
 JAEGER_CHART=4.16.1
 COLLECTOR_CHART=0.178.2
-TELEMETRYGEN=v0.165.0
 arch=$(dpkg --print-architecture)
 
 rm -rf "$results"
@@ -82,21 +81,6 @@ for pod in $(collector_pods); do
   echo "$pod $(kubectl logs "$pod" --since-time="$since" | grep -c 'info	Traces')"
 done | tee "$results/section4-collector-log-lines.txt"
 
-snapshot() {
-  local pod
-  for pod in $(collector_pods); do
-    kubectl get --raw "/api/v1/namespaces/default/pods/$pod:8888/proxy/metrics" |
-      awk -v pod="$pod" '/^otelcol_receiver_accepted_spans/ { spans += $NF } END { printf "%s %d\n", pod, spans }'
-  done
-}
-
-before=$(snapshot)
-kubectl run telemetrygen --restart=Never --image="ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:$TELEMETRYGEN" -- \
-  traces --otlp-endpoint=opentelemetry-collector:4317 --otlp-insecure --workers=1 --rate=100 --duration=45s >/dev/null
-kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/telemetrygen --timeout=180s >/dev/null
-sleep 10
-after=$(snapshot)
-
 {
   echo '# otel-traces-getting-started'
   echo
@@ -107,13 +91,4 @@ after=$(snapshot)
   echo '| Pod | Lines |'
   echo '|---|--:|'
   awk '{ split($1, a, "-"); printf "| %s | %d |\n", a[length(a)], $2 }' "$results/section4-collector-log-lines.txt"
-  echo
-  echo '## Spans received by each Collector Pod over one gRPC connection'
-  echo
-  echo 'With 2 Collector replicas, `telemetrygen` sent 100 spans per second to the Collector Service over one OTLP gRPC connection for 45 seconds. Spans received is the increase in `otelcol_receiver_accepted_spans` on that Pod over those 45 seconds and a further 10 seconds for the last batches to arrive.'
-  echo
-  echo '| Pod | Spans received |'
-  echo '|---|--:|'
-  join -a2 <(echo "$before" | sort) <(echo "$after" | sort) |
-    awk 'NF==3 { n=$3-$2 } NF==2 { n=$2 } { split($1, a, "-"); printf "| %s | %d |\n", a[length(a)], n }'
 } | tee "$results/summary.md"
