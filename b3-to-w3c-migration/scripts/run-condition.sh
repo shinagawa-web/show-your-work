@@ -48,6 +48,7 @@ done
 sleep 2
 python3 -B scripts/collect.py search "$jaeger" "$out/traces"
 dc logs --no-color --no-log-prefix postgres > "$out/postgres.log" 2>&1
+dc logs --no-color --no-log-prefix c > "$out/c.log" 2>&1
 
 parent=b7ad6b7169203331
 send() {

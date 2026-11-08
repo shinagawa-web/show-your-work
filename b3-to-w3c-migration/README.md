@@ -6,7 +6,7 @@ Three small Go HTTP servers (a calls b, b calls c, c runs one PostgreSQL query) 
 
 `.github/workflows/b3-to-w3c-migration.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. The job `section-3` runs `./run-all.sh 3` and the job `section-5` runs `./run-all.sh 5`. A final job merges their results.
 
-`results/summary.md` goes to the job summary. It has, per condition, the number of traces for one request, the services in each trace, the root spans by service, the services that left spans per request under ratio sampling, whether a service recorded a span under a fixed `traceparent` it was sent, and the comment on the query in the PostgreSQL log. `results/` is uploaded as the `b3-to-w3c-migration-<section>` artifact. The job fails when a request does not return 200, a service does not leave the number of server spans its condition requires, c leaves no database span, or a span falls outside every request.
+`results/summary.md` goes to the job summary. It has the trace headers c received from b at one stage, and, per condition, the number of traces for one request, the services in each trace, the root spans by service, the services that left spans per request under ratio sampling, whether a service recorded a span under a fixed `traceparent` it was sent, and the comment on the query in the PostgreSQL log. `results/` is uploaded as the `b3-to-w3c-migration-<section>` artifact. The job fails when a request does not return 200, a service does not leave the number of server spans its condition requires, c leaves no database span, or a span falls outside every request.
 
 ## Conditions
 

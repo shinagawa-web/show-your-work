@@ -15,9 +15,11 @@ SECTION_5 = [
     "apps-both",
     "gateway-both",
     "gateway-w3c",
+    "gateway-w3c-first",
     "gateway-no-tracer",
     "manual-forward",
     "a-w3c-only",
+    "left-behind-hidden",
     "left-behind",
     "after",
 ]
@@ -64,6 +66,20 @@ for name, a in data.items():
 
 print("# b3-to-w3c-migration")
 print()
+
+both = data.get("apps-both")
+if both:
+    print("## Section 2 (job `section-5`)")
+    print()
+    print(
+        f"The trace headers c received from b for one request at the stage {both['condition']['label']}, "
+        "names and values as c's handler read them. Envoy's zipkin tracer started the trace with its default "
+        "64-bit trace ID, so the left 16 hex digits of the trace ID are 0."
+    )
+    print()
+    table(["Header", "Value"], [[f"`{h['name']}`", f"`{h['value']}`"] for h in both["c_received_headers"]])
+    if not both["c_received_headers"]:
+        invalid.append("apps-both: c printed no trace headers")
 
 if data.get("before") and data.get("b-w3c"):
     print("## Section 3 (job `section-3`)")
@@ -138,7 +154,7 @@ def recorded(a, target):
 
 
 rows = []
-for n in ["apps-both", "left-behind"]:
+for n in ["apps-both", "left-behind-hidden"]:
     a = data.get(n)
     if a:
         rows.append([a["condition"]["label"]] + [recorded(a, s) for s in ["a", "b", "c"]])
@@ -172,11 +188,23 @@ for n in SECTION_5_4:
 if rows:
     print("## Section 5-4 (jobs `section-3`, `section-5`)")
     print()
+    db_ok = [
+        n
+        for n, a in data.items()
+        if a and a["db_spans"] and a["db_spans"] == a["db_spans_with_c_server_parent"]
+        and not a["db_traces_without_c_server_span"]
+    ]
+    db_bad = sorted(n for n, a in data.items() if a and n not in db_ok)
+    if db_bad:
+        db_sentence = "The DB spans (names starting with `sql.`) were not all children of c's server span in: " + ", ".join(db_bad) + "."
+    else:
+        db_sentence = "In every condition, the DB spans (names starting with `sql.`) were children of c's server span, in the same trace."
     print(
         "The comment on c's query in the PostgreSQL `log_statement=all` log, for one request, "
         "at the stages before the migration, 5-1 apps read and write both, and after the migration (top to bottom). "
         "In the first two, Envoy's zipkin tracer starts the trace with its default 64-bit trace ID, "
-        "so the left 16 hex digits are 0; after the migration, Envoy's OpenTelemetry tracer starts it with a 128-bit ID."
+        "so the left 16 hex digits are 0; after the migration, Envoy's OpenTelemetry tracer starts it with a 128-bit ID. "
+        + db_sentence
     )
     print()
     table(["c's `OTEL_PROPAGATORS`", "SQL comment"], rows)

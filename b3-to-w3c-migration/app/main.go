@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/XSAM/otelsql"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -75,6 +78,7 @@ func instrumented(next, dsn string) http.Handler {
 	}
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		printTraceHeaders(r.Header)
 		if db != nil {
 			var one int
 			if err := db.QueryRowContext(r.Context(), "SELECT 1").Scan(&one); err != nil {
@@ -94,6 +98,22 @@ func instrumented(next, dsn string) http.Handler {
 		call(w, client, req)
 	}
 	return otelhttp.NewHandler(http.HandlerFunc(handler), "handle")
+}
+
+func printTraceHeaders(h http.Header) {
+	names := make([]string, 0, len(h))
+	for name := range h {
+		lower := strings.ToLower(name)
+		if lower == "traceparent" || lower == "tracestate" || strings.HasPrefix(lower, "x-b3-") {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		for _, v := range h.Values(name) {
+			fmt.Printf("received-header\t%s\t%s\n", name, v)
+		}
+	}
 }
 
 func call(w http.ResponseWriter, client *http.Client, req *http.Request) {

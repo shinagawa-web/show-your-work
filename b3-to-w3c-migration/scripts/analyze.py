@@ -135,6 +135,14 @@ def main(out):
         }
     )
 
+    received = []
+    c_log = out / "c.log"
+    if c_log.exists():
+        for line in c_log.read_text().splitlines():
+            parts = line.split("\t")
+            if len(parts) == 3 and parts[0] == "received-header":
+                received.append({"name": parts[1], "value": parts[2]})
+
     sent = {}
     sends = out / "sends.tsv"
     if sends.exists():
@@ -158,6 +166,7 @@ def main(out):
         "sql_comments": comments,
         "sql_comment_trace_ids": comment_trace_ids,
         "c_trace_ids": sorted(c_server_traces),
+        "c_received_headers": received,
         "sent": sent,
         "invalid": invalid,
     }
