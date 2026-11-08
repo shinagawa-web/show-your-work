@@ -34,7 +34,6 @@ static_resources:
                       collector_cluster: jaeger_zipkin
                       collector_endpoint: /api/v2/spans
                       collector_endpoint_version: HTTP_JSON
-                      trace_id_128bit: true
                 route_config:
                   virtual_hosts:
                     - name: a
