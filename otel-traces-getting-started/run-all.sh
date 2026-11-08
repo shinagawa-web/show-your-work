@@ -79,7 +79,7 @@ collector_pods() {
 kubectl get pods -l app.kubernetes.io/name=opentelemetry-collector | tee "$results/section4-pods.txt"
 latest_trace "$since" | tee "$results/section4-trace.json"
 for pod in $(collector_pods); do
-  echo "$pod $(kubectl logs "$pod" | grep -c 'info	Traces')"
+  echo "$pod $(kubectl logs "$pod" --since-time="$since" | grep -c 'info	Traces')"
 done | tee "$results/section4-collector-log-lines.txt"
 
 snapshot() {
