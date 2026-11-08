@@ -52,13 +52,11 @@ expect_max=${max:-none}
 python3 -B "$here/scripts/preflight.py" "$out" "$cluster" "$fqdn" "$expect_max" "${route_timeout:-none}" || abort "preflight: $(cat "$out/preflight.err" 2>/dev/null)"
 
 kubectl -n demo get pods -l app=app -o json > "$out/pods.json"
-kubectl -n demo exec k6 -c istio-proxy -- pilot-agent request GET "server_info" > "$out/server_info.json" 2>&1
 sleep "$quiet"
 
 (
   sleep "$MID"
   istioctl proxy-config endpoint k6.demo --cluster "$cluster" > "$out/endpoint-mid.txt" 2>&1
-  kubectl -n demo exec k6 -c istio-proxy -- pilot-agent request GET "clusters" > "$out/clusters-mid.txt" 2>&1
 ) &
 mid=$!
 kubectl -n demo exec k6 -c k6 -- env RATE="$RATE" WINDOW="$WINDOW" K6_TIMEOUT="${client_timeout:-60s}" \

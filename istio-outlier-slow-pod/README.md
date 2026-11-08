@@ -52,11 +52,9 @@ Each condition is one argument of `run-all.sh`. With no argument, `run-all.sh` r
 | `k6.json`, `k6.log` | One k6 sample per request and per read of the admin stats, and the k6 output |
 | `proxy.log` | The access log of the caller's sidecar, one line per request with the upstream host and the response flags |
 | `endpoint-mid.txt` | `istioctl proxy-config endpoint` during the load |
-| `clusters-mid.txt` | The Envoy admin `clusters` output during the load |
 | `stats-end.txt` | The `outlier_detection` stats after the load |
 | `cluster.json`, `routes.json` | The Envoy cluster and routes checked before the load |
 | `pods.json` | The Pods of the condition |
-| `server_info.json` | The Envoy `server_info` of the caller's sidecar |
 | `metrics.json`, `cond.env` | What `scripts/report.py` reads, written by `scripts/measure.py` and `scripts/cond.sh` |
 
 `results/elapsed.txt` has the seconds for the setup and each condition.

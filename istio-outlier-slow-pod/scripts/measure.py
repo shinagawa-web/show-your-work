@@ -54,11 +54,8 @@ for line in (out / "stats-end.txt").read_text().splitlines():
 
 roles = {p["status"]["podIP"]: p["metadata"]["labels"]["role"] for p in json.loads((out / "pods.json").read_text())["items"]}
 
-ejected = []
-for line in (out / "clusters-mid.txt").read_text().splitlines():
-    m = re.search(r"::([\d.]+):8080::health_flags::(.*)$", line)
-    if m and "failed_outlier_check" in m.group(2):
-        ejected.append(m.group(1))
+endpoint_mid = (out / "endpoint-mid.txt").read_text()
+ejected = re.findall(r"^([\d.]+):8080\s+\S+\s+FAILED\s", endpoint_mid, re.M)
 
 served = {}
 logged = 0
@@ -79,9 +76,6 @@ for line in (out / "proxy.log").read_text().splitlines():
 traffic_off = max(first_on, last_to_ejected) if first_on is not None and last_to_ejected is not None else first_on
 during = [r["ms"] for r in requests if traffic_off is not None and traffic_off < r["start"] and (first_off is None or r["start"] < first_off)]
 
-endpoint_mid = (out / "endpoint-mid.txt").read_text()
-server_info = (out / "server_info.json").read_text()
-
 problems = []
 if dropped:
     problems.append(f"k6 dropped {dropped} iterations")
@@ -99,11 +93,8 @@ if len(re.findall(r"^[\d.]+:8080\s", endpoint_mid, re.M)) != 3:
     problems.append("endpoint output does not have 3 endpoints")
 
 json.dump({
-    "envoy_version": json.loads(server_info[server_info.index("{"):])["version"],
     "stats": stats,
-    "requests": len(requests),
     "p99_ms": p99([r["ms"] for r in requests]),
-    "status": dict(sorted(Counter(r["status"] for r in requests).items())),
     "k6_outcomes": [{"status": k[0], "error": k[1], "requests": n} for k, n in sorted(Counter((r["status"], r["error"]) for r in requests).items())],
     "p99_while_ejected_ms": p99(during),
     "ejected_roles": [roles.get(ip, "unknown") for ip in ejected],
