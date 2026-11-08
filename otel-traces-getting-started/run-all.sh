@@ -90,66 +90,30 @@ snapshot() {
   done
 }
 
-measure() {
-  local replicas=$1 before after
-  shift
-  before=$(snapshot)
-  "$@"
-  sleep 10
-  after=$(snapshot)
-  join -a2 <(echo "$before" | sort) <(echo "$after" | sort) |
-    awk -v r="$replicas" 'NF==3 { n=$3-$2 } NF==2 { n=$2 } { split($1, a, "-"); printf "| %s | %s | %d |\n", r, a[length(a)], n }'
-}
-
-load() {
-  local seconds=45 w pids=()
-  for w in 1 2 3 4 5 6 7 8; do
-    (
-      end=$((SECONDS + seconds))
-      while [ "$SECONDS" -lt "$end" ]; do
-        curl -s -o /dev/null 'http://localhost:8080/dispatch?customer=123' || true
-      done
-    ) &
-    pids+=("$!")
-  done
-  wait "${pids[@]}"
-}
-
-telemetrygen() {
-  kubectl run telemetrygen --restart=Never --image="ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:$TELEMETRYGEN" -- \
-    traces --otlp-endpoint=opentelemetry-collector:4317 --otlp-insecure --workers=1 --rate=100 --duration=45s >/dev/null
-  kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/telemetrygen --timeout=180s >/dev/null
-}
-
-upgrade() {
-  helm upgrade opentelemetry-collector open-telemetry/opentelemetry-collector --version "$COLLECTOR_CHART" -f "$here/helm/collector-values.yaml" --set "replicaCount=$1" --wait --timeout 180s >/dev/null 2>&1
-}
-
-upgrade 1
-kubectl rollout restart deployment/hotrod >/dev/null
-kubectl rollout status deployment/hotrod --timeout=180s >/dev/null
-pkill -f 'port-forward svc/hotrod' || true
-kubectl port-forward svc/hotrod 8080:8080 >/dev/null 2>&1 &
-sleep 5
+before=$(snapshot)
+kubectl run telemetrygen --restart=Never --image="ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:$TELEMETRYGEN" -- \
+  traces --otlp-endpoint=opentelemetry-collector:4317 --otlp-insecure --workers=1 --rate=100 --duration=45s >/dev/null
+kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/telemetrygen --timeout=180s >/dev/null
+sleep 10
+after=$(snapshot)
 
 {
   echo '# otel-traces-getting-started'
   echo
-  echo '## Spans received by each Collector Pod'
+  echo '## Traces lines in each Collector Pod log'
   echo
-  echo 'For each replica count, 8 parallel `curl` loops sent requests to HotROD for 45 seconds. HotROD was not restarted between the two counts. Spans received is the increase in `otelcol_receiver_accepted_spans` on that Pod over those 45 seconds and a further 10 seconds for the last batches to arrive.'
+  echo 'With 2 Collector replicas, 3 requests were sent to HotROD. Lines is the number of `Traces` lines that the `debug` exporter wrote to that Pod log after the requests started.'
   echo
-  echo '| Collector replicas | Pod | Spans received |'
-  echo '|---|---|---|'
-  measure 1 load
-  upgrade 2
-  measure 2 load
+  echo '| Pod | Lines |'
+  echo '|---|--:|'
+  awk '{ split($1, a, "-"); printf "| %s | %d |\n", a[length(a)], $2 }' "$results/section4-collector-log-lines.txt"
   echo
   echo '## Spans received by each Collector Pod over one gRPC connection'
   echo
-  echo 'With 2 Collector replicas, `telemetrygen` sent 100 spans per second to the Collector Service over one OTLP gRPC connection for 45 seconds. Spans received is counted the same way as above.'
+  echo 'With 2 Collector replicas, `telemetrygen` sent 100 spans per second to the Collector Service over one OTLP gRPC connection for 45 seconds. Spans received is the increase in `otelcol_receiver_accepted_spans` on that Pod over those 45 seconds and a further 10 seconds for the last batches to arrive.'
   echo
-  echo '| Collector replicas | Pod | Spans received |'
-  echo '|---|---|---|'
-  measure 2 telemetrygen
+  echo '| Pod | Spans received |'
+  echo '|---|--:|'
+  join -a2 <(echo "$before" | sort) <(echo "$after" | sort) |
+    awk 'NF==3 { n=$3-$2 } NF==2 { n=$2 } { split($1, a, "-"); printf "| %s | %d |\n", a[length(a)], n }'
 } | tee "$results/summary.md"
