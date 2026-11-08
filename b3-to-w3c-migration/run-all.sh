@@ -5,7 +5,7 @@ here=$PWD
 start=$(date +%s.%N)
 el() { awk -v a="$(date +%s.%N)" -v b="$start" 'BEGIN{printf "%.1f", a-b}'; }
 
-[ $# -gt 0 ] || set -- 3 5
+[ $# -gt 0 ] || set -- 3 4
 conds=()
 for t in "$@"; do
   found=$(awk -F'\t' -v t="$t" 'NR > 1 && ($1 == t || $2 == t) { print $1 }' conditions.tsv)

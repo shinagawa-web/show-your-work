@@ -11,7 +11,7 @@ ENVOY = {
     "none": "no tracer",
 }
 SECTION_3 = ["before", "b-w3c"]
-SECTION_5 = [
+SECTION_4 = [
     "apps-both",
     "gateway-both",
     "gateway-w3c",
@@ -23,7 +23,7 @@ SECTION_5 = [
     "left-behind",
     "after",
 ]
-SECTION_5_4 = ["before", "apps-both", "after"]
+SECTION_4_4 = ["before", "apps-both", "after"]
 
 
 def load(name):
@@ -69,7 +69,7 @@ print()
 
 both = data.get("apps-both")
 if both:
-    print("## Section 2 (job `section-5`)")
+    print("## Section 2 (job `section-4`)")
     print()
     print(
         f"The trace headers c received from b for one request at the stage {both['condition']['label']}, "
@@ -123,9 +123,9 @@ if ratio:
         right=(1,),
     )
 
-present = [n for n in SECTION_5 if data.get(n)]
+present = [n for n in SECTION_4 if data.get(n)]
 if present:
-    print("## Section 5 (job `section-5`)")
+    print("## Section 4 (job `section-4`)")
     print()
     print(
         "One `curl` without trace headers through Envoy for each stage, all requests sampled. "
@@ -160,7 +160,7 @@ for n in ["apps-both", "left-behind-hidden"]:
         rows.append([a["condition"]["label"]] + [recorded(a, s) for s in ["a", "b", "c"]])
 no_tracer = data.get("gateway-no-tracer")
 if rows or no_tracer:
-    print("## Sections 5-2 and 5-5 checks (job `section-5`)")
+    print("## Sections 4-2 and 4-5 checks (job `section-4`)")
     print()
 if rows:
     print(
@@ -179,14 +179,14 @@ if no_tracer:
     print()
 
 rows = []
-for n in SECTION_5_4:
+for n in SECTION_4_4:
     a = data.get(n)
     if a:
         rows.append(
             [f"`{a['condition']['c']}`", " ".join(f"`{c['comment']}`" for c in a["sql_comments"]) or "none"]
         )
 if rows:
-    print("## Section 5-4 (jobs `section-3`, `section-5`)")
+    print("## Section 4-4 (jobs `section-3`, `section-4`)")
     print()
     db_ok = [
         n
@@ -201,7 +201,7 @@ if rows:
         db_sentence = "In every condition, the DB spans (names starting with `sql.`) were children of c's server span, in the same trace."
     print(
         "The comment on c's query in the PostgreSQL `log_statement=all` log, for one request, "
-        "at the stages before the migration, 5-1 apps read and write both, and after the migration (top to bottom). "
+        "at the stages before the migration, 4-1 apps read and write both, and after the migration (top to bottom). "
         "In the first two, Envoy's zipkin tracer starts the trace with its default 64-bit trace ID, "
         "so the left 16 hex digits are 0; after the migration, Envoy's OpenTelemetry tracer starts it with a 128-bit ID. "
         + db_sentence
