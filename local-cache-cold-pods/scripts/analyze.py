@@ -189,7 +189,7 @@ if head["redis"].startswith("single"):
 elif head["redis"] == "sentinel":
     before = open(R("redis-before.txt")).read() if os.path.exists(R("redis-before.txt")) else ""
     redis_pod = next(iter(re.findall(r"== (\S+)\n(?:[^=]*\n)*?role:master", before)), None)
-if redis_pod and head["op"] in ("redis-restart", "sentinel-restart"):
+if redis_pod and head["op"] in ("redis-restart", "master-delete"):
     lines = log_lines(redis_pod, "redis")
     term, _ = first(lines, "Received SIGTERM", op)
     save_start, _ = first(lines, "Saving the final RDB snapshot before exiting", op)
@@ -211,28 +211,6 @@ if head["redis"] == "sentinel":
     sentinel["events"] = [[rel(t), msg] for t, msg in lines
                           if t >= op - 1 and any(n in msg for n in ("+sdown master", "+odown", "+switch-master", "+failover-end", "-failover-abort"))]
 
-pod_changes = {}
-if head["redis"] == "sentinel":
-    first_uid = {}
-    for line in open(R("pods.jsonl")):
-        r = json.loads(line)
-        if "pods" not in r:
-            continue
-        seen = {p["pod"]: p for p in r["pods"]}
-        for name in ("redis-ha-server-%d" % n for n in range(3)):
-            p = seen.get(name)
-            if r["t"] < op:
-                if p:
-                    first_uid[name] = p["uid"]
-                continue
-            c = pod_changes.setdefault(name, {})
-            if "not_ready" not in c and (not p or not p["ready"]):
-                c["not_ready"] = rel(r["t"])
-            if p and p["uid"] != first_uid.get(name):
-                c.setdefault("new_pod", rel(r["t"]))
-                if p["ready"]:
-                    c.setdefault("ready", rel(r["t"]))
-
 k6 = json.load(open(R("k6", "summary.json")))["metrics"] if os.path.exists(R("k6", "summary.json")) else {}
 dropped = k6.get("dropped_iterations", {}).get("values", {}).get("count", 0)
 dbsize = lambda path: dict(re.findall(r"== (\S+)\n(?:\(integer\) )?(\S+)", open(path).read())) if os.path.exists(path) else {}
@@ -245,7 +223,6 @@ out = {
     "stopped_intervals": [{"start": rel(a), "end": rel(b), "seconds": b - a} for a, b in groups],
     "master_before": redis_pod if head["redis"] == "sentinel" else None,
     "steps": steps,
-    "pod_changes": pod_changes,
     "sentinel": sentinel,
     "req": window["req"],
     "miss": window["miss"],
@@ -268,6 +245,10 @@ if redis_pod:
         problems.append("Redis held %s keys before the operation, expected %s on every server" % (sizes, params["KEYS"]))
     if head["redis"] != "sentinel" and sizes != {params["KEYS"]}:
         problems.append("Redis held %s keys before the operation, expected %s" % (sizes, params["KEYS"]))
+if head["op"] == "master-delete":
+    deleted = re.findall(r'pod "(\S+)" deleted', open(R("operation.txt")).read())
+    if deleted != [redis_pod]:
+        problems.append("deleted %s, but the master before the operation was %s" % (deleted, redis_pod))
 out["problems"] = problems
 json.dump(out, open(R("metrics.json"), "w"), indent=1)
 for p in problems:

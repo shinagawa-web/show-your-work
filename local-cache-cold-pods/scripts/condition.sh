@@ -15,7 +15,7 @@ case $cond in
   redis-restart-none-probe) REDIS=single-none LOCAL_SIZE=0 OP=redis-restart READY_DELAY_SECONDS=1 READY_PERIOD_SECONDS=1 ;;
   redis-restart-rdb) REDIS=single-rdb LOCAL_SIZE=0 OP=redis-restart ;;
   redis-restart-rdb-probe) REDIS=single-rdb LOCAL_SIZE=0 OP=redis-restart READY_DELAY_SECONDS=1 READY_PERIOD_SECONDS=1 ;;
-  sentinel-restart) REDIS=sentinel LOCAL_SIZE=0 OP=sentinel-restart MAX_OBS=$MAX_OBS_ROLLOUT ;;
+  sentinel-restart) REDIS=sentinel LOCAL_SIZE=0 OP=master-delete ;;
   *) echo "unknown condition $cond" >&2; exit 2 ;;
 esac
 export PATH=$here/.bin:$PATH
@@ -150,13 +150,18 @@ echo "op $op" >> "$results/timeline.txt"
 case $OP in
   app-restart) kubectl rollout restart deploy/app > "$results/operation.txt" 2>&1 ;;
   redis-restart) kubectl rollout restart statefulset/redis > "$results/operation.txt" 2>&1 ;;
-  sentinel-restart) kubectl rollout restart statefulset/redis-ha-server > "$results/operation.txt" 2>&1 ;;
+  master-delete) kubectl delete pod "$master" --wait=false > "$results/operation.txt" 2>&1 ;;
 esac
 left=$(python3 -c 'import sys, time; print(max(1, int(float(sys.argv[1]) + int(sys.argv[2]) - time.time())))' "$op" "$MAX_OBS")
 case $OP in
   app-restart) kubectl rollout status deploy/app --timeout=${left}s >> "$results/operation.txt" 2>&1 ;;
   redis-restart) kubectl rollout status statefulset/redis --timeout=${left}s >> "$results/operation.txt" 2>&1 ;;
-  sentinel-restart) kubectl rollout status statefulset/redis-ha-server --timeout=${left}s >> "$results/operation.txt" 2>&1 ;;
+  master-delete)
+    for i in $(seq $(( left * 2 ))); do
+      docker exec "$node" sh -c 'grep -H . /stats/*.events' 2>/dev/null | py readable.py "$op" && break
+      sleep 0.5
+    done
+    ;;
 esac
 echo "rollout_done $(date +%s.%N) exit=$?" >> "$results/timeline.txt"
 py watch.py "$results" "$node" "$op" >> "$results/timeline.txt"
