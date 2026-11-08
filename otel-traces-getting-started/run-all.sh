@@ -54,6 +54,7 @@ echo
 latest_trace "$since" | tee "$results/section2-trace.json"
 
 helm install opentelemetry-collector open-telemetry/opentelemetry-collector --version "$COLLECTOR_CHART" -f "$here/helm/collector-values.yaml" --wait --timeout 180s
+kubectl get configmap opentelemetry-collector -o jsonpath='{.data.relay}' | tee "$results/section3-config.yaml"
 kubectl set env deployment/hotrod OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318
 kubectl rollout status deployment/hotrod --timeout=180s
 
