@@ -1,7 +1,7 @@
 name	section	envoy	a	b	c	requests	sampler_ratio	sends	label
 before	3	b3	b3multi	b3multi	b3multi	1	-	-	before the migration
 b-w3c	3	b3	b3multi	tracecontext	b3multi	1	-	-	only b switched to W3C
-b-w3c-ratio	3	b3	b3multi	tracecontext	b3multi	200	0.1	-	only b switched to W3C, ratio sampling
+b-w3c-ratio	3	b3-sampled-10	b3multi	tracecontext	b3multi	1000	0.1	-	only b switched to W3C, ratio sampling
 apps-both	5	b3	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi	1	-	direct	5-1 apps read and write both
 gateway-both	5	both	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi	1	-	-	5-2 gateway writes both
 gateway-w3c	5	w3c	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi	1	-	-	5-2 gateway switched in one step

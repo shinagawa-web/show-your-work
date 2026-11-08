@@ -5,6 +5,7 @@ import sys
 results = pathlib.Path(sys.argv[1])
 ENVOY = {
     "b3": "B3 (zipkin tracer, default)",
+    "b3-sampled-10": "B3 (zipkin tracer, default, random_sampling 10%)",
     "both": "B3 and W3C (zipkin tracer, USE_B3_WITH_W3C_PROPAGATION)",
     "w3c": "W3C (OpenTelemetry tracer)",
     "none": "no tracer",
@@ -89,7 +90,8 @@ if ratio:
     invalid += [f"b-w3c-ratio: unexpected trace with {', '.join(k)}" for k in shapes if k not in labels]
     print(
         f"{ratio['requests']} `curl` requests one at a time through Envoy, only b switched to W3C, "
-        f"`OTEL_TRACES_SAMPLER=parentbased_traceidratio` with ratio {ratio['condition']['sampler_ratio']}. "
+        "with Envoy recording 10% of requests (`random_sampling` 10) and the apps 10% "
+        f"(`OTEL_TRACES_SAMPLER=parentbased_traceidratio`, ratio {ratio['condition']['sampler_ratio']}). "
         "Each request splits into up to three traces; each row counts the traces of one kind found in Jaeger, "
         "which is the number of requests that recorded that trace."
     )

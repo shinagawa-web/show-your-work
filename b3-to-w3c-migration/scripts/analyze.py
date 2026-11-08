@@ -83,10 +83,10 @@ def main(out):
     n = len(requests)
     ratio = cond["sampler_ratio"] != "-"
     expected = {}
-    if cond["envoy"] != "none":
-        expected["envoy"] = n
-    expected["a"] = n
     if not ratio:
+        if cond["envoy"] != "none":
+            expected["envoy"] = n
+        expected["a"] = n
         if cond["b"] != "manual":
             expected["b"] = n
         expected["c"] = n
