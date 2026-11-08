@@ -1,0 +1,13 @@
+name	section	envoy	a	b	c	requests	sampler_ratio	sends	label
+before	3	b3	b3multi	b3multi	b3multi	1	-	-	before the migration
+b-w3c	3	b3	b3multi	tracecontext	b3multi	1	-	-	only b switched to W3C
+b-w3c-ratio	3	b3	b3multi	tracecontext	b3multi	200	0.1	-	only b switched to W3C, ratio sampling
+apps-both	5	b3	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi	1	-	direct	5-1 apps read and write both
+gateway-both	5	both	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi	1	-	-	5-2 gateway writes both
+gateway-w3c	5	w3c	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi	1	-	-	5-2 gateway switched in one step
+gateway-no-tracer	5	none	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi	1	-	gateway	5-2 gateway starts no trace
+manual-forward	5	w3c	tracecontext	manual	tracecontext	1	-	-	5-3 b forwards x-b3-* by hand
+a-w3c-only	5	w3c	tracecontext	tracecontext,b3multi	tracecontext,b3multi	1	-	-	5-5 b3multi removed from a
+left-behind	5	w3c	tracecontext,b3multi	tracecontext	b3multi	1	-	direct	5-5 b and c left behind
+after	5	w3c	tracecontext	tracecontext	tracecontext	1	-	-	after the migration
+manual-forward-b3	control	b3	b3multi	manual	b3multi	1	-	-	control: hand forwarding with B3 still written
