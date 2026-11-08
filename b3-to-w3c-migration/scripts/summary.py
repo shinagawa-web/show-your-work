@@ -110,26 +110,34 @@ if present:
         ],
     )
 
+def recorded(a, target):
+    return "yes" if target in a["sent"][target]["services"] else "no"
+
+
 rows = []
-for n in ["apps-both", "left-behind", "gateway-no-tracer"]:
+for n in ["apps-both", "left-behind"]:
     a = data.get(n)
-    if not a:
-        continue
-    for target, s in a["sent"].items():
-        to = "a through Envoy without a tracer" if target == "gateway" else f"{target} directly"
-        service = "a" if target == "gateway" else target
-        rows.append(
-            [to, a["condition"]["label"], "yes" if service in s["services"] else "no"]
-        )
-if rows:
+    if a:
+        rows.append([a["condition"]["label"]] + [recorded(a, s) for s in ["a", "b", "c"]])
+no_tracer = data.get("gateway-no-tracer")
+if rows or no_tracer:
     print("## Sections 5-2 and 5-5 checks (job `section-5`)")
     print()
+if rows:
     print(
-        "One request carrying only a fixed `traceparent`, then a look in Jaeger for the service's span "
-        "under that trace ID."
+        "One request carrying only a fixed `traceparent` sent directly to each of a, b and c. "
+        "Each cell says whether that service recorded a span under the trace ID it was sent."
     )
     print()
-    table(["Sent to", "Condition", "Service recorded under the sent trace ID"], rows)
+    table(["Condition", "a", "b", "c"], rows)
+if no_tracer:
+    sent = no_tracer["sent"]["gateway"]
+    verb = "was" if "a" in sent["services"] else "was not"
+    print(
+        "A request carrying only a fixed `traceparent` through Envoy without a tracer: "
+        f"the trace ID {verb} recorded on a's span."
+    )
+    print()
 
 rows = []
 for n in SECTION_5_4:
