@@ -71,12 +71,15 @@ helm upgrade opentelemetry-collector open-telemetry/opentelemetry-collector --ve
 
 since=$(date -u +%FT%TZ)
 request
-kubectl get pods -l app.kubernetes.io/name=opentelemetry-collector | tee "$results/section4-pods.txt"
-latest_trace "$since" | tee "$results/section4-trace.json"
-
 collector_pods() {
   kubectl get pods -l app.kubernetes.io/name=opentelemetry-collector --field-selector=status.phase=Running -o name | sed 's#pod/##'
 }
+
+kubectl get pods -l app.kubernetes.io/name=opentelemetry-collector | tee "$results/section4-pods.txt"
+latest_trace "$since" | tee "$results/section4-trace.json"
+for pod in $(collector_pods); do
+  echo "$pod $(kubectl logs "$pod" | grep -c 'info	Traces')"
+done | tee "$results/section4-collector-log-lines.txt"
 
 snapshot() {
   local pod
