@@ -66,6 +66,16 @@ def rdb(m):
           [[f(m["stopped_seconds"]), i(m["miss_redis_absent"]), f(m["steps"].get("exit"), "%.2f")]])
 
 
+def rollout(m):
+    print("Counted %s. Each row is one period in which Redis could not be read, from the last successful Redis read of the "
+          "first of the 4 app Pods to lose Redis until the last of them read Redis successfully again.\n" % PERIOD)
+    rows = [["%d" % (n + 1), f(x["seconds"])] for n, x in enumerate(m["stopped_intervals"])]
+    rows.append(["total", f(sum(x["seconds"] for x in m["stopped_intervals"]))])
+    table(["period", STOPPED], rows)
+    print("Counted over the same time.\n")
+    table([ABSENT], [[i(m["miss_redis_absent"])]])
+
+
 SECTIONS = [
     ("2", "app-restart-local", "Cache: a local cache in each app Pod, no Redis. Operation: `kubectl rollout restart` of the 4 app Pods.", local_only),
     ("3-1", "app-restart-redis", "Cache: Redis only, a single instance with a PVC. Operation: `kubectl rollout restart` of the 4 app Pods.", app_restart),
@@ -73,7 +83,7 @@ SECTIONS = [
     ("4-2", "redis-restart-none-probe", "Cache: Redis only, a single instance with `save \"\"` and no PVC, as in 4-1. The readiness and startup probes of Redis use `initialDelaySeconds` 1 and `periodSeconds` 1. Operation: `kubectl rollout restart` of Redis.", absent),
     ("4-3", "redis-restart-rdb", "Cache: Redis only, a single instance with a PVC and `save 900 1`. The readiness and startup probes of Redis are the same as in 4-1. Operation: `kubectl rollout restart` of Redis, which sends it SIGTERM.", rdb),
     ("4-3", "redis-restart-rdb-probe", "Cache: Redis only, a single instance with a PVC and `save 900 1`, as in the job above. The readiness and startup probes of Redis use `initialDelaySeconds` 1 and `periodSeconds` 1, as in 4-2. Operation: `kubectl rollout restart` of Redis, which sends it SIGTERM.", rdb),
-    ("4-4", "sentinel-restart", "Cache: Redis only, the redis-ha chart 4.39.0 with the image `public.ecr.aws/docker/library/redis:8.8.0-alpine`, Sentinel, `save 900 1` as in 4-3 and `down-after-milliseconds` 5000. Operation: `kubectl rollout restart` with a partition of 2, which replaces only the master, `redis-ha-server-2`.", absent),
+    ("4-4", "sentinel-restart", "Cache: Redis only, the redis-ha chart 4.39.0 with the image `public.ecr.aws/docker/library/redis:8.8.0-alpine`, Sentinel and `save 900 1` as in 4-3. The chart's values are its defaults, apart from `hardAntiAffinity: false` and `podManagementPolicy: Parallel`. Operation: `kubectl rollout restart` of the redis-ha StatefulSet, which replaces its 3 Pods one by one.", rollout),
 ]
 
 metrics = {}

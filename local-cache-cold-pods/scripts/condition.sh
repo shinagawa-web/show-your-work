@@ -15,7 +15,7 @@ case $cond in
   redis-restart-none-probe) REDIS=single-none LOCAL_SIZE=0 OP=redis-restart READY_DELAY_SECONDS=1 READY_PERIOD_SECONDS=1 ;;
   redis-restart-rdb) REDIS=single-rdb LOCAL_SIZE=0 OP=redis-restart ;;
   redis-restart-rdb-probe) REDIS=single-rdb LOCAL_SIZE=0 OP=redis-restart READY_DELAY_SECONDS=1 READY_PERIOD_SECONDS=1 ;;
-  sentinel-restart) REDIS=sentinel LOCAL_SIZE=0 OP=sentinel-restart ;;
+  sentinel-restart) REDIS=sentinel LOCAL_SIZE=0 OP=sentinel-restart MAX_OBS=$MAX_OBS_ROLLOUT ;;
   *) echo "unknown condition $cond" >&2; exit 2 ;;
 esac
 export PATH=$here/.bin:$PATH
@@ -93,35 +93,17 @@ sentinel_master() {
 }
 announce() { kubectl get svc "redis-ha-announce-$1" -o jsonpath='{.spec.clusterIP}'; }
 if [ "$REDIS" = sentinel ]; then
-  target=2
   for i in $(seq 200); do
     [ -n "$(sentinel_master)" ] && break
     sleep 0.5
   done
-  if [ "$(sentinel_master)" != "$(announce "$target")" ]; then
-    for i in $(seq 120); do
-      [ "$(kubectl exec "redis-ha-server-$target" -c redis -- redis-cli info replication 2>/dev/null | tr -d '\r' | grep -c '^master_link_status:up')" = 1 ] && break
-      sleep 0.5
-    done
-    for i in 0 1 2; do
-      [ "$i" = "$target" ] || kubectl exec "redis-ha-server-$i" -c redis -- redis-cli config set replica-priority 0 >/dev/null
-    done
-    sleep 11
-    for i in $(seq 20); do
-      [ "$(kubectl exec redis-ha-server-0 -c sentinel -- redis-cli -p 26379 sentinel failover mymaster 2>/dev/null)" = OK ] && break
-      sleep 1
-    done
-    for i in $(seq 40); do
-      [ "$(sentinel_master)" = "$(announce "$target")" ] && break
-      sleep 0.5
-    done
-    for i in 0 1 2; do
-      kubectl exec "redis-ha-server-$i" -c redis -- redis-cli config set replica-priority 100 >/dev/null
-    done
-  fi
-  [ "$(sentinel_master)" = "$(announce "$target")" ] || abort "redis-ha-server-$target did not become master"
-  for i in $(seq 60); do
-    [ "$(kubectl exec "redis-ha-server-$target" -c redis -- redis-cli info replication | tr -d '\r' | grep -c 'state=online')" = 2 ] && break
+  master=
+  for i in 0 1 2; do
+    [ "$(sentinel_master)" = "$(announce "$i")" ] && master=redis-ha-server-$i
+  done
+  [ -n "$master" ] || abort "Sentinel reported no master"
+  for i in $(seq 120); do
+    [ "$(kubectl exec "$master" -c redis -- redis-cli info replication | tr -d '\r' | grep -c 'state=online')" = 2 ] && break
     sleep 0.5
   done
   kubectl rollout status statefulset/redis-ha-server --timeout=200s >/dev/null || abort "redis-ha not Ready"
@@ -163,9 +145,6 @@ echo "k6_t0 $t0" > "$results/timeline.txt"
 python3 -c 'import sys, time; time.sleep(max(0, int(sys.argv[1]) / 1000 + int(sys.argv[2]) - time.time() - 3))' "$t0" "$WARM"
 [ -z "$redis_pods" ] || redis_state > "$results/redis-before.txt" 2>&1
 python3 -c 'import sys, time; time.sleep(max(0, int(sys.argv[1]) / 1000 + int(sys.argv[2]) - time.time()))' "$t0" "$WARM"
-if [ "$OP" = sentinel-restart ]; then
-  kubectl patch statefulset redis-ha-server -p '{"spec":{"updateStrategy":{"rollingUpdate":{"partition":2}}}}' > "$results/partition.txt" 2>&1 || abort "patch of the partition failed"
-fi
 op=$(date +%s.%N)
 echo "op $op" >> "$results/timeline.txt"
 case $OP in
@@ -177,12 +156,7 @@ left=$(python3 -c 'import sys, time; print(max(1, int(float(sys.argv[1]) + int(s
 case $OP in
   app-restart) kubectl rollout status deploy/app --timeout=${left}s >> "$results/operation.txt" 2>&1 ;;
   redis-restart) kubectl rollout status statefulset/redis --timeout=${left}s >> "$results/operation.txt" 2>&1 ;;
-  sentinel-restart)
-    for i in $(seq $(( left * 2 ))); do
-      grep -q 'ready to exit' "$results/logs/redis-ha-server-2.redis.log" && break
-      sleep 0.5
-    done
-    ;;
+  sentinel-restart) kubectl rollout status statefulset/redis-ha-server --timeout=${left}s >> "$results/operation.txt" 2>&1 ;;
 esac
 echo "rollout_done $(date +%s.%N) exit=$?" >> "$results/timeline.txt"
 py watch.py "$results" "$node" "$op" >> "$results/timeline.txt"
@@ -219,6 +193,7 @@ docker exec "$node" tar -C /stats -cf - . | tar -C "$results/stats" -xf -
 kubectl get pods -o wide > "$results/pods-final.txt" 2>&1
 kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.uid} {.metadata.namespace}/{.metadata.name}{"\n"}{end}' > "$results/pod-uids.txt" 2>&1
 kubectl get events --sort-by=.lastTimestamp > "$results/events.txt" 2>&1
+docker exec "$node" journalctl -u kubelet --no-pager -o short-iso-precise --since "@${op%.*}" 2>&1 | grep -E -A2 'PreStop hook failed' > "$results/kubelet-hooks.txt"
 for p in $(kubectl get pod -l app=app -o name); do kubectl logs "$p" > "$results/logs/${p#pod/}.log" 2>&1; done
 docker stats --no-stream "$PG" "$node" > "$results/docker-stats-final.txt" 2>&1
 
