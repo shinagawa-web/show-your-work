@@ -24,7 +24,7 @@ latest_trace() {
     --data-urlencode "query.start_time_min=$1" \
     --data-urlencode "query.start_time_max=$(date -u +%FT%TZ)" \
     --data-urlencode 'query.num_traces=1' |
-    jq -c '[.result.resourceSpans[].scopeSpans[].spans[]] | {traceId: .[0].traceId, spans: length}'
+    jq -c '{traceId: [.result.resourceSpans[].scopeSpans[].spans[]][0].traceId, spans: ([.result.resourceSpans[].scopeSpans[].spans[]] | length), services: ([.result.resourceSpans[].resource.attributes[] | select(.key == "service.name") | .value.stringValue] | unique)}'
 }
 
 request() {
@@ -47,9 +47,11 @@ kubectl port-forward svc/hotrod 8080:8080 >/dev/null 2>&1 &
 kubectl port-forward svc/jaeger 16686:16686 >/dev/null 2>&1 &
 sleep 5
 
+since=$(date -u +%FT%TZ)
 request
 curl -fsS 'http://localhost:16686/api/v3/services' | tee "$results/section2-services.json"
 echo
+latest_trace "$since" | tee "$results/section2-trace.json"
 
 helm install opentelemetry-collector open-telemetry/opentelemetry-collector --version "$COLLECTOR_CHART" -f "$here/helm/collector-values.yaml" --wait --timeout 180s
 kubectl set env deployment/hotrod OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318
