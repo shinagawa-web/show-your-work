@@ -28,9 +28,9 @@ def load(name):
     return json.loads(path.read_text()) if path.exists() else None
 
 
-def table(header, rows):
+def table(header, rows, right=()):
     print("| " + " | ".join(header) + " |")
-    print("|" + "---|" * len(header))
+    print("|" + "".join("---:|" if i in right else "---|" for i in range(len(header))))
     for row in rows:
         print("| " + " | ".join(str(c) for c in row) + " |")
     print()
@@ -77,15 +77,27 @@ if data.get("before") and data.get("b-w3c"):
 
 ratio = data.get("b-w3c-ratio")
 if ratio:
+    shapes = {}
+    for t in ratio["traces"]:
+        key = tuple(t["services"])
+        shapes[key] = shapes.get(key, 0) + 1
+    labels = {
+        ("envoy", "a"): "envoy → a",
+        ("b",): "b alone (new trace started where the trace broke)",
+        ("c",): "c alone (new trace started where the trace broke)",
+    }
+    invalid += [f"b-w3c-ratio: unexpected trace with {', '.join(k)}" for k in shapes if k not in labels]
     print(
         f"{ratio['requests']} `curl` requests one at a time through Envoy, only b switched to W3C, "
         f"`OTEL_TRACES_SAMPLER=parentbased_traceidratio` with ratio {ratio['condition']['sampler_ratio']}. "
-        "Each row counts the requests that left spans from those services."
+        "Each request splits into up to three traces; each row counts the traces of one kind found in Jaeger, "
+        "which is the number of requests that recorded that trace."
     )
     print()
     table(
-        ["Services with spans for the request", "Requests"],
-        sorted(ratio["services_per_request"].items(), key=lambda kv: -kv[1]),
+        ["Trace", f"Requests that recorded it (of {ratio['requests']})"],
+        [[label, shapes.get(key, 0)] for key, label in labels.items()],
+        right=(1,),
     )
 
 present = [n for n in SECTION_5 if data.get(n)]
