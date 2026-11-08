@@ -12,8 +12,7 @@ A Go service keeps its cache in the Pod or in Redis, in front of PostgreSQL. Und
 | `app-restart-redis` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of the app |
 | `redis-restart-none` | Redis only, single instance with `save ""` and no PVC | `kubectl rollout restart` of Redis |
 | `redis-restart-none-probe` | as `redis-restart-none`, with the readiness and startup probes of Redis at `initialDelaySeconds` 1 and `periodSeconds` 1 | `kubectl rollout restart` of Redis |
-| `redis-restart-rdb` | Redis only, single instance with PVC and `save 900 1` | `kubectl rollout restart` of Redis |
-| `redis-restart-rdb-probe` | as `redis-restart-rdb`, with the readiness and startup probes of Redis at `initialDelaySeconds` 1 and `periodSeconds` 1 | `kubectl rollout restart` of Redis |
+| `redis-restart-rdb-probe` | Redis only, single instance with PVC and `save 900 1`, with the readiness and startup probes of Redis at `initialDelaySeconds` 1 and `periodSeconds` 1 | `kubectl rollout restart` of Redis |
 | `sentinel-restart` | Redis only, redis-ha chart | `kubectl delete pod` of the Pod of the Redis master |
 
 Each job is named after its article section and condition. Each condition runs under `timeout 300`, writes `results/<condition>/` and adds its summary to the job summary. Each job uploads `results/` as an artifact. The `summary` job merges them with `scripts/report.py` into `summary.md`, adds it to its job summary, and posts it as a pull request comment, replacing the previous one.

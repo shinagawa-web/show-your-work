@@ -13,7 +13,6 @@ case $cond in
   app-restart-redis) REDIS=single-rdb LOCAL_SIZE=0 OP=app-restart ;;
   redis-restart-none) REDIS=single-none LOCAL_SIZE=0 OP=redis-restart ;;
   redis-restart-none-probe) REDIS=single-none LOCAL_SIZE=0 OP=redis-restart READY_DELAY_SECONDS=1 READY_PERIOD_SECONDS=1 ;;
-  redis-restart-rdb) REDIS=single-rdb LOCAL_SIZE=0 OP=redis-restart ;;
   redis-restart-rdb-probe) REDIS=single-rdb LOCAL_SIZE=0 OP=redis-restart READY_DELAY_SECONDS=1 READY_PERIOD_SECONDS=1 ;;
   sentinel-restart) REDIS=sentinel LOCAL_SIZE=0 OP=master-delete ;;
   *) echo "unknown condition $cond" >&2; exit 2 ;;

@@ -2,7 +2,7 @@
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=${RESULTS:-$here/results}
-all="app-restart-local app-restart-redis redis-restart-none redis-restart-none-probe redis-restart-rdb redis-restart-rdb-probe sentinel-restart"
+all="app-restart-local app-restart-redis redis-restart-none redis-restart-none-probe redis-restart-rdb-probe sentinel-restart"
 conds=() overrides=()
 for a in "$@"; do
   case $a in

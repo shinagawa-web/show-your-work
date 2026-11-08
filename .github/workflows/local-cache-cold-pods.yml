@@ -24,7 +24,7 @@ jobs:
           - { section: "3-1", condition: app-restart-redis }
           - { section: "4-1", condition: redis-restart-none }
           - { section: "4-2", condition: redis-restart-none-probe }
-          - { section: "4-3", condition: redis-restart-rdb }
+          - { section: "4-3", condition: redis-restart-rdb-probe }
           - { section: "4-4", condition: sentinel-restart }
     name: ${{ matrix.section }} (${{ matrix.condition }})
     steps:
