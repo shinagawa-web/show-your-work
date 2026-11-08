@@ -75,7 +75,7 @@ if rows31:
         print(f"In the fifth row, k6 saw {seen} and {m['status'].get('504', 0)} 504 responses, and the access log of the caller's sidecar has {cut} requests with response code 200 and the response flag `UT`, which means the route timeout cut the response after the headers.")
         print()
 
-rows32 = [c for c in ("route-20ms", "route-200ms", "route-1000ms") if c in data]
+rows32 = [c for c in ("route-200ms", "route-1000ms") if c in data]
 if rows32:
     print("## Section 3-2: the route timeout decides what is ejected (job `3-2`)")
     print()
@@ -91,13 +91,7 @@ if rows32:
         ejected = ", ".join(ROLE.get(r, r) for r in m["ejected_roles"]) or "none"
         p = m["p99_while_ejected_ms"]
         while_ejected = f"{p} ms" if p is not None else "not ejected"
-        if c == "route-20ms":
-            while_ejected = "all 504"
         print(f"| {m['env']['route_timeout']} | {ejected} | {m['status'].get('504', 0)} | {while_ejected} |")
-    print()
-
-if "route-20ms" in data:
-    print("In the 20ms row the caller's sidecar cut every request, so it counted five 504 responses in a row for all three Pods. `maxEjectionPercent` 34 allows one Pod to be ejected, and the sidecar kept cutting the requests to the other two.")
     print()
 
 if "route-200ms" in data:

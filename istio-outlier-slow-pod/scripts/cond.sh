@@ -24,7 +24,6 @@ case $cond in
   slow-34) ;;
   slow-client-200ms) client_timeout=200ms ;;
   slow-body-200ms) bad_delay=0; bad_body_delay=$SLOW_MS; route_timeout=200ms ;;
-  route-20ms) route_timeout=20ms; quiet=$QUIET ;;
   route-200ms) route_timeout=200ms; quiet=$QUIET ;;
   route-1000ms) route_timeout=1000ms; quiet=$QUIET ;;
   *) abort "unknown condition" ;;

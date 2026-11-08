@@ -9,7 +9,7 @@ This runs one Service with three Pods and one caller Pod in a kind cluster with 
 | Job | What it runs |
 |---|---|
 | `3-1` | `./run-all.sh 5xx-default 5xx-34 slow-34 slow-client-200ms slow-body-200ms`. `3-1` is the section of the article the job supports |
-| `3-2` | `./run-all.sh route-20ms route-200ms route-1000ms`. `3-2` is the section of the article the job supports |
+| `3-2` | `./run-all.sh route-200ms route-1000ms`. `3-2` is the section of the article the job supports |
 | `report` | Merges the results of the two jobs into `results/summary.md` (`scripts/report.py`) |
 
 Each of `3-1` and `3-2` writes its own `results/summary.md` to its job summary and uploads `results/` as an `istio-outlier-slow-pod-<job>` artifact. The `report` job writes the merged `results/summary.md` to its job summary, uploads it as the `istio-outlier-slow-pod-summary` artifact, and on a push posts it as a comment on the open pull request for the branch, replacing the earlier one.
@@ -40,7 +40,6 @@ Each condition is one argument of `run-all.sh`. With no argument, `run-all.sh` r
 | `slow-34` | Slow | 34 | None. This is the baseline |
 | `slow-client-200ms` | Slow | 34 | 200 ms in the k6 HTTP client |
 | `slow-body-200ms` | Headers at once, body slow | 34 | 200 ms on the route |
-| `route-20ms` | Slow | 34 | 20 ms on the route |
 | `route-200ms` | Slow | 34 | 200 ms on the route |
 | `route-1000ms` | Slow | 34 | 1000 ms on the route |
 
