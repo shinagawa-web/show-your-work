@@ -8,6 +8,6 @@ gateway-w3c	5	w3c	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi
 gateway-no-tracer	5	none	tracecontext,b3multi	tracecontext,b3multi	tracecontext,b3multi	1	-	gateway	5-2 gateway starts no trace
 manual-forward	5	w3c	tracecontext	manual	tracecontext	1	-	-	5-3 b forwards x-b3-* by hand
 a-w3c-only	5	w3c	tracecontext	tracecontext,b3multi	tracecontext,b3multi	1	-	-	5-5 b3multi removed from a
-left-behind	5	w3c	tracecontext,b3multi	tracecontext	b3multi	1	-	direct	5-5 b and c left behind
+left-behind	5	w3c	tracecontext,b3multi	tracecontext	b3multi	1	-	direct	5-5 c left on b3multi
 after	5	w3c	tracecontext	tracecontext	tracecontext	1	-	-	after the migration
 manual-forward-b3	control	b3	b3multi	manual	b3multi	1	-	-	control: hand forwarding with B3 still written
