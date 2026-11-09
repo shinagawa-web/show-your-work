@@ -18,7 +18,7 @@ The summary has a table of the `Traces` lines in each Collector Pod log in secti
 |---|---|
 | Section 2 | Installs the Jaeger chart, applies `k8s/hotrod.yaml` with HotROD sending to Jaeger, sends three requests to `/dispatch?customer=123`, and records the latest `frontend` trace |
 | Section 3 | Installs the Collector chart with `helm/collector-values.yaml`, records the Collector config the chart renders, points HotROD at the Collector with `kubectl set env`, and sends three requests |
-| Section 4 | Upgrades the Collector chart to `replicaCount=2`, sends three requests, and counts the `Traces` lines each Collector Pod logged after the requests started |
+| Section 4 | Upgrades the Collector chart to `replicaCount=2`, sends ten requests, and counts the `Traces` lines each Collector Pod logged after the requests started |
 
 HotROD has no probes, so that probe requests do not appear in Jaeger. The Collector exports to Jaeger and to the `debug` exporter, so that its log shows the spans that passed through it.
 

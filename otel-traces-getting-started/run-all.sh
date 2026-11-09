@@ -28,7 +28,7 @@ latest_trace() {
 }
 
 request() {
-  for i in 1 2 3; do curl -fsS 'http://localhost:8080/dispatch?customer=123' >/dev/null; done
+  for i in $(seq "$1"); do curl -fsS 'http://localhost:8080/dispatch?customer=123' >/dev/null; done
   sleep 10
 }
 
@@ -48,7 +48,7 @@ kubectl port-forward svc/jaeger 16686:16686 >/dev/null 2>&1 &
 sleep 5
 
 since=$(date -u +%FT%TZ)
-request
+request 3
 curl -fsS 'http://localhost:16686/api/v3/services' | tee "$results/section2-services.json"
 echo
 latest_trace "$since" | tee "$results/section2-trace.json"
@@ -63,14 +63,14 @@ kubectl port-forward svc/hotrod 8080:8080 >/dev/null 2>&1 &
 sleep 5
 
 since=$(date -u +%FT%TZ)
-request
+request 3
 kubectl logs deployment/opentelemetry-collector | tee "$results/section3-collector.log" | tail -5
 latest_trace "$since" | tee "$results/section3-trace.json"
 
 helm upgrade opentelemetry-collector open-telemetry/opentelemetry-collector --version "$COLLECTOR_CHART" -f "$here/helm/collector-values.yaml" --set replicaCount=2 --wait --timeout 180s
 
 since=$(date -u +%FT%TZ)
-request
+request 10
 collector_pods() {
   kubectl get pods -l app.kubernetes.io/name=opentelemetry-collector --field-selector=status.phase=Running -o name | sed 's#pod/##'
 }
@@ -86,7 +86,7 @@ done | tee "$results/section4-collector-log-lines.txt"
   echo
   echo '## Traces lines in each Collector Pod log'
   echo
-  echo 'With 2 Collector replicas, 3 requests were sent to HotROD. Lines is the number of `Traces` lines that the `debug` exporter wrote to that Pod log after the requests started.'
+  echo 'With 2 Collector replicas, 10 requests were sent to HotROD. Lines is the number of `Traces` lines that the `debug` exporter wrote to that Pod log after the requests started.'
   echo
   echo '| Pod | Lines |'
   echo '|---|--:|'
