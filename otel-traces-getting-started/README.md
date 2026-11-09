@@ -8,7 +8,7 @@ This sets up tracing in a kind cluster from an empty environment, step by step: 
 
 The `s2-s4` job (named after the article sections that use its output) runs `./run-all.sh`, writes `results/summary.md` to the job summary and to a comment on the open pull request of the branch (the same comment is overwritten on every run), and uploads `results/` as the `otel-traces-getting-started-results` artifact.
 
-The summary has a table of the `Traces` lines in each Collector Pod log in section 4.
+The summary has two tables for section 4: the Collector Pods after `replicaCount=2`, and the latest `frontend` trace after that.
 
 ## Steps
 
@@ -18,7 +18,7 @@ The summary has a table of the `Traces` lines in each Collector Pod log in secti
 |---|---|
 | Section 2 | Installs the Jaeger chart, applies `k8s/hotrod.yaml` with HotROD sending to Jaeger, sends three requests to `/dispatch?customer=123`, and records the latest `frontend` trace |
 | Section 3 | Installs the Collector chart with `helm/collector-values.yaml`, records the Collector config the chart renders, points HotROD at the Collector with `kubectl set env`, and sends three requests |
-| Section 4 | Upgrades the Collector chart to `replicaCount=2`, sends ten requests, and counts the `Traces` lines each Collector Pod logged after the requests started |
+| Section 4 | Upgrades the Collector chart to `replicaCount=2`, sends three requests, and records the Collector Pods and the latest `frontend` trace |
 
 HotROD has no probes, so that probe requests do not appear in Jaeger. The Collector exports to Jaeger and to the `debug` exporter, so that its log shows the spans that passed through it.
 
@@ -35,8 +35,7 @@ Under `results/`:
 | `section3-trace.json` | The trace ID, span count and services of the latest `frontend` trace since the requests of section 3 started |
 | `section4-pods.txt` | `kubectl get pods` of the Collector |
 | `section4-trace.json` | The trace ID, span count and services of the latest `frontend` trace since the requests of section 4 started |
-| `section4-collector-log-lines.txt` | The `Traces` lines each Collector Pod logged after the requests of section 4 started |
-| `summary.md` | The table of the summary |
+| `summary.md` | The tables of the summary |
 
 ## Pinned versions
 

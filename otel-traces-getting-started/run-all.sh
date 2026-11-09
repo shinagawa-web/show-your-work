@@ -70,25 +70,26 @@ latest_trace "$since" | tee "$results/section3-trace.json"
 helm upgrade opentelemetry-collector open-telemetry/opentelemetry-collector --version "$COLLECTOR_CHART" -f "$here/helm/collector-values.yaml" --set replicaCount=2 --wait --timeout 180s
 
 since=$(date -u +%FT%TZ)
-request 10
-collector_pods() {
-  kubectl get pods -l app.kubernetes.io/name=opentelemetry-collector --field-selector=status.phase=Running -o name | sed 's#pod/##'
-}
-
+request 3
 kubectl get pods -l app.kubernetes.io/name=opentelemetry-collector | tee "$results/section4-pods.txt"
 latest_trace "$since" | tee "$results/section4-trace.json"
-for pod in $(collector_pods); do
-  echo "$pod $(kubectl logs "$pod" --since-time="$since" | grep -c 'info	Traces')"
-done | tee "$results/section4-collector-log-lines.txt"
 
 {
   echo '# otel-traces-getting-started'
   echo
-  echo '## Traces lines in each Collector Pod log'
+  echo '## Collector Pods after replicaCount=2'
   echo
-  echo 'With 2 Collector replicas, 10 requests were sent to HotROD. Lines is the number of `Traces` lines that the `debug` exporter wrote to that Pod log after the requests started.'
+  echo 'Output of `kubectl get pods` for the Collector after `helm upgrade --set replicaCount=2`.'
   echo
-  echo '| Pod | Lines |'
-  echo '|---|--:|'
-  awk '{ split($1, a, "-"); printf "| %s | %d |\n", a[length(a)], $2 }' "$results/section4-collector-log-lines.txt"
+  echo '| Pod | Ready | Status |'
+  echo '|---|---|---|'
+  awk 'NR > 1 { n = split($1, a, "-"); printf "| %s | %s | %s |\n", a[n], $2, $3 }' "$results/section4-pods.txt"
+  echo
+  echo '## Latest frontend trace after replicaCount=2'
+  echo
+  echo 'The latest `frontend` trace in Jaeger after 3 requests were sent to HotROD with 2 Collector replicas.'
+  echo
+  echo '| Spans | Services |'
+  echo '|--:|---|'
+  jq -r '"| \(.spans) | \(.services | join(", ")) |"' "$results/section4-trace.json"
 } | tee "$results/summary.md"
