@@ -1,0 +1,78 @@
+x-app: &app
+  image: b3-to-w3c-migration-app:local
+  depends_on:
+    jaeger:
+      condition: service_started
+    postgres:
+      condition: service_healthy
+
+services:
+  jaeger:
+    image: ${JAEGER_IMAGE}
+    command: ["--config", "/etc/jaeger/config.yaml"]
+    volumes:
+      - ./jaeger/config.yaml:/etc/jaeger/config.yaml:ro
+    ports:
+      - "127.0.0.1::16686"
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    command: ["postgres", "-c", "log_statement=all"]
+    environment:
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]
+      interval: 200ms
+      timeout: 2s
+      retries: 100
+
+  envoy:
+    image: ${ENVOY_IMAGE}
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "warn"]
+    volumes:
+      - ./envoy/${ENVOY}.yaml:/etc/envoy/envoy.yaml:ro
+    ports:
+      - "127.0.0.1::8080"
+      - "127.0.0.1::9901"
+    depends_on:
+      - a
+
+  a:
+    <<: *app
+    environment:
+      OTEL_SERVICE_NAME: a
+      OTEL_PROPAGATORS: ${A_PROPAGATORS}
+      OTEL_TRACES_SAMPLER: ${SAMPLER}
+      OTEL_TRACES_SAMPLER_ARG: ${SAMPLER_ARG}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_BSP_SCHEDULE_DELAY: "200"
+      NEXT_URL: http://b:8080/
+    ports:
+      - "127.0.0.1::8080"
+
+  b:
+    <<: *app
+    environment:
+      OTEL_SERVICE_NAME: b
+      OTEL_PROPAGATORS: ${B_PROPAGATORS}
+      OTEL_TRACES_SAMPLER: ${SAMPLER}
+      OTEL_TRACES_SAMPLER_ARG: ${SAMPLER_ARG}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_BSP_SCHEDULE_DELAY: "200"
+      NEXT_URL: http://c:8080/
+      MANUAL_FORWARD: ${B_MANUAL_FORWARD}
+    ports:
+      - "127.0.0.1::8080"
+
+  c:
+    <<: *app
+    environment:
+      OTEL_SERVICE_NAME: c
+      OTEL_PROPAGATORS: ${C_PROPAGATORS}
+      OTEL_TRACES_SAMPLER: ${SAMPLER}
+      OTEL_TRACES_SAMPLER_ARG: ${SAMPLER_ARG}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_BSP_SCHEDULE_DELAY: "200"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+    ports:
+      - "127.0.0.1::8080"

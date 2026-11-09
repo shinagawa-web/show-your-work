@@ -1,0 +1,93 @@
+name: b3-to-w3c-migration
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "b3-to-w3c-migration/**"
+      - ".github/workflows/b3-to-w3c-migration.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: b3-to-w3c-migration
+
+jobs:
+  section-3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh 3
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: b3-to-w3c-migration-3
+          path: b3-to-w3c-migration/results/
+
+  section-4:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./run-all.sh 4
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: b3-to-w3c-migration-4
+          path: b3-to-w3c-migration/results/
+
+  report:
+    needs: [section-3, section-4]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: b3-to-w3c-migration-[34]
+          path: b3-to-w3c-migration/artifacts/
+      - id: summary
+        run: |
+          mkdir -p results
+          for d in artifacts/*/*/; do cp -r "${d%/}" results/; done
+          rc=0
+          python3 -B scripts/summary.py results > results/summary.md || rc=$?
+          for c in $(awk -F'\t' 'NR > 1 && ($2 == "3" || $2 == "4") { print $1 }' conditions.tsv); do
+            [ -f "results/$c/analysis.json" ] || { echo "RUN INVALID: no result for $c" >> results/summary.md; rc=1; }
+          done
+          if [ "$rc" -ne 0 ] && ! grep -q '^RUN INVALID' results/summary.md; then
+            printf '\nRUN INVALID: scripts/summary.py exited with %s\n' "$rc" >> results/summary.md
+          fi
+          cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- b3-to-w3c-migration -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: b3-to-w3c-migration-summary
+          path: b3-to-w3c-migration/results/summary.md
+      - env:
+          RC: ${{ steps.summary.outputs.rc }}
+        run: exit "${RC:-1}"
