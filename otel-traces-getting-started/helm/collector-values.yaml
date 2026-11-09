@@ -1,0 +1,15 @@
+mode: deployment
+
+image:
+  repository: otel/opentelemetry-collector-k8s
+
+config:
+  exporters:
+    otlp_http:
+      endpoint: http://jaeger:4318
+  service:
+    pipelines:
+      traces:
+        exporters:
+          - otlp_http
+          - debug
