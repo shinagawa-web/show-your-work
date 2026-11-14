@@ -27,7 +27,7 @@ The summary has two tables: the commands run as the developer (section 3), and t
 | Setup | Stops with an error if roles or `DevBoundary` are left by an earlier run (they are deleted on exit). Creates `DevBoundary` and `role/syw-developer`, then retries assuming the developer role until it passes |
 | Section 3 | As the developer, retries `create-role` with `--path /app/` and the boundary until it passes, then runs the commands that are expected to be allowed or denied |
 | Terraform | As the developer, runs `terraform apply` and `terraform destroy` on `terraform/main.tf`, an `aws_iam_role` with `path = "/app/"` and `permissions_boundary`. The state is local |
-| Tags | As the developer, runs `create-role` with `--tags`. If it is denied, adds `iam:TagRole` and `iam:UntagRole` to the `ReadAppRoles` statement and retries until it passes |
+| Tags | As the developer, runs `create-role` with `--path /app/`, the boundary and `--tags`, which is expected to pass |
 | Section 4 | As the administrator, assumes `role/app/worker`, retries `s3api list-buckets` until it passes, then runs `iam list-users` |
 | Cleanup | On exit, deletes the roles under `/app/`, `role/syw-developer` and `DevBoundary`, and checks that none is left |
 
@@ -46,7 +46,7 @@ Under `results/`. The account ID is replaced with `111122223333`, and the name a
 | `section4.log` | The same for section 4 |
 | `checks.jsonl` | One line per command of sections 3 and 4, from which `summary.md` is made |
 | `terraform.log` | `terraform init`, `apply` and `destroy` run as the developer |
-| `tagged-create-role.log` | `create-role` with `--tags`, and whether `iam:TagRole` had to be added |
+| `tagged-create-role.log` | `create-role` with `--tags`, its output, and whether it passed |
 | `waits.log` | Each retry until a command passed: the attempts and seconds |
 | `cleanup.log` | What was left after cleanup |
 | `summary.md` | The tables of the summary |

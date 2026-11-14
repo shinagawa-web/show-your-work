@@ -37,6 +37,15 @@
       "Resource": "arn:aws:iam::111122223333:role/app/*"
     },
     {
+      "Sid": "TagAppRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": "arn:aws:iam::111122223333:role/app/*"
+    },
+    {
       "Sid": "DenyBoundaryRemoval",
       "Effect": "Deny",
       "Action": "iam:DeleteRolePermissionsBoundary",

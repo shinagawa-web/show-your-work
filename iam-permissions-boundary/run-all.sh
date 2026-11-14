@@ -211,19 +211,12 @@ main() {
   if [[ $(cat "$work/tf_ok") != yes ]]; then failures=$((failures + 1)); fi
 
   local tag_cmd="aws iam create-role --role-name worker-tagged --path /app/ --assume-role-policy-document file://trust.json --permissions-boundary $boundary_arn --tags Key=team,Value=app"
-  if out=$(as_developer aws iam create-role --role-name worker-tagged --path /app/ --assume-role-policy-document file://trust.json --permissions-boundary "$boundary_arn" --tags Key=team,Value=app 2>&1); then
-    printf '$ %s\n%s\n=> allowed with policies/developer.json as is\n' "$tag_cmd" "$out" | mask | tee "$results/tagged-create-role.log"
-  else
-    printf '$ %s\n%s\n=> denied with policies/developer.json as is\n\n' "$tag_cmd" "$out" | mask | tee "$results/tagged-create-role.log"
-    jq '(.Statement[] | select(.Sid == "ReadAppRoles") | .Action) += ["iam:TagRole", "iam:UntagRole"]' developer.json >developer-tagrole.json
-    aws iam put-role-policy --role-name syw-developer --policy-name developer --policy-document file://developer-tagrole.json
-    if wait_until 'create-role with tags after adding iam:TagRole and iam:UntagRole to ReadAppRoles' "as_developer $tag_cmd"; then
-      printf '$ %s\n%s\n=> allowed after adding iam:TagRole and iam:UntagRole to ReadAppRoles\n' "$tag_cmd" "$out" | mask | tee -a "$results/tagged-create-role.log"
-    else
-      printf '=> still denied after adding iam:TagRole and iam:UntagRole to ReadAppRoles\n' | tee -a "$results/tagged-create-role.log"
-      failures=$((failures + 1))
-    fi
+  local tag_result=allowed
+  if ! out=$(eval "as_developer $tag_cmd" 2>&1); then
+    tag_result=denied
+    failures=$((failures + 1))
   fi
+  printf '$ %s\n%s\n=> %s (expected allowed)\n' "$tag_cmd" "$out" "$tag_result" | mask | tee "$results/tagged-create-role.log"
 
   wait_until 'assume role/app/worker' "assume $app_role_arn app"
   read -r app_ak app_sk app_st <<<"$out"
