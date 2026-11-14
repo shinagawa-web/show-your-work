@@ -127,7 +127,21 @@ write_summary() {
   {
     echo '# iam-permissions-boundary'
     echo
+    echo '## Section 2: the permissions boundary DevBoundary'
+    echo
+    echo '`DevBoundary`, the permissions boundary the developer must set on every role they create, as passed to `aws iam create-policy` from `policies/dev-boundary.json`.'
+    echo
+    echo '```json'
+    cat "$work/dev-boundary.json"
+    echo '```'
+    echo
     echo '## Section 3: commands run as the developer'
+    echo
+    echo 'The inline policy `developer` on `role/syw-developer`, as passed to `aws iam put-role-policy` from `policies/developer.json` with `111122223333` replaced by the account ID, which this summary masks back to `111122223333`.'
+    echo
+    echo '```json'
+    cat "$work/developer.json"
+    echo '```'
     echo
     echo 'Run with the credentials of `role/syw-developer`, whose only policy is `policies/developer.json`, after `create-role` with the boundary had passed. `DevBoundary` is `policies/dev-boundary.json`. The message is the AWS CLI error line.'
     echo
