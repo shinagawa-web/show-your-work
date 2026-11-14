@@ -17,6 +17,7 @@ Each folder is one verification, run by `.github/workflows/<folder>.yml` on GitH
 | [g1-heap-not-returned](g1-heap-not-returned/README.md) | [After upgrading from Java 8, G1 stopped returning memory](https://dev.to/shinagawa-web/after-upgrading-from-java-8-g1-stopped-returning-memory-38n) |
 | [glibc-heap-not-returned](glibc-heap-not-returned/README.md) | — |
 | [hpa-reverts-manual-scale](hpa-reverts-manual-scale/README.md) | [HPA does not keep the replicas you set with kubectl scale](https://dev.to/shinagawa-web/hpa-does-not-keep-the-replicas-you-set-with-kubectl-scale-2jpg) |
+| [iam-policy-scanners](iam-policy-scanners/README.md) | — |
 | [imagepullbackoff-events-message](imagepullbackoff-events-message/README.md) | — |
 | [io-max-hidden-from-iostat](io-max-hidden-from-iostat/README.md) | — |
 | [istio-outlier-slow-pod](istio-outlier-slow-pod/README.md) | — |
