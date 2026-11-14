@@ -3,7 +3,6 @@ set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 cd "$here"
 NODE_IMAGE=node:26.13.1-trixie
-GRACE=5
 RUNS=${RUNS:-3}
 PARALLEL=${PARALLEL:-4}
 mapfile -t all < <(awk -F'\t' 'NR > 1 { print $1 }' conditions.tsv)
@@ -72,7 +71,7 @@ run_one() {
   ( sleep 1; docker exec -i "$name" sh -s < scripts/proc-signals.sh > "$out/proc-signals-after-1s.txt" 2>&1 ) &
   spid=$!
   t0=$(now)
-  docker stop -t "$GRACE" "$name" > "$out/docker-stop.txt" 2>&1
+  docker stop "$name" > "$out/docker-stop.txt" 2>&1
   t1=$(now)
   wait "$cpid" "$spid"
   awk -v a="$t1" -v b="$t0" 'BEGIN { printf "%.2f\n", a - b }' > "$out/stop-seconds.txt"

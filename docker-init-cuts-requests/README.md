@@ -1,6 +1,6 @@
 # docker-init-cuts-requests
 
-Stops an Express server in the official `node` image with `docker stop -t 5` while a request is in progress, with and without `docker run --init`, with and without a SIGTERM handler that calls `server.close()`, and with the server started by `CMD` in exec form, in shell form, and from a shell script with and without `exec`. It records how long `docker stop` took, the exit code of the container, whether the request in progress got its response, the process tree in the container, the container log, and the signals the kernel generated for the processes of the container.
+Stops an Express server in the official `node` image with `docker stop` (default grace period of 10 s) while a request is in progress, with and without `docker run --init`, with and without a SIGTERM handler that calls `server.close()`, and with the server started by `CMD` in exec form, in shell form, and from a shell script with and without `exec`. It records how long `docker stop` took, the exit code of the container, whether the request in progress got its response, the process tree in the container, the container log, and the signals the kernel generated for the processes of the container.
 
 ## Run
 
@@ -26,7 +26,7 @@ Each run:
 1. Starts the container with `docker run -d -p 127.0.0.1:<port>:3000`, `--init` when the condition sets it
 2. Waits for the `listening` line, then records `docker top`, `ps` in the container, and the signal masks of each process in the container (`scripts/proc-signals.sh`)
 3. Sends `GET /slow` with curl and waits for the line that the server accepted it
-4. Runs `docker stop -t 5`, records the signal masks again 1 s after it starts, and waits for curl to return
+4. Runs `docker stop` (default grace period of 10 s), records the signal masks again 1 s after it starts, and waits for curl to return
 5. Records `docker inspect`, the container log and the Docker daemon's journal lines for the container
 
 While the runs go on, `run-all.sh` traces the `signal:signal_generate` kernel event for SIGTERM and SIGKILL in its own tracefs instance.

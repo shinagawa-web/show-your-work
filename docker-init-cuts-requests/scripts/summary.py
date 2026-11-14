@@ -79,7 +79,7 @@ opening = [c for c in ("no-handler", "no-handler-init") if c in conds]
 if opening:
     p("## Opening: `no-handler`, `no-handler-init`")
     p("")
-    p("`docker stop -t 5` while one `GET /slow?seconds=2` request was in progress, on an Express server with no SIGTERM handler, without and with `--init`. Stop is the time `docker stop` took; the curl columns are the result of the request in progress.")
+    p("`docker stop` while one `GET /slow?seconds=2` request was in progress, on an Express server with no SIGTERM handler, without and with `--init`. Stop is the time `docker stop` took; the curl columns are the result of the request in progress.")
     p("")
     p("| Condition | Run | Stop (s) | Exit code | curl exit code | curl message | HTTP status |")
     p("|---|--:|--:|--:|--:|---|--:|")
@@ -91,7 +91,7 @@ if opening:
 
 p("## Measurements: all conditions")
 p("")
-p("Each run sends one `GET /slow` request (2 s, or 10 s where noted), waits until the server logs that it accepted it, then runs `docker stop -t 5`. PID 1 and its children are from `docker top` before the request. Stop is the time `docker stop` took in each run; Request is whether curl got the HTTP 200 response.")
+p("Each run sends one `GET /slow` request (2 s, or 10 s where noted), waits until the server logs that it accepted it, then runs `docker stop`. PID 1 and its children are from `docker top` before the request. Stop is the time `docker stop` took in each run; Request is whether curl got the HTTP 200 response.")
 p("")
 n = max((len(runs(c)) for c in conds), default=0)
 p("| Condition | PID 1 and its children | " + " | ".join(f"Stop, run {i + 1} (s)" for i in range(n)) + " | Exit code | Request |")
@@ -107,7 +107,7 @@ check = [c for c in ("handler-init", "shell-form-init") if c in conds]
 if check:
     p("## Checking the fix: `handler-init`, `shell-form-init`")
     p("")
-    p("Run 1 of each condition: `docker top` before the request, and the container log (`docker logs -t`) up to the end of `docker stop -t 5`.")
+    p("Run 1 of each condition: `docker top` before the request, and the container log (`docker logs -t`) up to the end of `docker stop`.")
     for c in check:
         r = runs(c)[0]
         p("")
