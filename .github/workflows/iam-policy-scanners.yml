@@ -1,0 +1,63 @@
+name: iam-policy-scanners
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "iam-policy-scanners/**"
+      - ".github/workflows/iam-policy-scanners.yml"
+
+concurrency:
+  group: iam-policy-scanners
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+    working-directory: iam-policy-scanners
+
+jobs:
+  s1-s6:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.13"
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_IAM_POLICY_SCANNERS }}
+          role-session-name: github-actions
+          aws-region: us-east-1
+          mask-aws-account-id: true
+      - run: |
+          aws --version
+          jq --version
+          python3 --version
+      - run: ./run-all.sh
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - if: always() && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- iam-policy-scanners -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: iam-policy-scanners-results
+          path: iam-policy-scanners/results/

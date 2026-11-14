@@ -4,9 +4,20 @@ This runs three ways of checking the IAM policies of a Terraform pull request (C
 
 ## Run
 
-`run-all.sh` writes `results/summary.md` and the raw output of every tool under `results/`.
+`.github/workflows/iam-policy-scanners.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab. The job gets AWS credentials through OIDC, by assuming a role in the verification account.
+
+The `s1-s6` job (named after the article sections that use its output) runs `./run-all.sh`, writes `results/summary.md` to the job summary and to a comment on the open pull request of the branch (the same comment is overwritten on every run), and uploads `results/` as the `iam-policy-scanners-results` artifact.
 
 Checkov and Trivy run without AWS credentials. `terraform plan` runs with fake static credentials and the AWS provider's `skip_*` settings, so it does not call AWS either. Only tf-policy-validator calls AWS: `access-analyzer:ValidatePolicy` and `access-analyzer:CheckNoNewAccess`. CheckNoNewAccess is charged per call. Nothing is applied.
+
+To run it in a fork, the AWS account needs:
+
+- An IAM OIDC identity provider for `token.actions.githubusercontent.com`, with the audience `sts.amazonaws.com`
+- A role whose trust policy allows `sts:AssumeRoleWithWebIdentity` from that provider when `aud` is `sts.amazonaws.com` and `sub` is `repo:<owner>/<repository>:ref:refs/heads/<branch>`
+- `ci/role-policy.json` as the permissions of that role
+- The ARN of that role in the repository secret `AWS_ROLE_ARN_IAM_POLICY_SCANNERS`
+
+`run-all.sh` exits non-zero with `RUN INVALID` in `results/summary.md` when a case has no plan JSON, when Checkov or Trivy exits with anything but 0 or 1, or when tf-policy-validator exits with anything but 0 or 2 (1 is an exception, such as a denied Access Analyzer request).
 
 ## Policies
 

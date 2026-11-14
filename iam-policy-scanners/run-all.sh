@@ -104,6 +104,17 @@ analyze() {
   echo "$rc" >"$results/$c/check-no-new-access.rc"
 }
 
+invalid() {
+  local c
+  for c in $CASES; do
+    [[ -s $results/$c/plan.json ]] || echo "$c: no plan JSON"
+    grep -qx '[01]' "$results/$c/checkov.rc" || echo "$c: checkov exited $(cat "$results/$c/checkov.rc")"
+    grep -qx '[01]' "$results/$c/trivy.rc" || echo "$c: trivy exited $(cat "$results/$c/trivy.rc")"
+    grep -qx '[02]' "$results/$c/validate.rc" || echo "$c: tf-policy-validator validate exited $(cat "$results/$c/validate.rc")"
+    grep -qx '[02]' "$results/$c/check-no-new-access.rc" || echo "$c: tf-policy-validator check-no-new-access exited $(cat "$results/$c/check-no-new-access.rc")"
+  done
+}
+
 main() {
   rm -rf "$results"
   mkdir -p "$results"
@@ -145,6 +156,13 @@ main() {
   } >"$results/versions.txt" 2>&1
 
   echo "total: $((SECONDS - start))s" | tee "$results/duration.txt"
+  local problems
+  problems=$(invalid)
+  if [[ -n $problems ]]; then
+    { echo '# iam-policy-scanners'; echo; echo 'RUN INVALID'; echo; sed 's/^/- /' <<<"$problems"; } >"$results/summary.md"
+    echo "$problems"
+    exit 1
+  fi
   "$PYTHON" "$here/summarize.py" "$results" $CASES
 }
 
