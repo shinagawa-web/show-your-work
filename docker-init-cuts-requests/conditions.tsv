@@ -3,7 +3,6 @@ no-handler	exec-form	0	0	2	No handler
 no-handler-init	exec-form	1	0	2	No handler, `--init`
 handler	exec-form	0	1	2	Handler
 handler-init	exec-form	1	1	2	Handler, `--init`
-handler-over-grace	exec-form	0	1	10	Handler, 10 s request
 shell-form	shell-form	0	1	2	Shell-form `CMD`
 shell-form-init	shell-form	1	1	2	Shell-form `CMD`, `--init`
 script-init	script	1	1	2	`start.sh` without exec, `--init`

@@ -91,7 +91,7 @@ if opening:
 
 p("## Measurements: all conditions")
 p("")
-p("Each run sends one `GET /slow` request (2 s, or 10 s where noted), waits until the server logs that it accepted it, then runs `docker stop`. PID 1 and its children are from `docker top` before the request. Stop is the time `docker stop` took in each run; Request is whether curl got the HTTP 200 response.")
+p("Each run sends one `GET /slow` request (2 s), waits until the server logs that it accepted it, then runs `docker stop`. PID 1 and its children are from `docker top` before the request. Stop is the time `docker stop` took in each run; Request is whether curl got the HTTP 200 response.")
 p("")
 n = max((len(runs(c)) for c in conds), default=0)
 p("| Condition | PID 1 and its children | " + " | ".join(f"Stop, run {i + 1} (s)" for i in range(n)) + " | Exit code | Request |")
