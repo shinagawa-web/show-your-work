@@ -45,15 +45,6 @@ def checkov_failed(case, policy_only=True):
     return found
 
 
-def checkov_passed(case):
-    data = json.loads(read(case, "checkov.json"))
-    found = {}
-    for check in data["results"]["passed_checks"]:
-        if is_policy(check["resource"]):
-            found.setdefault(check["resource"], []).append(check["check_id"])
-    return found
-
-
 def trivy_failed(case, policy_only=True):
     data = json.loads(read(case, "trivy.json"))
     found = {}
@@ -189,12 +180,12 @@ def unknown_section():
         "",
         "| Tool | Output on `aws_iam_policy.app` | Exit code |",
         "|---|---|--:|",
-        f"| Checkov | failed: {cell(checkov_failed(case))}<br>passed: {cell(checkov_passed(case))} | {rc(case, 'checkov')} |",
+        f"| Checkov | failed: {cell(checkov_failed(case))} | {rc(case, 'checkov')} |",
         f"| Trivy | failed: {cell(trivy_failed(case))} | {rc(case, 'trivy')} |",
         f"| tf-policy-validator validate | log: " + "<br>".join(f"`{l}`" for l in logged) + f"<br>Access Analyzer calls: " + ", ".join(f"`{c}`" for c in vcalls) + f" | {rc(case, 'validate')} |",
         f"| tf-policy-validator check-no-new-access | Access Analyzer calls: " + (", ".join(f"`{c}`" for c in ccalls) or "none") + f" | {rc(case, 'check-no-new-access')} |",
         "",
-        "The ValidatePolicy call is for the trust policy of `aws_iam_role.app`. Checkov's JSON lists only passed and failed checks; a check that returns UNKNOWN is in neither list.",
+        "The ValidatePolicy call is for the trust policy of `aws_iam_role.app`.",
         "",
     ]
     return out
