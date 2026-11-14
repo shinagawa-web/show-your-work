@@ -189,22 +189,6 @@ def unknown_section():
     ]
 
 
-def custom_section():
-    others = [case for case in cases if case != UNKNOWN]
-    counts = {len(cnna_calls(case)) for case in others}
-    if counts == {1} and not cnna_calls(UNKNOWN):
-        sentence = f"CheckNoNewAccess was called once per case, except {LABELS[UNKNOWN]}, where it was not called."
-    else:
-        sentence = "CheckNoNewAccess calls per case: " + ", ".join(f"{LABELS[c]} {len(cnna_calls(c))}" for c in cases) + "."
-    return [
-        "## 7. CheckNoNewAccess against reference-policy.json",
-        "",
-        "`tf-policy-validator check-no-new-access --reference-policy reference-policy.json --reference-policy-type identity` on each plan JSON, "
-        "counting the requests `tfpv.py` logs. " + sentence,
-        "",
-    ]
-
-
 def document_section():
     rows = ["action-star", "action-star-policy-document"]
     same = stopped(rows[0]) == stopped(rows[1])
@@ -239,7 +223,6 @@ def main():
     )
     out += rules_section("5. Privilege escalation and a misspelled action", "`CreatePolicyVersion` is `iam:CreatePolicyVersion`.", ["create-policy-version", "action-typo"])
     out += unknown_section()
-    out += custom_section()
     out += document_section()
     (results / "summary.md").write_text("\n".join(out))
 
