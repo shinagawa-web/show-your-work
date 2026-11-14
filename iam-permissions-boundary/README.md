@@ -37,7 +37,7 @@ IAM changes take a while to be applied. A command that is denied before then can
 
 ## Outputs
 
-Under `results/`. The account ID is replaced with `111122223333`, and the name and session name of the administrator's role with `admin`.
+Under `results/`. The account ID is replaced with `111122223333`, and, inside ARNs, the name and session name of the administrator's role with `admin`.
 
 | File | What it records |
 |---|---|

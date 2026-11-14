@@ -19,11 +19,23 @@ reader_session=$(cut -d/ -f3 <<<"$caller_arn")
 if [[ -n ${GITHUB_ACTIONS:-} ]]; then
   echo "::add-mask::$account"
   echo "::add-mask::$reader_role_name"
-  echo "::add-mask::$reader_session"
 fi
 
+sed_escape() {
+  printf '%s' "$1" | sed 's/[][\.*^$#/]/\\&/g'
+}
+
+role_re=$(sed_escape "$reader_role_name")
+session_re=$(sed_escape "$reader_session")
+name='[A-Za-z0-9+=,.@_-]'
+other='[^A-Za-z0-9+=,.@_-]'
+
 mask() {
-  sed -e "s/$account/111122223333/g" -e "s/$reader_role_name/admin/g" -e "s/$reader_session/admin/g"
+  sed -e "s#assumed-role/$role_re/$session_re\$#assumed-role/admin/admin#" \
+    -e "s#assumed-role/$role_re/$session_re\($other\)#assumed-role/admin/admin\1#g" \
+    -e "s#\(:role/\($name*/\)*\)$role_re\$#\1admin#" \
+    -e "s#\(:role/\($name*/\)*\)$role_re\($other\)#\1admin\3#g" \
+    -e "s/$account/111122223333/g"
 }
 
 boundary_arn=arn:aws:iam::$account:policy/DevBoundary
