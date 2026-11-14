@@ -101,8 +101,8 @@ def stopped(case):
     validate_skipped = bool(not_found_lines(case, "validate"))
     cnna_skipped = not cnna_calls(case)
     return [
-        "stopped" if rc(case, "checkov") != "0" else "",
-        "stopped" if rc(case, "trivy") != "0" else "",
+        "stopped" if checkov_rules(case) else "",
+        "stopped" if trivy_rules(case) else "",
         "not checked" if validate_skipped else "stopped" if rc(case, "validate") != "0" else "",
         "not checked" if cnna_skipped else "stopped" if rc(case, "check-no-new-access") != "0" else "",
     ]
@@ -112,7 +112,8 @@ def opening():
     out = [
         "## 1. Which tool stopped each policy",
         "",
-        "`stopped` means the tool exited non-zero, which fails a CI job; tf-policy-validator exits non-zero on an ERROR or SECURITY_WARNING finding. "
+        "For Checkov and Trivy, `stopped` means the tool reported a failed check on the policy resource, which alone makes it exit non-zero and fail a CI job. "
+        "For ValidatePolicy and CheckNoNewAccess, it means tf-policy-validator exited non-zero, which it does on an ERROR or SECURITY_WARNING finding. "
         "`not checked` means tf-policy-validator found no policy to send for the policy resource.",
         "",
         "| Policy | Checkov | Trivy (`--exit-code 1`) | ValidatePolicy | CheckNoNewAccess |",
