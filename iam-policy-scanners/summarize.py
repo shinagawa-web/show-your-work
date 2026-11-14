@@ -197,16 +197,6 @@ def unknown_section():
         "The ValidatePolicy call is for the trust policy of `aws_iam_role.app`. Checkov's JSON lists only passed and failed checks; a check that returns UNKNOWN is in neither list.",
         "",
     ]
-    seen = {}
-    for tool, found in (("Checkov", checkov_failed(case, False)), ("Trivy", trivy_failed(case, False))):
-        for resource, items in found.items():
-            if resource.startswith("aws_s3_bucket"):
-                seen[tool] = ", ".join(f"`{i}`" for i in sorted(set(items)))
-    if seen:
-        out += ["Failures on `aws_s3_bucket.app` in the same runs:", ""]
-        out += ["| Tool | Failures |", "|---|---|"]
-        out += [f"| {tool} | {items} |" for tool, items in seen.items()]
-        out.append("")
     return out
 
 
