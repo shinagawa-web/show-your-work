@@ -196,19 +196,16 @@ def custom_section(rows):
         "## Section 7: CheckNoNewAccess against `reference-policy.json`",
         "",
         "`tf-policy-validator check-no-new-access --reference-policy-type identity` on each plan JSON. "
-        "Calls are counted from the `api-call` lines `tfpv.py` prints for every Access Analyzer request, with the result Access Analyzer returned. "
-        "The ValidatePolicy column counts the requests of `tf-policy-validator validate` on the same plan.",
+        "Calls are counted from the `api-call` lines `tfpv.py` prints for every Access Analyzer request, with the result Access Analyzer returned.",
         "",
-        "| Policy | CheckNoNewAccess result | check-no-new-access exit code | CheckNoNewAccess calls | ValidatePolicy calls |",
-        "|---|---|--:|--:|--:|",
+        "| Policy | CheckNoNewAccess result | check-no-new-access exit code | CheckNoNewAccess calls |",
+        "|---|---|--:|--:|",
     ]
     for case in rows:
         _, calls, _ = tfpv_output(case, "check-no-new-access")
-        _, vcalls, _ = tfpv_output(case, "validate")
         cnna = [c for c in calls if c.startswith("api-call CheckNoNewAccess")]
         results_ = ", ".join(c.split("result=", 1)[1] for c in cnna) or "not called"
-        vp = [c for c in vcalls if c.startswith("api-call ValidatePolicy")]
-        out.append(f"| {LABELS[case]} | {results_} | {rc(case, 'check-no-new-access')} | {len(cnna)} | {len(vp)} |")
+        out.append(f"| {LABELS[case]} | {results_} | {rc(case, 'check-no-new-access')} | {len(cnna)} |")
     out.append("")
     return out
 
