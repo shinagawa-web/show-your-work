@@ -1,5 +1,4 @@
-ARG NODE_IMAGE
-FROM ${NODE_IMAGE} AS base
+FROM node:26.13.1-trixie AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev

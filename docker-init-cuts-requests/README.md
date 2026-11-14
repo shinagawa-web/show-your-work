@@ -6,7 +6,7 @@ Stops an Express server in the official `node` image with `docker stop` (default
 
 `.github/workflows/docker-init-cuts-requests.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-`./run-all.sh [condition ...]` runs the conditions in `conditions.tsv` (all of them when none is given), three runs each, four at a time. `results/summary.md` goes to the job summary, and `results/` is uploaded as the `docker-init-cuts-requests-results` artifact. The run fails with a `RUN INVALID` line at the end of the summary when a container did not start, the server did not log that it accepted the request before `docker stop`, or a condition has no runs.
+`./run-all.sh [condition ...]` runs the conditions in `conditions.tsv` (all of them when none is given), three runs each, four at a time. `results/summary.md` goes to the job summary, and `results/` is uploaded as the `docker-init-cuts-requests-results` artifact. The run fails with a `RUN INVALID` line at the end of the summary when a container did not start, the server did not log that it accepted the request before `docker stop`, a condition has no runs, or the request was returned in some runs of a condition and cut in others. In that case the summary lists each run of that condition.
 
 ## Setup
 
@@ -41,7 +41,7 @@ Each row of `conditions.tsv` sets the image target, `--init`, `SIGTERM_HANDLER` 
 
 ## Pinned versions
 
-The `node` image tag in `run-all.sh`, and Express in `app/package.json` and `app/package-lock.json`. `results/environment.txt` records the image digest, the Docker version and the version of `docker-init`.
+The `node` image in `app/Dockerfile`, and Express in `app/package.json` and `app/package-lock.json`. `results/environment.txt` records the image digest and the versions of Docker, `docker-init` and Node.js.
 
 - Node.js registers its own SIGTERM handler: https://github.com/nodejs/node/blob/v26.13.1/src/node.cc#L625-L628
 - The handler resets the terminal and raises the signal again: https://github.com/nodejs/node/blob/v26.13.1/src/node.cc#L190-L193

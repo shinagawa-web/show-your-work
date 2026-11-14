@@ -2,7 +2,7 @@
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 cd "$here"
-NODE_IMAGE=node:26.13.1-trixie
+NODE_IMAGE=$(awk '$1 == "FROM" && $4 == "base" { print $2 }' app/Dockerfile)
 RUNS=${RUNS:-3}
 PARALLEL=${PARALLEL:-4}
 mapfile -t all < <(awk -F'\t' 'NR > 1 { print $1 }' conditions.tsv)
@@ -19,7 +19,7 @@ t_start=$(now)
 docker pull -q "$NODE_IMAGE" > "$results/pull.log" 2>&1 || { cat "$results/pull.log"; exit 1; }
 targets=$(awk -F'\t' 'NR > 1 { print $2 }' conditions.tsv | sort -u)
 for t in $targets; do
-  docker build --build-arg NODE_IMAGE="$NODE_IMAGE" --target "$t" -t "dicr:$t" app >> "$results/build.log" 2>&1 || { tail -30 "$results/build.log"; exit 1; }
+  docker build --target "$t" -t "dicr:$t" app >> "$results/build.log" 2>&1 || { tail -30 "$results/build.log"; exit 1; }
 done
 t_built=$(now)
 
