@@ -8,6 +8,13 @@ This sets up an AWS account so that a developer can create IAM roles only with a
 
 The `s3-s4` job (named after the article sections that use its output) runs `./run-all.sh`, writes `results/summary.md` to the job summary and to a comment on the open pull request of the branch (the same comment is overwritten on every run), and uploads `results/` as the `iam-permissions-boundary-results` artifact.
 
+To run it in a fork, the AWS account needs:
+
+- An IAM OIDC identity provider for `token.actions.githubusercontent.com`, with the audience `sts.amazonaws.com`
+- A role whose trust policy allows `sts:AssumeRoleWithWebIdentity` from that provider when `aud` is `sts.amazonaws.com` and `sub` is `repo:<owner>/<repository>:ref:refs/heads/<branch>`
+- `ci/role-policy.json` as the permissions of that role
+- The ARN of that role in the repository secret `AWS_ROLE_ARN_IAM_PERMISSIONS_BOUNDARY`
+
 ## Roles and policies
 
 | Who | Credentials | Policies |
