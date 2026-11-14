@@ -140,7 +140,7 @@ def setup():
     def pick(prefix):
         return next(line for line in versions if line.startswith(prefix))
 
-    bundle = pick("trivy checks bundle ").split()[3]
+    bundle, digest = pick("trivy checks bundle ").split()[3:5]
     release = pick("tf-policy-validator (release) ").split()[-1]
     text = (results / "tfpv-release.out").read_text().splitlines()
     error = next(line for line in text if line.startswith("ValueError"))
@@ -152,7 +152,7 @@ def setup():
         "",
         f"- Terraform {pick('Terraform ').split()[1].lstrip('v')}, AWS provider {pick('registry.terraform.io/hashicorp/aws ').split()[1]}",
         f"- Checkov {pick('checkov ').split()[1]}",
-        f"- Trivy {pick('Version: ').split()[1]}, checks bundle `{bundle}`",
+        f"- Trivy {pick('Version: ').split()[1]}, checks bundle `{bundle}` (`{digest}`)",
         f"- tf-policy-validator at commit `{pick('tf-policy-validator ').split()[1]}`",
         "",
         f"tf-policy-validator {release} from PyPI, on the plan JSON of `PassRole *`: exit code {(results / 'tfpv-release.rc').read_text().strip()}, `{error}`.",
