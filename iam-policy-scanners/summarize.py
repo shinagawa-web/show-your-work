@@ -42,6 +42,15 @@ def checkov_rules(case):
     return {c["check_id"] for c in data["results"]["failed_checks"] if is_policy(c["resource"])}
 
 
+def checkov_resources(case):
+    data = json.loads(read(case, "checkov.json"))
+    return {
+        ("data." if c["resource"].startswith("aws_iam_policy_document.") else "") + c["resource"]
+        for c in data["results"]["failed_checks"]
+        if is_policy(c["resource"])
+    }
+
+
 def trivy_rules(case):
     data = json.loads(read(case, "trivy.json"))
     found = set()
@@ -202,7 +211,12 @@ def document_section():
         "|---|---|",
     ]
     out += [f"| {LABELS[case]} | {compress(checkov_rules(case))} |" for case in rows]
-    out += ["", "The tools that stopped it are the same in both." if same else "The tools that stopped it differ; see section 1.", ""]
+    where = sorted(checkov_resources(rows[1]))
+    if where == ["data.aws_iam_policy_document.app"]:
+        note = "With `aws_iam_policy_document`, Checkov reports these rules on `data.aws_iam_policy_document.app`, not on `aws_iam_policy.app`."
+    else:
+        note = "With `aws_iam_policy_document`, Checkov reports these rules on " + ", ".join(f"`{r}`" for r in where) + "."
+    out += ["", note, "", "The tools that stopped it are the same in both." if same else "The tools that stopped it differ; see section 1.", ""]
     return out
 
 
