@@ -6,7 +6,11 @@ Stops an Express server in the official `node` image with `docker stop` (default
 
 `.github/workflows/docker-init-cuts-requests.yml` runs it on GitHub Actions, on a push that changes this folder or from Run workflow in the Actions tab.
 
-`./run-all.sh [condition ...]` runs the conditions in `conditions.tsv` (all of them when none is given), three runs each, four at a time. `results/summary.md` goes to the job summary, and `results/` is uploaded as the `docker-init-cuts-requests-results` artifact. The run fails with a `RUN INVALID` line at the end of the summary when a container did not start, the server did not log that it accepted the request before `docker stop`, a condition has no runs, or the request was returned in some runs of a condition and cut in others. In that case the summary lists each run of that condition.
+The `opening-measurements-fix` job (named after the article sections that use its output: the opening, the measurements and the check of the fix) runs `./run-all.sh`, which runs every condition in `conditions.tsv`, three runs each, four at a time. It writes `results/summary.md` to the job summary and to a comment on the open pull request of the branch (the same comment is overwritten on every run), and uploads `results/` as the `docker-init-cuts-requests-results` artifact. `./run-all.sh <condition> ...` runs only the conditions given.
+
+The summary has one section per article section: the opening table (`no-handler` and `no-handler-init`), the table of every condition, and the `docker top` output and container log of `handler-init` and `shell-form-init`.
+
+The job fails with a `RUN INVALID` line at the end of the summary when a container did not start, the server did not log that it accepted the request before `docker stop`, a condition has no runs, or the request was returned in some runs of a condition and cut in others. In that case the summary lists each run of that condition.
 
 ## Setup
 
