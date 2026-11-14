@@ -102,29 +102,9 @@ def scanner_table(rows, policy_only=True):
     return out
 
 
-def other_findings(rows):
-    seen = {}
-    for case in rows:
-        for tool, found in (
-            ("Checkov", checkov_failed(case, False)),
-            ("Trivy", trivy_failed(case, False)),
-            ("ValidatePolicy", tfpv_findings(case, "validate", False)),
-        ):
-            for resource, items in found.items():
-                seen.setdefault((tool, resource, ", ".join(f"`{i}`" for i in sorted(set(items)))), []).append(case)
-    return seen
-
-
 def scanner_section(title, intro, rows):
     out = [f"## {title}", "", intro, ""]
     out += scanner_table(rows)
-    seen = other_findings(rows)
-    if seen:
-        out += ["", "Findings on the other resources in the same runs:", ""]
-        out += ["| Tool | Resource | Findings | Policies |", "|---|---|---|---|"]
-        for (tool, resource, items), where in seen.items():
-            names = "all of the above" if len(where) == len(rows) and len(rows) > 1 else ", ".join(LABELS[c] for c in where)
-            out.append(f"| {tool} | `{resource}` | {items} | {names} |")
     out.append("")
     return out
 
