@@ -75,35 +75,18 @@ for c in conds:
         invalid.append(f"{c}: the request was returned in some runs and cut in others")
 
 
-def rows(c, with_chain):
+def rows(c):
     rs = runs(c)
     label = table[c]["label"]
     chains = "<br>".join(dict.fromkeys(chain(r) for r in rs))
-    lead = f"| {label} | {chains} |" if with_chain else f"| {label} |"
     if len({outcome(r) for r in rs}) == 1:
-        return [f"{lead} {median([read(r / 'stop-seconds.txt') for r in rs])} | {outcome(rs[0])} |"]
-    return [f"| {label}, run {r.name[3:]} |" + (f" {chain(r)} |" if with_chain else "") + f" {read(r / 'stop-seconds.txt')} | {outcome(r)} |" for r in rs]
+        return [f"| {label} | {chains} | {median([read(r / 'stop-seconds.txt') for r in rs])} | {outcome(rs[0])} |"]
+    return [f"| {label}, run {r.name[3:]} | {chain(r)} | {read(r / 'stop-seconds.txt')} | {outcome(r)} |" for r in rs]
 
 
 judged = "A request is returned when curl received the HTTP 200 response, and cut otherwise."
 out = []
 p = out.append
-
-opening = [c for c in ("no-handler", "no-handler-init") if c in conds]
-if opening:
-    p("## Opening: `no-handler`, `no-handler-init`")
-    p("")
-    p(f"An Express server with no SIGTERM handler, without and with `--init`, stopped with `docker stop` while one `GET /slow?seconds=2` request was in progress. Stop is the median of three runs of the time `docker stop` took. {judged}")
-    p("")
-    p("| Condition | Stop (s) | Request |")
-    p("|---|--:|---|")
-    for c in opening:
-        out.extend(rows(c, False))
-    msgs = list(dict.fromkeys(read(r / "curl-stderr.txt") for c in opening for r in runs(c) if outcome(r) == "cut"))
-    if msgs:
-        p("")
-        p("When the request was cut, curl printed " + ", ".join(f"`{m}`" for m in msgs) + ".")
-    p("")
 
 p("## Measurements: all conditions")
 p("")
@@ -112,7 +95,7 @@ p("")
 p("| Condition | PID 1 and its children | Stop (s) | Request |")
 p("|---|---|--:|---|")
 for c in conds:
-    out.extend(rows(c, True))
+    out.extend(rows(c))
 p("")
 
 check = [c for c in ("handler-init", "shell-form-init") if c in conds]
