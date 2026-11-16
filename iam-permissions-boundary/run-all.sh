@@ -123,7 +123,7 @@ leftovers() {
 write_summary() {
   [[ -f $results/checks.jsonl ]] || return 0
   local row
-  row='select(.section == $s) | "| `" + .command + "` | " + .result + " | " + (if .result == "denied" then "`" + ([.output | splits("\n") | select(test("An error occurred"))] | join(" ")) + "`" elif (.output | test("^\\s*[0-9]+\\s*$")) then (.output | gsub("\\s"; "")) else "" end | gsub("\\|"; "\\|")) + " |"'
+  row='select(.section == $s) | "| `" + .command + "` | " + .result + " | " + (if .result == "denied" then "`" + ([.output | splits("\n") | select(test("An error occurred"))] | join(" ")) + "`" else "" end | gsub("\\|"; "\\|")) + " |"'
   {
     echo '# iam-permissions-boundary'
     echo
@@ -148,14 +148,6 @@ write_summary() {
     echo '| Command | Result | Error message |'
     echo '|---|---|---|'
     jq -r --arg s 3 "$row" "$results/checks.jsonl"
-    echo
-    echo '## Section 4: commands run with the role created in section 3'
-    echo
-    echo 'Run as the administrator after assuming `role/app/worker`, which has `AdministratorAccess` attached and `DevBoundary` as its permissions boundary, and after `list-buckets` had passed. For `list-buckets` the output is the number of buckets.'
-    echo
-    echo '| Command | Result | Output or error message |'
-    echo '|---|---|---|'
-    jq -r --arg s 4 "$row" "$results/checks.jsonl"
   } | mask >"$results/summary.md"
 }
 
