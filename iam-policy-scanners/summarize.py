@@ -17,6 +17,7 @@ LABELS = {
     "passrole-star-inline": "`iam:PassRole` (aws_iam_role_policy)",
     "passrole-app-path": "`iam:PassRole`",
     "create-policy-version": "`iam:CreatePolicyVersion`",
+    "create-policy-version-star": "`iam:CreatePolicyVersion`",
     "action-typo": "`s3:GetObjcet`",
     "unknown-at-plan": "`iam:PassRole` and `s3:GetObject` on a bucket created in the same plan",
 }
@@ -211,7 +212,7 @@ def main():
         ["action-star", "s3-star", "not-action", "resource-star"],
     )
     out += rules_section("4. iam:PassRole", "", ["passrole-star", "passrole-star-inline", "passrole-app-path"])
-    out += rules_section("5. Privilege escalation and a misspelled action", "", ["create-policy-version", "action-typo"])
+    out += rules_section("5. Privilege escalation and a misspelled action", "", ["create-policy-version", "create-policy-version-star", "action-typo"])
     out += unknown_section()
     (results / "summary.md").write_text("\n".join(out))
 

@@ -34,6 +34,7 @@ Each file under `terraform/cases/` is one policy, attached to the role in `terra
 | `passrole-star-inline` | `iam:PassRole` on `*` in `aws_iam_role_policy` |
 | `passrole-app-path` | `iam:PassRole` on `arn:aws:iam::111122223333:role/app/*` |
 | `create-policy-version` | `iam:CreatePolicyVersion` on `arn:aws:iam::111122223333:policy/app/*` |
+| `create-policy-version-star` | `iam:CreatePolicyVersion` on `*` |
 | `action-typo` | `s3:GetObjcet` on `arn:aws:s3:::app-bucket/*` |
 | `unknown-at-plan` | `passrole-star` plus `s3:GetObject` on the ARN of an S3 bucket created in the same configuration |
 

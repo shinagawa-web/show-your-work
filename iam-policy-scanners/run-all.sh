@@ -11,7 +11,7 @@ TFPV_COMMIT=0872b5d4a9d1ecb8bc2207e64ff4dd2409a78352
 TFPV_RELEASE=0.0.9
 REGION=us-east-1
 PYTHON=${PYTHON:-python3}
-CASES="baseline resource-star action-star s3-star not-action passrole-star passrole-star-inline passrole-app-path create-policy-version action-typo unknown-at-plan"
+CASES="baseline resource-star action-star s3-star not-action passrole-star passrole-star-inline passrole-app-path create-policy-version create-policy-version-star action-typo unknown-at-plan"
 
 account=$(aws sts get-caller-identity --query Account --output text)
 if [[ -n ${GITHUB_ACTIONS:-} ]]; then
