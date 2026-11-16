@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AccessAnalyzerPolicyChecks",
+      "Effect": "Allow",
+      "Action": [
+        "access-analyzer:ValidatePolicy",
+        "access-analyzer:CheckNoNewAccess"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
