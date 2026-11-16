@@ -20,7 +20,7 @@ To run it in a fork, the AWS account needs:
 | Who | Credentials | Policies |
 |---|---|---|
 | Administrator | The credentials `run-all.sh` starts with | Creates `DevBoundary` and `role/syw-developer`, and deletes everything at the end |
-| Developer | `role/syw-developer`, assumed by the administrator with session name `developer` | `policies/developer.json` as an inline policy |
+| Developer | `role/syw-developer`, assumed by the administrator with session name `developer` | `policies/manage-app-roles.json` as an inline policy |
 | Role created by the developer | `role/app/worker`, assumed by the administrator with session name `app` | `AdministratorAccess`, with `policies/dev-boundary.json` (`DevBoundary`) as its permissions boundary |
 
 `run-all.sh` exits non-zero when a command is allowed or denied differently from what it expects, when a denial message does not contain the expected wording, when Terraform fails, or when something is left after cleanup.

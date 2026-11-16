@@ -137,10 +137,10 @@ write_summary() {
     echo
     echo '## Section 3: commands run as the developer'
     echo
-    echo 'The only policy on `role/syw-developer`, created from `policies/developer.json`.'
+    echo 'The only policy on `role/syw-developer`, created from `policies/manage-app-roles.json`.'
     echo
     echo '```json'
-    cat "$work/developer.json"
+    cat "$work/manage-app-roles.json"
     echo '```'
     echo
     echo 'Run with the credentials of `role/syw-developer`, after `create-role` with the boundary had passed. The message is the AWS CLI error line.'
@@ -190,7 +190,7 @@ main() {
   fi
 
   cp "$here/policies/dev-boundary.json" "$work/dev-boundary.json"
-  sed "s/111122223333/$account/g" "$here/policies/developer.json" >"$work/developer.json"
+  sed "s/111122223333/$account/g" "$here/policies/manage-app-roles.json" >"$work/manage-app-roles.json"
   jq -n --arg p "$reader_arn" '{Version: "2012-10-17", Statement: [{Effect: "Allow", Principal: {AWS: $p}, Action: "sts:AssumeRole"}]}' >"$work/trust.json"
   mkdir "$work/terraform"
   cp "$here/terraform/main.tf" "$work/terraform/main.tf"
@@ -199,7 +199,7 @@ main() {
   {
     aws iam create-policy --policy-name DevBoundary --policy-document file://dev-boundary.json
     aws iam create-role --role-name syw-developer --assume-role-policy-document file://trust.json
-    aws iam put-role-policy --role-name syw-developer --policy-name developer --policy-document file://developer.json
+    aws iam put-role-policy --role-name syw-developer --policy-name ManageAppRoles --policy-document file://manage-app-roles.json
   } 2>&1 | mask | tee "$results/setup.log"
 
   wait_until 'assume role/syw-developer' "assume $developer_role_arn developer"
