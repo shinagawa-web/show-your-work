@@ -7,7 +7,7 @@ resource "aws_iam_policy" "app" {
       {
         Effect    = "Allow"
         NotAction = ["iam:*", "organizations:*", "account:*"]
-        Resource  = "*"
+        Resource  = "arn:aws:s3:::app-bucket/*"
       }
     ]
   })

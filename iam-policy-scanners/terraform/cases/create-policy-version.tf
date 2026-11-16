@@ -7,7 +7,7 @@ resource "aws_iam_policy" "app" {
       {
         Effect   = "Allow"
         Action   = "iam:CreatePolicyVersion"
-        Resource = "*"
+        Resource = "arn:aws:iam::111122223333:policy/app/*"
       }
     ]
   })

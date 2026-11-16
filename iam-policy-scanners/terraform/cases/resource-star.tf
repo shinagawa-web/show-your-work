@@ -6,11 +6,8 @@ resource "aws_iam_policy" "app" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = "iam:PassRole"
-        Resource = "arn:aws:iam::111122223333:role/app/*"
-        Condition = {
-          StringEquals = { "iam:PassedToService" = "lambda.amazonaws.com" }
-        }
+        Action   = "s3:GetObject"
+        Resource = "*"
       }
     ]
   })

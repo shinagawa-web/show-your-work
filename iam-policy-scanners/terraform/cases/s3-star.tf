@@ -7,7 +7,7 @@ resource "aws_iam_policy" "app" {
       {
         Effect   = "Allow"
         Action   = "s3:*"
-        Resource = "*"
+        Resource = "arn:aws:s3:::app-bucket/*"
       }
     ]
   })

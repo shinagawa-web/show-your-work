@@ -25,20 +25,19 @@ Each file under `terraform/cases/` is one policy, attached to the role in `terra
 
 | Case | Policy |
 |---|---|
-| `baseline` | `s3:GetObject` on `arn:aws:s3:::app-bucket/*` in `aws_iam_policy` |
-| `action-star` | Action `*` on `*` |
-| `s3-star` | `s3:*` on `*` |
-| `not-action` | `NotAction` `iam:*`, `organizations:*`, `account:*` on `*` |
+| `baseline` | `s3:GetObject` on `arn:aws:s3:::app-bucket/*` |
+| `resource-star` | `s3:GetObject` on `*` |
+| `action-star` | Action `*` on `arn:aws:s3:::app-bucket/*` |
+| `s3-star` | `s3:*` on `arn:aws:s3:::app-bucket/*` |
+| `not-action` | `NotAction` `iam:*`, `organizations:*`, `account:*` on `arn:aws:s3:::app-bucket/*` |
 | `passrole-star` | `iam:PassRole` on `*` |
 | `passrole-star-inline` | `iam:PassRole` on `*` in `aws_iam_role_policy` |
-| `passrole-app-path` | `iam:PassRole` on `role/app/*` |
-| `passrole-app-path-condition` | `iam:PassRole` on `role/app/*` with an `iam:PassedToService` condition |
-| `create-policy-version` | `iam:CreatePolicyVersion` on `*` |
+| `passrole-app-path` | `iam:PassRole` on `arn:aws:iam::111122223333:role/app/*` |
+| `create-policy-version` | `iam:CreatePolicyVersion` on `arn:aws:iam::111122223333:policy/app/*` |
 | `action-typo` | `s3:GetObjcet` on `arn:aws:s3:::app-bucket/*` |
-| `unknown-at-plan` | `passrole-star` plus a statement on the ARN of an S3 bucket created in the same configuration |
-| `action-star-policy-document` | `action-star` written with `data.aws_iam_policy_document` |
+| `unknown-at-plan` | `passrole-star` plus `s3:GetObject` on the ARN of an S3 bucket created in the same configuration |
 
-All but `passrole-star-inline` and `action-star-policy-document` are written with `jsonencode()` in `aws_iam_policy`. `reference-policy.json` is the existing policy passed to CheckNoNewAccess.
+All but `passrole-star-inline` are written with `jsonencode()` in `aws_iam_policy`. `reference-policy.json` is the existing policy passed to CheckNoNewAccess.
 
 ## How each tool runs
 
