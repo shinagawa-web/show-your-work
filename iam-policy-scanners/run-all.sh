@@ -59,9 +59,13 @@ tfpv_config() {
   "$1/bin/python" -c 'import iam_check, os; print(os.path.join(os.path.dirname(iam_check.__file__), "config", "default.yaml"))'
 }
 
-tf() {
+offline() {
   env -u AWS_PROFILE -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKEN -u AWS_ROLE_ARN -u AWS_WEB_IDENTITY_TOKEN_FILE \
-    AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null TF_IN_AUTOMATION=1 TF_PLUGIN_CACHE_DIR="$work/plugin-cache" "$bin/terraform" "$@"
+    AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null "$@"
+}
+
+tf() {
+  offline TF_IN_AUTOMATION=1 TF_PLUGIN_CACHE_DIR="$work/plugin-cache" "$bin/terraform" "$@"
 }
 
 plan() {
@@ -81,10 +85,10 @@ scan() {
   mkdir -p "$code"
   cp "$here/terraform/common.tf" "$here/terraform/cases/$c.tf" "$code/"
   rc=0
-  "$bin/checkov/bin/checkov" -d "$code" --framework terraform -o json >"$results/$c/checkov.json" 2>"$results/$c/checkov.err" || rc=$?
+  offline "$bin/checkov/bin/checkov" -d "$code" --framework terraform -o json >"$results/$c/checkov.json" 2>"$results/$c/checkov.err" || rc=$?
   echo "$rc" >"$results/$c/checkov.rc"
   rc=0
-  "$bin/trivy" config --checks-bundle-repository "$TRIVY_CHECKS" --cache-dir "$work/trivy-cache" \
+  offline "$bin/trivy" config --checks-bundle-repository "$TRIVY_CHECKS" --cache-dir "$work/trivy-cache" \
     --exit-code 1 -f json "$code" >"$results/$c/trivy.json" 2>"$results/$c/trivy.err" || rc=$?
   echo "$rc" >"$results/$c/trivy.rc"
 }
