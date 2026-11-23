@@ -21,9 +21,14 @@ provider "aws" {
   region = "us-east-1"
 }
 
+variable "app_domain_suffix" {
+  type    = string
+  default = "internal-app-access.example.com"
+}
+
 locals {
   name   = "employee-apps-base"
-  domain = "internal-app-access.example.com"
+  domain = var.app_domain_suffix
   apps = {
     wiki    = "wiki.${local.domain}"
     expense = "expense.${local.domain}"

@@ -18,6 +18,19 @@ variable "crowdstrike_tenant_id" {
   default = "00000000000000000000000000000000"
 }
 
+resource "aws_acm_certificate" "public" {
+  domain_name       = "*.${local.domain}"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_acm_certificate_validation" "public" {
+  certificate_arn = aws_acm_certificate.public.arn
+}
+
 resource "aws_verifiedaccess_trust_provider" "idc" {
   trust_provider_type      = "user"
   user_trust_provider_type = "iam-identity-center"
@@ -91,7 +104,7 @@ resource "aws_verifiedaccess_endpoint" "app" {
   attachment_type          = "vpc"
   endpoint_type            = "load-balancer"
   application_domain       = each.value
-  domain_certificate_arn   = module.base.certificate_arn
+  domain_certificate_arn   = aws_acm_certificate_validation.public.certificate_arn
   endpoint_domain_prefix   = each.key
   security_group_ids       = [aws_security_group.endpoint.id]
 
@@ -109,4 +122,8 @@ output "log_group_name" {
 
 output "endpoint_domains" {
   value = { for k, e in aws_verifiedaccess_endpoint.app : e.application_domain => e.endpoint_domain }
+}
+
+output "certificate_validation_records" {
+  value = [for o in aws_acm_certificate.public.domain_validation_options : { name = o.resource_record_name, type = o.resource_record_type, value = o.resource_record_value }]
 }
