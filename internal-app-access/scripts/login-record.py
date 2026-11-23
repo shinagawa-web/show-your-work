@@ -14,7 +14,7 @@ SHOWN_CLAIMS = {"email", "address", "verified", "custom:groups", "groups", "iden
 p = argparse.ArgumentParser()
 p.add_argument("--log-group", required=True)
 p.add_argument("--since", required=True)
-p.add_argument("--operated-at", required=True)
+p.add_argument("--opened-at", required=True)
 p.add_argument("--label", required=True)
 p.add_argument("--out", required=True)
 p.add_argument("--note", default="")
@@ -67,7 +67,7 @@ r = subprocess.run(
 events = json.loads(r.stdout)["events"]
 
 records = []
-lines = [f"Operated by the user at: {args.operated_at}", f"Log group: {args.log_group}", f"Log events since: {args.since}"]
+lines = [f"Opened at: {args.opened_at}", f"Log group: {args.log_group}", f"Log events since: {args.since}"]
 if args.note:
     lines.append(f"Note: {args.note}")
 lines.append("")
@@ -111,6 +111,6 @@ out = pathlib.Path(args.out)
 out.mkdir(parents=True, exist_ok=True)
 (out / f"{args.label}.txt").write_text(mask("\n".join(lines)) + "\n")
 (out / f"{args.label}.json").write_text(mask(json.dumps({
-    "label": args.label, "operated_at": args.operated_at, "note": args.note, "events": records,
+    "label": args.label, "opened_at": args.opened_at, "note": args.note, "events": records,
 }, indent=2)) + "\n")
 print(mask(f"{args.label}: {len(records)} requests logged"))
