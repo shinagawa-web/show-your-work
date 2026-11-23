@@ -40,6 +40,8 @@ def jwt_payload(token):
 
 
 def group_names(v):
+    if isinstance(v, dict):
+        return {f"<group-id-{i}>": "<group-name>" for i, _ in enumerate(v, 1)}
     if isinstance(v, list):
         return ["<group-name>" for _ in v]
     return ",".join("<group-name>" for _ in str(v).split(","))
@@ -48,10 +50,10 @@ def group_names(v):
 def claim_view(claims):
     out = {}
     for k, v in claims.items():
-        if isinstance(v, dict):
-            out[k] = claim_view(v)
-        elif k in GROUP_CLAIMS:
+        if k in GROUP_CLAIMS:
             out[k] = group_names(v)
+        elif isinstance(v, dict):
+            out[k] = claim_view(v)
         elif k in SHOWN_CLAIMS:
             out[k] = v
         else:
