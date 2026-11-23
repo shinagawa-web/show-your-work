@@ -250,6 +250,7 @@ main() {
     exit 1
   fi
 
+  "$here/scripts/plan-counts.sh"
   python3 -I "$here/scripts/prices.py" "$results/prices"
 
   export TF_VAR_office_cidrs="[\"$host_ip/32\"]"
