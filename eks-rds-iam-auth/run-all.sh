@@ -472,8 +472,9 @@ s6() {
   for p in $(jq -r '.[] | select(.ready | not) | .name' "$dir/pods-after.json"); do
     kubectl -n app logs "$p" --tail=20
   done
-  jq -s --slurpfile new "$dir/pods-after.json" --arg host "$proxy_endpoint" '
-    ($new[0] | map(.name)) as $n
+  jq -s --slurpfile old "$dir/pods-before.json" --slurpfile new "$dir/pods-after.json" --arg host "$proxy_endpoint" '
+    ($old[0] | map(.name)) as $o
+    | ($new[0] | map(.name) | map(select(. as $p | $o | index($p) == null))) as $n
     | {db_host: $host, first_new_pod_response: (map(select(.ok and (.pod as $p | $n | index($p)) != null)) | first)}' "$dir/load.jsonl" |
     tee "$dir/proxy.json"
   [[ $rc == 0 ]] && jq -e '.first_new_pod_response.ok' "$dir/proxy.json" >/dev/null
