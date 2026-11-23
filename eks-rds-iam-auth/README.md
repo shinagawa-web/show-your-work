@@ -21,8 +21,8 @@ AWS_PROFILE=<profile> AWS_REGION=ap-northeast-1 ./run-all.sh down
 | `s2` | The setup before the migration: the app password in Secrets Manager, the `SecretsManagerRDSMySQLRotationSingleUser` rotation function, External Secrets Operator, Reloader, the app (`app/before`) and the load client (`app/loadgen`). Then one `rotate-secret` |
 | `s3` | Enables IAM database authentication on the instance and creates the DB user `app_iam` with the same grants as `app` |
 | `s4` | A role allowed `rds-db:connect` on the instance and `app_iam`, associated with the app ServiceAccount, and the app Pods recreated (`terraform/s4`) |
-| `s5` | Switches the app to `app/after`, which builds a token for every new connection |
-| `s6` | RDS Proxy with `default_auth_scheme = "IAM_AUTH"` (`terraform/s6`). Once it is ready, checks a new connection of the app from `s5` if the app started more than 16 minutes earlier, then moves the role policy and `DB_HOST` to the proxy |
+| `s5` | Switches the app to `app/after`, which builds a token for every new connection, then compares the connections `app_iam` opened on the DB with the tokens the app logged |
+| `s6` | RDS Proxy with `default_auth_scheme = "IAM_AUTH"` (`terraform/s6`), then the role policy and `DB_HOST` moved to the proxy, with Amazon Root CA 1 added to the CA bundle |
 | `reset` | Undoes `s3` to `s6` and deletes the app and the load client, so that `token s2 s3 s4 s5 s6` can run again from the start |
 | `down` | Deletes everything |
 
@@ -43,7 +43,7 @@ Under `results/`, one folder per step, each with `run.log` (the output of the st
 | `s3/status.log` | The instance status while IAM authentication was enabled |
 | `s4/pod-identity-env.jsonl` | The `AWS_*` variables that Pod Identity added to the recreated Pods |
 | `s5/app.diff` | `diff -u app/before/main.go app/after/main.go` |
-| `s6/late.json` | The new connection of the `s5` app more than 16 minutes after it started |
+| `s5/connections.json` | Connections opened by `app_iam`, `building auth token` lines and connection IDs seen by the client, over the same period |
 | `s6/proxy.json` | The first request answered by a Pod connected through the proxy |
 
 ## Pinned versions

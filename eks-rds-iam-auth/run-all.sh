@@ -13,7 +13,6 @@ RELOADER_CHART=2.2.19
 ROTATION_APP=arn:aws:serverlessrepo:us-east-1:297356227824:applications/SecretsManagerRDSMySQLRotationSingleUser
 ROTATION_VERSION=1.1.749
 MYSQL_IMAGE=public.ecr.aws/docker/library/mysql:8.4.11
-LATE_AFTER=960
 NAME=eks-rds-iam-auth
 SECRET=$NAME/app-db
 ROTATION_STACK=serverlessrepo-$NAME-rotation
@@ -382,6 +381,8 @@ s4() {
 
 s5() {
   context
+  local at0 c0 at1 c1
+  read -r at0 c0 < <(app_iam_connections)
   window_start
   pods_json >"$dir/pods-before.json"
   curl -fsSL -o "$state/rds-ca.pem" "https://truststore.pki.rds.amazonaws.com/$AWS_REGION/$AWS_REGION-bundle.pem"
@@ -399,41 +400,29 @@ s5() {
     ($new[0] | map(.name)) as $n
     | map(select(.ok and (.pod as $p | $n | index($p)) != null)) | first' "$dir/load.jsonl" | tee "$dir/first-new-pod-response.json"
   jq -e '.user == "app_iam@%"' "$dir/first-new-pod-response.json" >/dev/null
+
+  sleep 150
+  read -r at1 c1 < <(app_iam_connections)
+  local tokens seen
+  tokens=$(for p in $(jq -r '.[].name' "$dir/pods-after.json"); do
+    kubectl -n app logs "$p" --timestamps | grep 'building auth token' | awk -v at="$at1" '$1 <= at'
+  done | tee "$dir/token-lines.log" | wc -l | tr -d ' ')
+  seen=$(kubectl -n app logs deploy/loadgen --since-time="$(iso "$(cat "$dir/window-start")")" |
+    jq -s --slurpfile new "$dir/pods-after.json" --arg at "$at1" '
+      ($new[0] | map(.name)) as $n | map(select(.ok and .t <= $at and (.pod as $p | $n | index($p)) != null)) | map(.conn_id) | unique | length')
+  jq -n --arg from "$at0" --arg to "$at1" --argjson opened "$((c1 - c0))" --argjson tokens "$tokens" --argjson seen "$seen" \
+    '{from: $from, to: $to, app_iam_connections_opened: $opened, auth_token_log_lines: $tokens, conn_ids_seen_by_client: $seen}' |
+    tee "$dir/connections.json"
+  jq -e '.app_iam_connections_opened == .auth_token_log_lines' "$dir/connections.json" >/dev/null
 }
 
-late_check() {
-  local proxy_done=$1 pods p started elapsed token_at t_line
-  pods=$(pods_json)
-  echo "$pods" >"$dir/late-pods.json"
-  p=$(jq -r 'sort_by(.started) | last | .name' <<<"$pods")
-  started=$(jq -r 'sort_by(.started) | last | .started' <<<"$pods")
-  elapsed=$((proxy_done - $(epoch "$started")))
-  if ((elapsed < LATE_AFTER)); then
-    jq -n --arg pod "$p" --arg started "$started" --argjson elapsed "$elapsed" --argjson need "$LATE_AFTER" \
-      '{checked: false, pod: $pod, started: $started, elapsed_seconds: $elapsed, reason: ("less than " + ($need | tostring) + " seconds after start")}' | tee "$dir/late.json"
-    return 0
-  fi
-  local from deadline
-  from=$(date +%s)
-  deadline=$((SECONDS + 150))
-  while :; do
-    token_at=$(kubectl -n app logs "$p" --timestamps --since-time="$(iso "$from")" | grep 'building auth token' | head -1 | cut -d' ' -f1 || true)
-    if [[ -n $token_at ]]; then
-      t_line=$(kubectl -n app logs deploy/loadgen --since-time="$(iso "$((from - 120))")" |
-        jq -sc --arg p "$p" --argjson tok "$(epoch "$token_at")" '
-          map(. + {e: (.t | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601)}) as $all
-          | ($all | map(select(.pod == $p and .ok and .e < $tok)) | map(.conn_id) | max // 0) as $maxold
-          | $all | map(select(.pod == $p and .e >= $tok and .ok and .conn_id > $maxold)) | first | del(.e) // empty')
-      [[ -n $t_line ]] && break
-    fi
-    ((SECONDS < deadline)) || { echo 'no new connection was observed'; break; }
-    sleep 5
-  done
-  jq -n --arg pod "$p" --arg started "$started" --arg token_at "$token_at" \
-    --argjson token_elapsed "$(($(epoch "${token_at:-$started}") - $(epoch "$started")))" --argjson response "${t_line:-null}" \
-    '{checked: true, pod: $pod, started: $started, token_built: $token_at, token_built_seconds_after_start: $token_elapsed, response: $response}' |
-    tee "$dir/late.json"
-  jq -e '.response.ok' "$dir/late.json" >/dev/null
+app_iam_connections() {
+  cat >"$state/count.sql" <<'EOF'
+SELECT DATE_FORMAT(UTC_TIMESTAMP(6), '%Y-%m-%dT%H:%i:%s.%fZ') AS at, IFNULL(SUM(TOTAL_CONNECTIONS), 0) AS app_iam_connections
+FROM performance_schema.accounts WHERE USER = 'app_iam';
+EOF
+  sql count-app-iam "$state/count.sql" | tee -a "$dir/connections-sql.log" | awk -F'|' 'NR == 4 {gsub(/ /, "", $2); gsub(/ /, "", $3); print $2, $3}'
+  rm "$state/count.sql"
 }
 
 s6() {
@@ -447,10 +436,6 @@ s6() {
     sleep 10
   done
   aws rds describe-db-proxy-targets --db-proxy-name "$NAME" --query 'Targets[].{Type:Type,Endpoint:Endpoint,Health:TargetHealth}' --output json
-  local proxy_done
-  proxy_done=$(date +%s)
-  late_check "$proxy_done" || true
-
   local proxy_endpoint proxy_id
   proxy_endpoint=$(tf s6 output -raw proxy_endpoint)
   proxy_id=$(tf s6 output -raw proxy_resource_id)
@@ -575,6 +560,12 @@ write_summary() {
     cat "$results/s5/app.diff" 2>/dev/null || true
     echo '```'
     echo
+    echo '## Section 5: one token per new connection'
+    echo
+    echo 'With the connection max lifetime set to 1 minute, from before the switch until 150 seconds after the step: connections that `app_iam` opened on the DB (`TOTAL_CONNECTIONS` in `performance_schema.accounts`), and `building auth token` lines in the logs of the new Pods.'
+    echo
+    jq -r '"- " + .from + " to " + .to + ": " + (.app_iam_connections_opened | tostring) + " connections opened, " + (.auth_token_log_lines | tostring) + " `building auth token` lines"' "$results/s5/connections.json" 2>/dev/null || true
+    echo
     echo '## Section 6: connecting through RDS Proxy'
     echo
     echo 'After the Pod role was allowed `rds-db:connect` on the proxy and `DB_HOST` was set to the proxy endpoint, the first request that a new Pod answered:'
@@ -583,19 +574,12 @@ write_summary() {
     jq -c '.' "$results/s6/proxy.json" 2>/dev/null || echo null
     echo '```'
     echo
-    echo '## A new connection more than 16 minutes after the app started'
-    echo
-    echo 'The app from section 5 (connection max lifetime 1 minute), checked once the proxy was ready. `token_built` is when the app logged that it built a token for a new connection; `response` is the first request answered on a connection opened after that.'
-    echo
-    echo '```json'
-    jq -c '.' "$results/s6/late.json" 2>/dev/null || echo null
-    echo '```'
-    echo
     echo '## Numbers not used'
     echo
     echo '- Pod Identity token check (`results/token/tokencheck.log`): '"$(grep -c 'token check: ok' "$results/token/tokencheck.log" 2>/dev/null || echo 0)"' ok line'
     echo '- Section 2 requests and failures: `'"$(jq -c '{requests, failures}' "$results/s2/load.json" 2>/dev/null || echo null)"'`'
     echo '- Section 2 requests answered by the old Pods after AWSCURRENT moved: `'"$(jq -c '.old_pods_after_rotation' "$results/s2/analysis.json" 2>/dev/null || echo null)"'`'
+    echo '- Section 5 connection IDs that the client saw on the new Pods in the same period: `'"$(jq -c '.conn_ids_seen_by_client' "$results/s5/connections.json" 2>/dev/null || echo null)"'`'
     echo '- Section 6 requests and failures while switching to the proxy: `'"$(jq -c '{requests, failures}' "$results/s6/load.json" 2>/dev/null || echo null)"'`'
     echo -n '- Seconds per step:'
     for s in up token s2 s3 s4 s5 s6; do
