@@ -443,13 +443,20 @@ s6() {
   pods_json >"$dir/pods-before.json"
   tf_apply s4 -var "cluster_name=$cluster" -var "connect_resource_id=$proxy_id"
   tf s4 output -raw policy | jq . | mask | tee "$dir/policy.json"
+  local policy_at switch_at rollout_at rc=0
+  policy_at=$(date +%s)
   curl -fsSL -o "$state/rds-ca.pem" "https://truststore.pki.rds.amazonaws.com/$AWS_REGION/$AWS_REGION-bundle.pem"
   curl -fsSL -o "$state/amazon-root-ca-1.pem" https://www.amazontrust.com/repository/AmazonRootCA1.pem
   cat "$state/rds-ca.pem" "$state/amazon-root-ca-1.pem" >"$state/rds-proxy-ca.pem"
   kubectl -n app create configmap rds-ca --from-file=bundle.pem="$state/rds-proxy-ca.pem" --dry-run=client -o yaml | kubectl apply -f -
-  kubectl -n app set env deployment/app DB_HOST="$proxy_endpoint"
-  local rc=0
+  kubectl -n app patch deployment app --type strategic -p "$(jq -nc --arg host "$proxy_endpoint" \
+    --arg sha "$(shasum -a 256 "$state/rds-proxy-ca.pem" | cut -c1-16)" \
+    '{spec: {template: {metadata: {annotations: {"rds-ca-sha256": $sha}}, spec: {containers: [{name: "app", env: [{name: "DB_HOST", value: $host}]}]}}}}')"
+  switch_at=$(date +%s)
   kubectl -n app rollout status deployment/app --timeout=180s || rc=1
+  rollout_at=$(date +%s)
+  jq -n --arg policy "$(iso "$policy_at")" --arg switch "$(iso "$switch_at")" --arg rollout "$(iso "$rollout_at")" \
+    '{policy_applied: $policy, db_host_switched: $switch, rollout_finished: $rollout}' | tee "$dir/events.json"
   sleep 20
   pods_json >"$dir/pods-after.json"
   jq . "$dir/pods-after.json"
