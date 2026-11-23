@@ -23,6 +23,7 @@ p.add_argument("--wait-dns", default="")
 p.add_argument("--private-only", action="store_true")
 p.add_argument("--retry-seconds", type=int, default=0)
 p.add_argument("--until-no-body-seconds", type=int, default=0)
+p.add_argument("--location-file")
 p.add_argument("--mask", action="append", default=[])
 args = p.parse_args()
 
@@ -94,6 +95,8 @@ location = ""
 for h in headers.splitlines():
     if h.lower().startswith("location:"):
         location = h.split(":", 1)[1].strip()
+if args.location_file:
+    pathlib.Path(args.location_file).write_text(location)
 host = (urllib.parse.urlsplit(location).hostname or "") if location else ""
 reached = APP_BODY in body
 

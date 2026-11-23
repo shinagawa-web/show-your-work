@@ -126,10 +126,6 @@ probe() {
     --mask "$group_id=<verifiers-group-id>" --mask "$parent_domain=example.com" "$@"
 }
 
-last_location() {
-  python3 -I -c 'import json,sys; print(json.loads(open(sys.argv[1]).read().splitlines()[-1])["location"])' "$results/$cfg/probes/probes.jsonl"
-}
-
 alb_name() {
   tf output -raw alb_name
 }
@@ -181,11 +177,16 @@ checks_b() {
   probe --name unauthenticated-to-alb \
     --request "GET https://wiki.$domain/ to the ALB without a session cookie" \
     --prediction '302 to /oauth2/authorize on the Cognito domain, and no app body' \
-    --url "https://wiki.$domain/" --connect-to "wiki.$domain:443:$dns:443" --wait-dns "$dns" --retry-seconds 0
+    --url "https://wiki.$domain/" --connect-to "wiki.$domain:443:$dns:443" --wait-dns "$dns" --retry-seconds 0 \
+    --location-file "$work/location"
+  if [[ ! -s $work/location ]]; then
+    echo 'The ALB sent no Location to follow'
+    return 1
+  fi
   probe --name follow-authorize-once \
     --request 'GET the Location of the 302 above, once' \
     --prediction 'Cognito redirects to the SAML identity provider, the dummy Google SSO URL' \
-    --url "$(last_location)"
+    --url "$(cat "$work/location")"
 }
 
 checks_c() {
