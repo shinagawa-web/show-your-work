@@ -458,6 +458,10 @@ s6() {
   pods_json >"$dir/pods-before.json"
   tf_apply s4 -var "cluster_name=$cluster" -var "connect_resource_id=$proxy_id"
   tf s4 output -raw policy | jq . | mask | tee "$dir/policy.json"
+  curl -fsSL -o "$state/rds-ca.pem" "https://truststore.pki.rds.amazonaws.com/$AWS_REGION/$AWS_REGION-bundle.pem"
+  curl -fsSL -o "$state/amazon-root-ca-1.pem" https://www.amazontrust.com/repository/AmazonRootCA1.pem
+  cat "$state/rds-ca.pem" "$state/amazon-root-ca-1.pem" >"$state/rds-proxy-ca.pem"
+  kubectl -n app create configmap rds-ca --from-file=bundle.pem="$state/rds-proxy-ca.pem" --dry-run=client -o yaml | kubectl apply -f -
   kubectl -n app set env deployment/app DB_HOST="$proxy_endpoint"
   local rc=0
   kubectl -n app rollout status deployment/app --timeout=180s || rc=1
