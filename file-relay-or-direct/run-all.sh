@@ -268,9 +268,15 @@ deletion() { prepare; deletion_check; write_summary; }
 expiry-check() { tools; outputs; expiry_check; write_summary; }
 summary() { tools; write_summary; }
 
+cell_of() {
+  jq -r --arg n "$1" 'select(.name == $n) |
+    ([.body | match("<Code>([A-Za-z]+)</Code>|api error ([A-Za-z]+):") | .captures[].string | select(. != null)] | first // "") as $code |
+    if .status == 200 or $code == "" then "\(.status)" else "\(.status) \($code)" end' "$results/$log" 2>/dev/null | tail -n 1
+}
+
 status_row() {
   local label=$1 prefix=$2
-  printf '| %s | %s | %s | %s |\n' "$label" "$(status_of "$prefix-before-delete")" "$(status_of "$prefix-after-delete")" "$(status_of "$prefix-after-invalidation")"
+  printf '| %s | %s | %s | %s |\n' "$label" "$(cell_of "$prefix-before-delete")" "$(cell_of "$prefix-after-delete")" "$(cell_of "$prefix-after-invalidation")"
 }
 
 write_summary() {
@@ -281,9 +287,11 @@ write_summary() {
     echo
     echo 'HTTP status for one object in `private/`, requested through the app with the permission header and with the same two URLs issued by the app: after CloudFront cached the object, after the object was deleted from S3, and after a CloudFront invalidation of the path completed.'
     echo
+    echo 'Each cell is the HTTP status and, when the response is an error, the error code in the body. The 403s are AccessDenied, not NoSuchKey: the app role and the bucket policy for CloudFront allow `s3:GetObject` but not `s3:ListBucket`, so S3 answers a request for a missing object with AccessDenied (with `s3:ListBucket` it is 404 NoSuchKey). They show that the object is gone, not that the URL stopped being valid. After the invalidation, CloudFront returns the AccessDenied that S3 sent to its request signed with origin access control. The relay returns 502, with the AccessDenied that S3 returned to its `GetObject` in the body.'
+    echo
     log=deletion.jsonl
     echo '| Request | Before deletion | After deletion | After invalidation |'
-    echo '|---|---:|---:|---:|'
+    echo '|---|---|---|---|'
     status_row 'Relay through the app' relay
     status_row 'S3 presigned URL' s3
     status_row 'CloudFront signed URL' cf
@@ -291,12 +299,12 @@ write_summary() {
     log=expiry.jsonl
     echo '## URL signed with credentials that expire in 15 minutes'
     echo
-    echo 'An S3 presigned GET URL with `X-Amz-Expires=3600`, signed with the credentials of a role session assumed with `--duration-seconds 900`. Status right after signing, and 30 seconds after the session credentials expired.'
+    echo 'An S3 presigned GET URL with `X-Amz-Expires=3600`, signed with the credentials of a role session assumed with `--duration-seconds 900`. HTTP status and, for the error, the error code in the body, right after signing and 30 seconds after the session credentials expired.'
     echo
-    echo '| When | Status |'
-    echo '|---|---:|'
-    echo "| Right after signing | $(status_of right-after-signing) |"
-    echo "| After the credentials expired | $(status_of after-credentials-expired) |"
+    echo '| When | Status and error code |'
+    echo '|---|---|'
+    echo "| Right after signing | $(cell_of right-after-signing) |"
+    echo "| After the credentials expired | $(cell_of after-credentials-expired) |"
     echo
     echo 'Response body after the credentials expired:'
     echo
