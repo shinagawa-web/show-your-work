@@ -14,6 +14,10 @@ It uses `aws` (AWS CLI v2), `curl`, `unzip`, `python3` and `od`. It downloads Te
 
 It stops with a non-zero exit code, after destroying what it created, when an apply or destroy fails, when the account has resources of the kinds it creates before it starts or after it ends, or when `scripts/summary.py` finds the results inconsistent. `results/summary.md` is what goes to the pull request.
 
+`./run-all.sh <configuration> ...` runs only those configurations and keeps the results of the others.
+
+`results/` is committed. It holds the results of the run made on the maintainer's machine at the time of the commit that last changed it.
+
 ## Configurations
 
 `terraform/modules/alb` is the ALB every configuration uses: a security group with egress to the targets, the ALB, one target group per application, an HTTPS listener with a fixed 404 response, and one listener rule per application on its host name. `internal` selects the scheme. With `cognito` set, each listener rule authenticates with Cognito before forwarding.

@@ -3,3 +3,5 @@ terraform.tfstate
 terraform.tfstate.backup
 .terraform.tfstate.lock.info
 .terraform/
+.terraform-build/
+google-workspace-metadata.xml

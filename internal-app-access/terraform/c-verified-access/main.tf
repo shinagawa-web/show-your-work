@@ -3,7 +3,6 @@ module "alb" {
   name            = local.name
   internal        = true
   vpc_id          = module.base.vpc_id
-  vpc_cidr        = module.base.vpc_cidr
   subnet_ids      = module.base.private_subnet_ids
   certificate_arn = module.base.certificate_arn
   apps            = local.apps
@@ -17,11 +16,6 @@ variable "idc_group_id" {
 variable "crowdstrike_tenant_id" {
   type    = string
   default = "00000000000000000000000000000000"
-}
-
-variable "crowdstrike_min_overall_score" {
-  type    = number
-  default = 50
 }
 
 resource "aws_verifiedaccess_trust_provider" "idc" {
@@ -60,8 +54,7 @@ resource "aws_verifiedaccess_group" "employees" {
   policy_document = <<-CEDAR
     permit(principal, action, resource)
     when {
-      context.idc.groups has "${var.idc_group_id}" &&
-      context.crowdstrike.assessment.overall >= ${var.crowdstrike_min_overall_score}
+      context.idc.groups has "${var.idc_group_id}"
     };
   CEDAR
 
@@ -108,4 +101,12 @@ resource "aws_verifiedaccess_endpoint" "app" {
     protocol          = "https"
     subnet_ids        = module.base.private_subnet_ids
   }
+}
+
+output "log_group_name" {
+  value = module.alb.log_group_name
+}
+
+output "endpoint_domains" {
+  value = { for k, e in aws_verifiedaccess_endpoint.app : e.application_domain => e.endpoint_domain }
 }

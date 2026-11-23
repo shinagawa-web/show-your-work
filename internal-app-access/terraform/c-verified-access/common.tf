@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "4.4.2"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "2.8.1"
+    }
   }
 }
 
@@ -31,4 +35,8 @@ module "base" {
   source = "../modules/base"
   name   = local.name
   domain = local.domain
+}
+
+output "alb_name" {
+  value = local.name
 }
