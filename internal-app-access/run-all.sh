@@ -224,6 +224,18 @@ refuse_existing_state() {
 
 main() {
   refuse_existing_state || exit 1
+  local before
+  if ! before=$(leftovers); then
+    echo "$before"
+    echo 'The check for resources left in the account failed. Nothing was run.'
+    exit 1
+  fi
+  if (($# == 0)) && grep -qE '^\s*"' <<<"$before"; then
+    echo "$before"
+    echo 'The account already has resources of the kinds this run creates. Remove them first. Nothing was run.'
+    exit 1
+  fi
+
   if (($# == 0)) && [[ -d $results ]]; then find "$results" -mindepth 1 -maxdepth 1 ! -name login -exec rm -rf {} +; fi
   mkdir -p "$results" "$TF_PLUGIN_CACHE_DIR"
   for cfg in $CONFIGS; do rm -rf "${results:?}/$cfg"; done
@@ -242,12 +254,7 @@ main() {
   curl -fsSLo "$work/terraform.zip" "https://releases.hashicorp.com/terraform/$TERRAFORM/terraform_${TERRAFORM}_${os}_${arch}.zip"
   unzip -oq "$work/terraform.zip" terraform -d "$here/.bin"
 
-  leftovers >"$results/leftovers-before.log"
-  if (($# == 0)) && grep -qE '^\s*"|An error occurred|Unable to' "$results/leftovers-before.log"; then
-    cat "$results/leftovers-before.log"
-    echo 'The account already has resources of the kinds this run creates. Remove them first.'
-    exit 1
-  fi
+  echo "$before" >"$results/leftovers-before.log"
 
   "$here/scripts/plan-counts.sh"
   python3 -I "$here/scripts/prices.py" "$results/prices"
