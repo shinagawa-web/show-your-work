@@ -417,7 +417,10 @@ s5() {
     | [$polls[] | .t as $t | .s as $s | .ids[] | {id: ., t: $t, s: $s}] | group_by(.id) | map(min_by(.s))
     | map(select(.id as $i | $already | index($i) | not)) as $opened
     | [$tokens | split("\n")[] | select(length > 0) | split(" ")[0] | {t: ., s: e}] | map(select(.s >= $from and .s <= $to - 3)) as $tok
-    | [$tok[] | . as $k | ($opened | map(select(.s >= $k.s and .s <= $k.s + 3)) | first) as $c | {token: $k.t, connection_id: $c.id, first_seen: $c.t}] as $pairs
+    | (reduce ($tok | sort_by(.s))[] as $k ([];
+        (map(.connection_id)) as $used
+        | ($opened | sort_by(.s, (.id | tonumber)) | map(select(.s >= $k.s and .s <= $k.s + 3 and (.id as $i | $used | index($i) | not))) | first) as $c
+        | . + [{token: $k.t, connection_id: $c.id, first_seen: $c.t}])) as $pairs
     | {from: $polls[0].t, to: $polls[-1].t,
        auth_token_log_lines: ($tok | length),
        connections_opened: ($opened | length),
