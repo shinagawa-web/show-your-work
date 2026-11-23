@@ -172,9 +172,83 @@ window_end() {
   kubectl -n app logs deploy/loadgen --since-time="$(iso "$((from - 5))")" |
     jq -c --argjson from "$from" --argjson to "$to" \
       'select(.t | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601 | . >= $from and . < $to)' >"$dir/load.jsonl"
-  jq -s --arg stage "$current" --arg from "$(iso "$from")" --arg to "$(iso "$to")" \
-    '{stage: $stage, from: $from, to: $to, requests: length, failures: (map(select(.ok | not)) | length)}' "$dir/load.jsonl" >"$dir/load.json"
+  load_counts "$dir" >"$dir/load.json"
   cat "$dir/load.json"
+}
+
+analyze_s2() {
+  local d=$1
+  jq -s --slurpfile old "$d/pods-before.json" --slurpfile new "$d/pods-after.json" \
+    --argjson rotated "$(epoch "$(jq -r .awscurrent_moved "$d/events.json")")" '
+    ($old[0] | map(.name)) as $o
+    | ($new[0] | map(.name)) as $n
+    | map(. + {e: (.t | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601)})
+    | {
+        old_pods_after_rotation: (map(select((.pod as $p | $o | index($p)) != null and .e >= $rotated))
+          | {requests: length, failures: (map(select(.ok | not)) | length), conn_ids: (map(.conn_id) | unique)}),
+        old_pods_conn_ids_before_rotation: (map(select((.pod as $p | $o | index($p)) != null and .e < $rotated)) | map(.conn_id) | unique),
+        failures: map(select(.ok | not)) | map(del(.e)),
+        first_new_pod_response: (map(select(.ok and (.pod as $p | $n | index($p)) != null)) | first | del(.e))
+      }' "$d/load.jsonl"
+}
+
+analyze_s5() {
+  local d=$1
+  jq -Rn --rawfile tokens "$d/token-lines.log" '
+    def e: (sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) + (capture("\\.(?<f>[0-9]+)Z$").f | "0." + . | tonumber);
+    [inputs | split("\t") | {t: .[0], s: (.[0] | e), ids: (.[1] | split(",") | map(select(length > 0)))}] as $polls
+    | ($polls[0].s) as $from | ($polls[-1].s) as $to
+    | ($polls[0].ids) as $already
+    | [$polls[] | .t as $t | .s as $s | .ids[] | {id: ., t: $t, s: $s}] | group_by(.id) | map(min_by(.s))
+    | map(select(.id as $i | $already | index($i) | not)) as $opened
+    | [$tokens | split("\n")[] | select(length > 0) | split(" ")[0] | {t: ., s: e}] | map(select(.s >= $from and .s <= $to - 3)) as $tok
+    | (reduce ($tok | sort_by(.s))[] as $k ([];
+        (map(.connection_id)) as $used
+        | ($opened | sort_by(.s, (.id | tonumber)) | map(select(.s >= $k.s and .s <= $k.s + 3 and (.id as $i | $used | index($i) | not))) | first) as $c
+        | . + [{token: $k.t, connection_id: $c.id, first_seen: $c.t}])) as $pairs
+    | {from: $polls[0].t, to: $polls[-1].t,
+       auth_token_log_lines: ($tok | length),
+       connections_opened: ($opened | length),
+       tokens_without_connection: ($pairs | map(select(.connection_id == null)) | length),
+       connections_without_token: ($opened | map(select(.s >= $from + 3 and .s <= $to - 3 and (.id as $i | $pairs | map(.connection_id) | index($i) | not))) | length),
+       pairs: $pairs}' "$d/processlist.log"
+}
+
+first_response() {
+  local d=$1
+  jq -s --slurpfile old "$d/pods-before.json" --slurpfile new "$d/pods-after.json" '
+    ($old[0] | map(.name)) as $o
+    | ($new[0] | map(.name) | map(select(. as $p | $o | index($p) == null))) as $n
+    | map(select(.ok and (.pod as $p | $n | index($p)) != null)) | first' "$d/load.jsonl"
+}
+
+analyze_s6() {
+  local d=$1
+  jq -n --slurpfile h "$d/db-host.json" --argjson r "$(first_response "$d")" '$h[0] + {first_new_pod_response: $r}'
+}
+
+load_counts() {
+  local d=$1 step
+  step=$(basename "$d")
+  jq -s --arg stage "$step" --arg from "$(iso "$(cat "$d/window-start")")" --arg to "$(iso "$(cat "$d/window-end")")" \
+    '{stage: $stage, from: $from, to: $to, requests: length, failures: (map(select(.ok | not)) | length)}' "$d/load.jsonl"
+}
+
+reanalyze() {
+  local d
+  for d in "$results"/s2 "$results"/s3 "$results"/s4 "$results"/s5 "$results"/s6; do
+    [[ -f $d/load.jsonl && -f $d/window-start && -f $d/window-end ]] && load_counts "$d" >"$d/load.json"
+  done
+  [[ -f $results/s2/events.json ]] && analyze_s2 "$results/s2" >"$results/s2/analysis.json"
+  if [[ -f $results/s5/pods-after.json ]]; then
+    first_response "$results/s5" >"$results/s5/first-new-pod-response.json"
+  fi
+  [[ -f $results/s5/processlist.log ]] && analyze_s5 "$results/s5" >"$results/s5/connections.json"
+  if [[ -f $results/s6/proxy.json && ! -f $results/s6/db-host.json ]]; then
+    jq '{db_host}' "$results/s6/proxy.json" >"$results/s6/db-host.json"
+  fi
+  [[ -f $results/s6/db-host.json ]] && analyze_s6 "$results/s6" >"$results/s6/proxy.json"
+  return 0
 }
 
 up() {
@@ -306,17 +380,7 @@ EOF
   aws logs filter-log-events --log-group-name /aws/lambda/eks-rds-iam-auth-rotation --start-time "$((rotate_at * 1000))" \
     --query 'events[].message' --output json | jq -r '.[]' | mask >"$dir/rotation-lambda.log" || true
 
-  jq -s --slurpfile old "$dir/pods-before.json" --slurpfile new "$dir/pods-after.json" --argjson rotated "$rotated_at" '
-    ($old[0] | map(.name)) as $o
-    | ($new[0] | map(.name)) as $n
-    | map(. + {e: (.t | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601)})
-    | {
-        old_pods_after_rotation: (map(select((.pod as $p | $o | index($p)) != null and .e >= $rotated))
-          | {requests: length, failures: (map(select(.ok | not)) | length), conn_ids: (map(.conn_id) | unique)}),
-        old_pods_conn_ids_before_rotation: (map(select((.pod as $p | $o | index($p)) != null and .e < $rotated)) | map(.conn_id) | unique),
-        failures: map(select(.ok | not)) | map(del(.e)),
-        first_new_pod_response: (map(select(.ok and (.pod as $p | $n | index($p)) != null)) | first | del(.e))
-      }' "$dir/load.jsonl" | tee "$dir/analysis.json"
+  analyze_s2 "$dir" | tee "$dir/analysis.json"
   jq -e '.first_new_pod_response.ok' "$dir/analysis.json" >/dev/null
 }
 
@@ -398,9 +462,7 @@ s5() {
   jq . "$dir/pods-after.json"
   window_end
   (cd "$here" && diff -u -L app/before/main.go -L app/after/main.go app/before/main.go app/after/main.go >"$dir/app.diff") || true
-  jq -s --slurpfile new "$dir/pods-after.json" '
-    ($new[0] | map(.name)) as $n
-    | map(select(.ok and (.pod as $p | $n | index($p)) != null)) | first' "$dir/load.jsonl" | tee "$dir/first-new-pod-response.json"
+  first_response "$dir" | tee "$dir/first-new-pod-response.json"
   jq -e '.user == "app_iam@%"' "$dir/first-new-pod-response.json" >/dev/null
 
   sleep 150
@@ -409,24 +471,7 @@ s5() {
   for p in $(jq -r '.[].name' "$dir/pods-after.json"); do
     kubectl -n app logs "$p" --timestamps | grep 'building auth token'
   done | sort >"$dir/token-lines.log"
-  jq -Rn --rawfile tokens "$dir/token-lines.log" '
-    def e: (sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) + (capture("\\.(?<f>[0-9]+)Z$").f | "0." + . | tonumber);
-    [inputs | split("\t") | {t: .[0], s: (.[0] | e), ids: (.[1] | split(",") | map(select(length > 0)))}] as $polls
-    | ($polls[0].s) as $from | ($polls[-1].s) as $to
-    | ($polls[0].ids) as $already
-    | [$polls[] | .t as $t | .s as $s | .ids[] | {id: ., t: $t, s: $s}] | group_by(.id) | map(min_by(.s))
-    | map(select(.id as $i | $already | index($i) | not)) as $opened
-    | [$tokens | split("\n")[] | select(length > 0) | split(" ")[0] | {t: ., s: e}] | map(select(.s >= $from and .s <= $to - 3)) as $tok
-    | (reduce ($tok | sort_by(.s))[] as $k ([];
-        (map(.connection_id)) as $used
-        | ($opened | sort_by(.s, (.id | tonumber)) | map(select(.s >= $k.s and .s <= $k.s + 3 and (.id as $i | $used | index($i) | not))) | first) as $c
-        | . + [{token: $k.t, connection_id: $c.id, first_seen: $c.t}])) as $pairs
-    | {from: $polls[0].t, to: $polls[-1].t,
-       auth_token_log_lines: ($tok | length),
-       connections_opened: ($opened | length),
-       tokens_without_connection: ($pairs | map(select(.connection_id == null)) | length),
-       connections_without_token: ($opened | map(select(.s >= $from + 3 and .s <= $to - 3 and (.id as $i | $pairs | map(.connection_id) | index($i) | not))) | length),
-       pairs: $pairs}' "$dir/processlist.log" | tee "$dir/connections.json"
+  analyze_s5 "$dir" | tee "$dir/connections.json"
   jq -e '.auth_token_log_lines > 0 and .tokens_without_connection == 0 and .connections_without_token == 0' "$dir/connections.json" >/dev/null
 }
 
@@ -469,11 +514,8 @@ s6() {
   for p in $(jq -r '.[] | select(.ready | not) | .name' "$dir/pods-after.json"); do
     kubectl -n app logs "$p" --tail=20
   done
-  jq -s --slurpfile old "$dir/pods-before.json" --slurpfile new "$dir/pods-after.json" --arg host "$proxy_endpoint" '
-    ($old[0] | map(.name)) as $o
-    | ($new[0] | map(.name) | map(select(. as $p | $o | index($p) == null))) as $n
-    | {db_host: $host, first_new_pod_response: (map(select(.ok and (.pod as $p | $n | index($p)) != null)) | first)}' "$dir/load.jsonl" |
-    tee "$dir/proxy.json"
+  jq -n --arg host "$proxy_endpoint" '{db_host: $host}' >"$dir/db-host.json"
+  analyze_s6 "$dir" | tee "$dir/proxy.json"
   [[ $rc == 0 ]] && jq -e '.first_new_pod_response.ok' "$dir/proxy.json" >/dev/null
 }
 
@@ -617,7 +659,7 @@ main() {
         set -e
         ((rc == 0)) || break
         ;;
-      summary) ;;
+      summary) reanalyze ;;
       *)
         echo "unknown step: $s" >&2
         exit 2

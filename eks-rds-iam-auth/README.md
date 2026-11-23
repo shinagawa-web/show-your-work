@@ -12,7 +12,7 @@ AWS_PROFILE=<profile> AWS_REGION=ap-northeast-1 ./run-all.sh
 AWS_PROFILE=<profile> AWS_REGION=ap-northeast-1 ./run-all.sh down
 ```
 
-`run-all.sh` takes the steps to run as arguments; with none it runs `token s2 s3 s4 s5 s6`. A step can be run again on its own.
+`run-all.sh` takes the steps to run as arguments; with none it runs `token s2 s3 s4 s5 s6`. A step can be run again on its own. `./run-all.sh summary` recomputes the files below that are derived from the logs of each step (`load.json`, `s2/analysis.json`, `s5/first-new-pod-response.json`, `s5/connections.json`, `s6/proxy.json`) and writes `summary.md` again, without running any step.
 
 | Step | What it does |
 |---|---|
