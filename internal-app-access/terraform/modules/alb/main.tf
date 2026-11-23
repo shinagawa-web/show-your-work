@@ -85,7 +85,7 @@ resource "aws_iam_role" "app" {
 
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/aws/lambda/${var.name}-app"
-  retention_in_days = 1
+  retention_in_days = 90
 }
 
 resource "aws_iam_role_policy" "app_logs" {
