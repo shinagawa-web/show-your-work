@@ -26,8 +26,14 @@ export TF_IN_AUTOMATION=1
 
 account=$(aws sts get-caller-identity --query Account --output text)
 
+if sed --version >/dev/null 2>&1; then
+  unbuffered=-u
+else
+  unbuffered=-l
+fi
+
 mask() {
-  sed -e "s/$account/111122223333/g"
+  sed "$unbuffered" -e "s/$account/111122223333/g"
 }
 
 log() {
