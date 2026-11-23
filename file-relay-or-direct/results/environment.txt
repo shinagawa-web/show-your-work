@@ -1,0 +1,9 @@
+instance type: m7i.large
+AMI: ami-044f60fbf68c18ba3
+availability zone: ap-northeast-1a
+region: ap-northeast-1
+Go: 1.27.3
+github.com/aws/aws-sdk-go-v2 v1.48.0
+github.com/aws/aws-sdk-go-v2/feature/cloudfront/sign v1.12.12
+github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.5.11
+github.com/aws/aws-sdk-go-v2/service/s3 v1.116.0
