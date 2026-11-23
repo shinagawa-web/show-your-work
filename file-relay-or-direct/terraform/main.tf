@@ -96,7 +96,7 @@ resource "aws_security_group" "app" {
 
   ingress {
     from_port   = 8080
-    to_port     = 8081
+    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = [var.client_cidr]
   }
@@ -123,10 +123,10 @@ resource "aws_s3_bucket_public_access_block" "files" {
 }
 
 resource "aws_s3_object" "app_binary" {
-  bucket = aws_s3_bucket.files.id
-  key    = "bin/relay-bench"
-  source = var.app_binary
-  etag   = filemd5(var.app_binary)
+  bucket      = aws_s3_bucket.files.id
+  key         = "bin/relay-bench"
+  source      = var.app_binary
+  source_hash = filemd5(var.app_binary)
 }
 
 resource "aws_cloudfront_origin_access_control" "files" {
@@ -288,12 +288,12 @@ resource "aws_instance" "app" {
   }
 
   user_data = templatefile("${path.module}/user-data.sh", {
-    bucket          = aws_s3_bucket.files.id
-    region          = data.aws_region.current.region
-    binary_etag     = aws_s3_object.app_binary.etag
-    cf_domain       = aws_cloudfront_distribution.files.domain_name
-    cf_key_id       = aws_cloudfront_public_key.app.id
-    cf_private_key  = var.cf_private_key_pem
+    bucket         = aws_s3_bucket.files.id
+    region         = data.aws_region.current.region
+    binary_md5     = aws_s3_object.app_binary.source_hash
+    cf_domain      = aws_cloudfront_distribution.files.domain_name
+    cf_key_id      = aws_cloudfront_public_key.app.id
+    cf_private_key = var.cf_private_key_pem
   })
 }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-echo "binary ${binary_etag}"
+echo "binary ${binary_md5}"
 mkdir -p /etc/relay-bench
 cat >/etc/relay-bench/cf-key.pem <<'KEY'
 ${cf_private_key}
@@ -18,7 +18,7 @@ Environment=AWS_REGION=${region}
 Environment=CF_DOMAIN=${cf_domain}
 Environment=CF_KEY_ID=${cf_key_id}
 Environment=CF_KEY_FILE=/etc/relay-bench/cf-key.pem
-ExecStart=/usr/local/bin/relay-bench monitor
+ExecStart=/usr/local/bin/relay-bench
 Restart=always
 
 [Install]

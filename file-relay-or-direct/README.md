@@ -14,8 +14,7 @@ The role needs to create EC2 instances, VPCs, S3 buckets, CloudFront distributio
 
 | Part | Where | What |
 |---|---|---|
-| App | `app/main.go` on one EC2 instance, HTTP on port 8080 | `POST /upload` reads the file with `r.FormFile` and uploads it with transfermanager at its default settings. `GET /download` streams the body of `GetObject` into the response. `GET /sign/s3-put`, `/sign/s3-get` and `/sign/cf` return a URL. Keys under `private/` need the header `X-Allow: 1` |
-| Monitor | The same binary, `relay-bench monitor`, port 8081 | What systemd runs. Starts the app as a child process |
+| App | `app/main.go` on one EC2 instance, run by systemd, HTTP on port 8080 | `GET /download` streams the body of `GetObject` into the response. `GET /sign/s3-get` returns an S3 presigned URL and `GET /sign/cf` a CloudFront signed URL. Keys under `private/` need the header `X-Allow: 1` |
 | S3 | `terraform/main.tf` | One bucket with public access blocked. The app reaches it through a gateway endpoint in its VPC |
 | CloudFront | `terraform/main.tf` | Reads the bucket with origin access control. `public/*` without signing, `private/*` and the default behavior with a key group. Cache policy `Managed-CachingOptimized` |
 | IAM | `terraform/main.tf` | `syw-file-relay-app` for the instance. `syw-file-relay-signer`, assumed from the host for 900 seconds to sign one S3 presigned URL |

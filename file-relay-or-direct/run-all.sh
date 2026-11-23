@@ -37,7 +37,7 @@ tfvars() {
   export TF_IN_AUTOMATION=1
   export TF_VAR_instance_type=$INSTANCE_TYPE
   export TF_VAR_app_binary=$work/relay-bench
-  export TF_VAR_cf_public_key_pem=$(cat "$work/cf-key.pub")
+  export TF_VAR_cf_public_key_pem=$(cat "$work/cf-key.pub")$'\n'
   export TF_VAR_cf_private_key_pem=$(cat "$work/cf-key.pem")
   export TF_VAR_client_cidr=$client_ip/32
 }
@@ -213,21 +213,19 @@ deletion_check() {
 }
 
 access_checks() {
-  local put_url get_url cf_url
+  local get_url cf_url
   log=access.jsonl
   rm -f "$results/$log"
-  put_url=$(curl -fsS "$app/sign/s3-put?key=public/direct/2M")
-  fetch s3-presigned-put "$put_url" -X PUT -T "$work/files/2M.bin"
   get_url=$(curl -fsS -H 'X-Allow: 1' "$app/sign/s3-get?key=private/access/2M")
   fetch s3-presigned-get "$get_url"
   cf_url=$(curl -fsS -H 'X-Allow: 1' "$app/sign/cf?key=private/access/2M")
   fetch cf-signed-private "$cf_url"
-  fetch cf-unsigned-public "https://$cf_domain/public/direct/2M"
+  fetch cf-unsigned-public "https://$cf_domain/public/access/2M"
   fetch cf-unsigned-private "https://$cf_domain/private/access/2M"
   fetch relay-download-without-header "$app/download?key=private/access/2M"
   fetch sign-cf-without-header "$app/sign/cf?key=private/access/2M"
   local name want
-  for name in s3-presigned-put:200 s3-presigned-get:200 cf-signed-private:200 cf-unsigned-public:200 cf-unsigned-private:403 relay-download-without-header:403 sign-cf-without-header:403; do
+  for name in s3-presigned-get:200 cf-signed-private:200 cf-unsigned-public:200 cf-unsigned-private:403 relay-download-without-header:403 sign-cf-without-header:403; do
     want=${name#*:}
     [[ $(status_of "${name%%:*}") == "$want" ]] || fail "${name%%:*} did not return $want"
   done
@@ -243,12 +241,13 @@ prepare() {
     echo "availability zone: $az"
     echo "region: $AWS_REGION"
     echo "Go: $GO"
-    grep -E 'aws-sdk-go-v2(/service/s3|/feature/s3/transfermanager|/feature/cloudfront/sign)? ' "$here/app/go.mod" | sed 's/^\t//'
+    grep -E 'aws-sdk-go-v2(/service/s3|/feature/cloudfront/sign)? ' "$here/app/go.mod" | sed 's/^\t//'
   } | tee "$results/environment.txt"
 
   mkdir -p "$work/files"
   head -c 2097152 /dev/urandom >"$work/files/2M.bin"
   aws s3 cp "$work/files/2M.bin" "s3://$bucket/private/access/2M" >/dev/null
+  aws s3 cp "$work/files/2M.bin" "s3://$bucket/public/access/2M" >/dev/null
 }
 
 measure() {
