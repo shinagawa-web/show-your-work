@@ -13,6 +13,11 @@ variable "idc_group_id" {
   default = "00000000-0000-0000-0000-000000000000"
 }
 
+variable "attach_device_trust" {
+  type    = bool
+  default = true
+}
+
 variable "crowdstrike_tenant_id" {
   type    = string
   default = "00000000000000000000000000000000"
@@ -57,6 +62,7 @@ resource "aws_verifiedaccess_instance_trust_provider_attachment" "idc" {
 }
 
 resource "aws_verifiedaccess_instance_trust_provider_attachment" "crowdstrike" {
+  count                            = var.attach_device_trust ? 1 : 0
   verifiedaccess_instance_id       = aws_verifiedaccess_instance.this.id
   verifiedaccess_trust_provider_id = aws_verifiedaccess_trust_provider.crowdstrike.id
 }
