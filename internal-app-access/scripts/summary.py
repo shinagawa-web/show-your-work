@@ -41,26 +41,99 @@ def unit_price(key):
     return prices[key]["usd"].rstrip("0").rstrip(".")
 
 
-def load_applied(name):
-    d = results / name
-    missing = [f for f in ("resources.json", "apply.log", "destroy.log") if not (d / f).exists()]
-    if missing:
-        errors.append(f"{name}: no {', '.join(missing)}")
-        return None
+def load_plan(name):
+    d = results / "plans" / name
     resources = json.loads((d / "resources.json").read_text())
-    apply_log = (d / "apply.log").read_text()
-    destroy_log = (d / "destroy.log").read_text()
-    m = re.search(r"^Apply complete! Resources: (\d+) added, (\d+) changed, (\d+) destroyed\.$", apply_log, re.M)
-    line = m.group(0) if m else None
+    m = re.search(r"^Plan: (\d+) to add, (\d+) to change, (\d+) to destroy\.$", (d / "plan.log").read_text(), re.M)
     if not m:
-        errors.append(f"{name}: no Apply complete! line in apply.log")
+        errors.append(f"{name}: no Plan: line in plan.log")
     elif int(m.group(1)) != len(resources) or m.group(2) != "0" or m.group(3) != "0":
-        errors.append(f"{name}: {line} does not match {len(resources)} resources in the state")
-    md = re.search(r"^Destroy complete! Resources: (\d+) destroyed\.$", destroy_log, re.M)
-    if not md or int(md.group(1)) != len(resources):
-        errors.append(f"{name}: destroy.log does not show {len(resources)} resources destroyed")
-    types = collections.Counter(r["type"] for r in resources)
-    return {"creates": resources, "types": types, "line": line, "dir": d}
+        errors.append(f"{name}: {m.group(0)} does not match {len(resources)} resources")
+    if any(r["actions"] != ["create"] for r in resources):
+        errors.append(f"{name}: actions other than create")
+    return {"creates": resources, "types": collections.Counter(r["type"] for r in resources), "line": m.group(0) if m else None, "name": name}
+
+
+def json_documents(text):
+    decoder, pos, docs = json.JSONDecoder(), 0, []
+    text = text.strip()
+    while pos < len(text):
+        doc, pos = decoder.raw_decode(text, pos)
+        docs.append(doc)
+        while pos < len(text) and text[pos].isspace():
+            pos += 1
+    return docs
+
+
+def public_ipv4(name):
+    merged = {}
+    for doc in json_documents((results / name / "alb.json").read_text()):
+        merged.update(doc)
+    if merged["NetworkInterfaces"] != merged["AvailabilityZones"]:
+        errors.append(f"{name}: {merged['NetworkInterfaces']} ALB network interfaces in {merged['AvailabilityZones']} Availability Zones")
+    return merged["WithPublicIPv4"]
+
+
+def probe_rows(*dirs):
+    rows = []
+    for d in dirs:
+        f = results / d / "probes.jsonl"
+        if f.exists():
+            rows += [json.loads(line) for line in f.read_text().splitlines()]
+    return rows
+
+
+def probe_table(rows):
+    lines = ["| Request | HTTP status | Redirect to host | App body returned |", "|---|--:|---|---|"]
+    for r in rows:
+        status = r["status"] if r["status"] != "000" else f"none (curl exit {r['curl_exit']})"
+        lines.append(f"| {r['request']} | {status} | {r['location_host']} | {'yes' if r['app_body'] else 'no'} |")
+    return lines
+
+
+def claim_paths(claims, prefix=""):
+    paths = []
+    for k, v in claims.items():
+        paths += claim_paths(v, f"{prefix}{k}.") if isinstance(v, dict) else [f"{prefix}{k}"]
+    return paths
+
+
+def observation_rows(name):
+    rows = []
+    for o in json.loads((results / "login" / "observations.json").read_text()):
+        if o["config"] != name:
+            continue
+        measured = []
+        if o["record"]:
+            events = json.loads((results / "login" / name / f"{o['record']}.json").read_text())["events"]
+            first = [e for e in events if e["path"] == "/"]
+            if first:
+                measured.append(f"`/` reached the app at {first[0]['timestamp']}")
+            else:
+                measured.append("no request reached the app (Lambda log)")
+        if o["measured"]:
+            measured.append(o["measured"])
+        rows.append(f"| {o['setup']} | {'; '.join(measured)} | {o['reported']} | {o['inferred']} |")
+    return ["| Setting | Measured | Reported | Inferred or not confirmed |", "|---|---|---|---|"] + rows
+
+
+def arrived_rows(name, jwt_header, extra_headers):
+    headers, claims = set(), []
+    for o in json.loads((results / "login" / "observations.json").read_text()):
+        if o["config"] != name or not o["record"]:
+            continue
+        for e in json.loads((results / "login" / name / f"{o['record']}.json").read_text())["events"]:
+            headers |= set(e["header_names"])
+            if jwt_header in e["decoded"]:
+                for path in claim_paths(e["decoded"][jwt_header]):
+                    if path not in claims:
+                        claims.append(path)
+    lines = ["| Header | Contents |", "|---|---|"]
+    for h in [jwt_header, *extra_headers]:
+        if h in headers:
+            contents = ", ".join(f"`{c}`" for c in claims) if h == jwt_header else "present, value not recorded"
+            lines.append(f"| `{h}` | {contents} |")
+    return lines
 
 
 def after(plan, rtype):
@@ -85,7 +158,7 @@ def costs(plan):
         lcu_detail = {"requests_per_second": req_per_s, "listener_rules": rules, "lcu_by_dimension": dims, "largest": top}
         lines.append((f"ALB LCU ({top.replace('_', ' ')})", dims[top] * hours, "LCU-hour", "alb_lcu_hour"))
         if not lb["internal"]:
-            lines.append(("ALB public IPv4 addresses", len(lb["subnets"]) * hours, "IPv4 address-hour", "public_ipv4_hour"))
+            lines.append(("ALB public IPv4 addresses", public_ipv4(plan["name"]) * hours, "IPv4 address-hour", "public_ipv4_hour"))
     saml = [p for p in after(plan, "aws_cognito_identity_provider") if p["provider_type"] == "SAML"]
     if saml:
         free = float(prices["cognito_saml_mau_free"]["end_range"])
@@ -103,30 +176,20 @@ def costs(plan):
 
 
 def endpoints_line(plan):
-    f = plan["dir"] / "endpoints.json"
-    if not f.exists():
-        errors.append("c-verified-access: no endpoints.json")
-        return "No endpoints.json."
-    eps = json.loads(f.read_text())
-    albs = after(plan, "aws_lb")
+    eps = json.loads((results / "c-verified-access" / "endpoints.json").read_text())
+    albs = [r["values"] for r in json.loads((results / "c-verified-access" / "resources.json").read_text()) if r["type"] == "aws_lb"]
     lb_arns = {e["LoadBalancerArn"] for e in eps}
     ok = (
-        len(eps) == 3
-        and len(albs) == 1
-        and albs[0]["internal"]
-        and lb_arns == {albs[0]["arn"]}
+        len(eps) == 3 and len(albs) == 1 and albs[0]["internal"] and lb_arns == {albs[0]["arn"]}
         and all(e["EndpointType"] == "load-balancer" and e["Status"] == "active" for e in eps)
     )
     if not ok:
-        errors.append(f"endpoints.json does not show three active load-balancer endpoints on the one internal ALB: {eps}")
+        errors.append("endpoints.json does not show three active load-balancer endpoints on the one internal ALB")
     states = ", ".join(sorted({e["Status"] for e in eps}))
-    return (
-        f"Verified Access endpoints of type load-balancer created: {len(eps)}, status {states}, "
-        f"pointing to {len(lb_arns)} load balancer ({'the internal ALB of this apply' if ok else 'see endpoints.json'})."
-    )
+    return f"In the applied C, {len(eps)} Verified Access endpoints of type load-balancer were {states} and all pointed to {len(lb_arns)} internal ALB."
 
 
-baseline = load_applied("baseline")
+baseline = load_plan("baseline")
 out = ["# internal-app-access", ""]
 fetched = prices_doc["fetched_at"]
 out += [
@@ -152,12 +215,64 @@ for code, o in prices_doc["offers"].items():
     out.append(f"| {code} | {o['publicationDate']} |")
 out.append("")
 
+def access_sections(name):
+    if name == "a-ip-allowlist":
+        lines = [
+            "curl sent from the maintainer's host to the ALB of the applied A, before and after the allowed CIDR was narrowed.",
+            "",
+            *probe_table(probe_rows("a-ip-allowlist/probes")),
+            "",
+        ]
+        f = results / "a-ip-allowlist" / "block-delay.txt"
+        if f.exists():
+            text = f.read_text()
+            last = re.search(r"Last attempt that reached the app started ([+-][0-9.]+) s from the rule destruction", text)
+            first = re.search(r"First attempt of the run that did not reach it .*?: ([+-][0-9.]+) s from the rule destruction.*; (\d+) attempts in a row", text)
+            lines += [
+                "curl every 2 s while the allowed CIDR was replaced once, with the end of `terraform apply`'s rule destruction as 0 s.",
+                "",
+                "| Attempt | Started (s) |",
+                "|---|--:|",
+                f"| Last one that reached the app | {last.group(1)} |",
+                f"| First one that did not, followed by {int(first.group(2)) - 1} more that did not | {first.group(1)} |",
+                "",
+            ]
+        return lines + ["Opening A in a browser.", "", *observation_rows(name), ""]
+    if name == "b-alb-cognito":
+        return [
+            "curl sent from the maintainer's host to the ALB of the applied B without a session. The second request followed the first redirect once, while the identity provider still had the dummy SAML metadata.",
+            "",
+            *probe_table(probe_rows("b-alb-cognito/probes")),
+            "",
+            "Signing in to B in a browser, with the SAML metadata of a Google Workspace application.",
+            "",
+            *observation_rows(name),
+            "",
+            "Headers the app received from the ALB after the sign-ins above.",
+            "",
+            *arrived_rows(name, "x-amzn-oidc-data", ["x-amzn-oidc-accesstoken", "x-amzn-oidc-identity"]),
+            "",
+        ]
+    return [
+        "curl sent from the maintainer's host to the three Verified Access endpoints and to the internal ALB of the applied C, without signing in.",
+        "",
+        *probe_table(probe_rows("c-verified-access/recreate/probes") or probe_rows("c-verified-access/probes")),
+        "",
+        "Opening C (wiki) in a browser.",
+        "",
+        *observation_rows(name),
+        "",
+        "Headers the app received through Verified Access in the rows above where the request reached the app.",
+        "",
+        *arrived_rows(name, "x-amzn-ava-user-context", ["x-amzn-oidc-data"]),
+        "",
+    ]
+
+
 summary = []
 detail = {"assumptions": assumptions, "configs": {}}
 for name, letter, section, title in CONFIGS:
-    plan = load_applied(name)
-    if plan is None or baseline is None:
-        continue
+    plan = load_plan(name)
     diff = plan["types"] - baseline["types"]
     removed = baseline["types"] - plan["types"]
     if removed:
@@ -166,7 +281,7 @@ for name, letter, section, title in CONFIGS:
     added = len(plan["creates"]) - len(baseline["creates"])
     summary.append((letter, title, added, total))
     detail["configs"][name] = {
-        "apply_line": plan["line"],
+        "plan_line": plan["line"],
         "resources": len(plan["creates"]),
         "added_over_baseline": added,
         "types_added": dict(diff),
@@ -177,9 +292,9 @@ for name, letter, section, title in CONFIGS:
     out += [
         f"## Section {section}: {letter}, {title}",
         "",
-        f"Resources created by `terraform apply` of `terraform/baseline` (the ALB module) and of `terraform/{name}`, in us-east-1. Both include the same VPC and imported self-signed certificate (`terraform/modules/base`).",
+        f"`terraform plan` of `terraform/baseline` and of `terraform/{name}`, each from an empty state. The baseline holds the ALB, the Lambda app behind it, a VPC and a self-signed certificate, and every configuration has the same.",
         "",
-        "| Apply | Resources created |",
+        "| Plan | Resources to add |",
         "|---|--:|",
         f"| baseline | {len(baseline['creates'])} |",
         f"| {letter} | {len(plan['creates'])} |",
@@ -193,10 +308,22 @@ for name, letter, section, title in CONFIGS:
     for t, c in sorted(diff.items()):
         out.append(f"| `{t}` | {c} |")
     if letter == "C":
-        out += ["", endpoints_line(plan)]
+        without = load_plan("c-without-device-trust")
+        out += [
+            "",
+            "The same plan with the device trust provider left off the Verified Access instance (`attach_device_trust = false`).",
+            "",
+            "| Plan | Resources to add |",
+            "|---|--:|",
+            f"| C without the device trust provider | {len(without['creates'])} |",
+            f"| C without the device trust provider minus baseline | {len(without['creates']) - len(baseline['creates'])} |",
+            "",
+            endpoints_line(plan),
+        ]
+        detail["configs"]["c-without-device-trust"] = {"plan_line": without["line"], "resources": len(without["creates"])}
     out += [
         "",
-        f"Monthly cost of {letter}, from the resources its apply created, the unit prices in section 2 and `assumptions.json`.",
+        f"Monthly cost of {letter}, from the resources in its plan, the unit prices in section 2 and `assumptions.json`.",
         "",
         "| Item | Quantity | Unit | Unit price (USD) | Monthly (USD) |",
         "|---|--:|---|--:|--:|",
@@ -204,11 +331,12 @@ for name, letter, section, title in CONFIGS:
     for item, qty, unit, key, cost in rows:
         out.append(f"| {item} | {num(round(qty, 2))} | {unit} | {unit_price(key)} | {usd(cost)} |")
     out += [f"| Total | | | | {usd(total)} |", ""]
+    out += access_sections(name)
 
 out += [
     "## Section 7: comparison",
     "",
-    "Resources each apply created over the baseline apply, and the monthly totals from sections 3 to 5.",
+    "Resources each plan adds over the baseline plan, and the monthly totals from sections 3 to 5.",
     "",
     "| Configuration | Resources added over the baseline | Monthly (USD) |",
     "|---|--:|--:|",
@@ -216,8 +344,7 @@ out += [
 for letter, title, added, total in summary:
     out.append(f"| {letter}: {title} | {added} | {usd(total)} |")
 out.append("")
-if baseline is not None:
-    detail["baseline"] = {"apply_line": baseline["line"], "resources": len(baseline["creates"]), "types": dict(baseline["types"])}
+detail["baseline"] = {"plan_line": baseline["line"], "resources": len(baseline["creates"]), "types": dict(baseline["types"])}
 
 if errors:
     out += ["RUN INVALID", ""] + [f"- {e}" for e in errors] + [""]
