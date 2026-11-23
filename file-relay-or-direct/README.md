@@ -33,7 +33,7 @@ Under `results/`. The account ID is replaced with `111122223333`, the public IP 
 | `access.jsonl` | Status, `X-Cache` and body of each access check |
 | `deletion.jsonl` | The same for the URLs before and after the object is deleted and after the invalidation |
 | `expiry.jsonl` | When the URL was signed, when the session credentials expire, and the responses |
-| `terraform-apply.log`, `terraform-destroy.log` | Terraform output |
+| `terraform-destroy.log` | Terraform output of `down` |
 | `cleanup.log` | What was left after `down` |
 | `invalid.log` | Checks that made the run invalid, when there are any |
 

@@ -74,7 +74,7 @@ up() {
     tf apply -auto-approve
   } >"$work/terraform-apply.log" 2>&1 || rc=$?
   outputs || true
-  mask <"$work/terraform-apply.log" | tee "$results/terraform-apply.log" | tail -n 20
+  mask <"$work/terraform-apply.log" | tail -n 20
   return $rc
 }
 
