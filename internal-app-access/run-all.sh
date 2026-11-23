@@ -206,7 +206,25 @@ checks_c() {
     --url "https://wiki.$domain/" --connect-to "wiki.$domain:443:$dns:443" --wait-dns "$dns"
 }
 
+refuse_existing_state() {
+  local cfg state count refused=
+  for cfg in $CONFIGS; do
+    state=$here/terraform/$cfg/terraform.tfstate
+    [[ -f $state ]] || continue
+    count=$(python3 -I -c 'import json,sys; print(sum(len(r["instances"]) for r in json.load(open(sys.argv[1]))["resources"] if r["mode"] == "managed"))' "$state") || count=unknown
+    if [[ $count != 0 && " ${ALLOW_EXISTING_STATE:-} " != *" $cfg "* ]]; then
+      echo "$cfg has $count resources in its state. This run would change and destroy them."
+      refused=yes
+    fi
+  done
+  if [[ -n $refused ]]; then
+    echo 'Nothing was run. To go on, name the configurations in ALLOW_EXISTING_STATE.'
+    return 1
+  fi
+}
+
 main() {
+  refuse_existing_state || exit 1
   if (($# == 0)) && [[ -d $results ]]; then find "$results" -mindepth 1 -maxdepth 1 ! -name login -exec rm -rf {} +; fi
   mkdir -p "$results" "$TF_PLUGIN_CACHE_DIR"
   for cfg in $CONFIGS; do rm -rf "${results:?}/$cfg"; done
