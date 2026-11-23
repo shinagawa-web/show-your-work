@@ -6,6 +6,7 @@ module "alb" {
   subnet_ids      = module.base.public_subnet_ids
   certificate_arn = module.base.certificate_arn
   apps            = local.apps
+  default_app     = "wiki"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "office" {
