@@ -31,7 +31,7 @@ Under `results/`. The account ID is replaced with `111122223333`, the public IP 
 | `summary.md` | The tables of the summary |
 | `environment.txt` | Instance type, AMI, availability zone, Go and SDK versions |
 | `access.jsonl` | Status, `X-Cache` and body of each access check |
-| `deletion.jsonl` | The same for the URLs before and after the object is deleted and after the invalidation |
+| `deletion.jsonl` | The same for the relay through the app and the two URLs, before and after the object is deleted and after the invalidation |
 | `expiry.jsonl` | When the URL was signed, when the session credentials expire, and the responses |
 | `terraform-destroy.log` | Terraform output of `down` |
 | `cleanup.log` | What was left after `down` |

@@ -186,13 +186,15 @@ expiry_check() {
 }
 
 deletion_check() {
-  local key=private/deleted/doc.txt s3_url cf_url inv
+  local key=private/deleted/doc.txt s3_url cf_url relay_url inv
   rm -f "$results/deletion.jsonl"
   log=deletion.jsonl
   echo "deletion check object" >"$work/deleted.txt"
   aws s3 cp "$work/deleted.txt" "s3://$bucket/$key" >/dev/null
   s3_url=$(curl -fsS -H 'X-Allow: 1' "$app/sign/s3-get?key=$key")
   cf_url=$(curl -fsS -H 'X-Allow: 1' "$app/sign/cf?key=$key")
+  relay_url="$app/download?key=$key"
+  fetch relay-before-delete "$relay_url" -H 'X-Allow: 1'
   fetch s3-before-delete "$s3_url"
   local i
   for i in 1 2 3 4 5 6 7 8 9 10; do
@@ -200,14 +202,17 @@ deletion_check() {
     jq -e 'select(.name == "cf-before-delete") | .x_cache | startswith("Hit")' "$results/$log" >/dev/null && break
     sleep 1
   done
+  [[ $(status_of relay-before-delete) == 200 ]] || fail "the relay did not return 200 before deletion"
   [[ $(status_of s3-before-delete) == 200 ]] || fail "S3 presigned URL did not return 200 before deletion"
   [[ $(status_of cf-before-delete) == 200 ]] || fail "CloudFront signed URL did not return 200 before deletion"
   [[ $(jq -r 'select(.name == "cf-before-delete") | .x_cache' "$results/$log" | tail -n 1) == Hit* ]] || fail "CloudFront did not serve the object from cache before deletion"
   aws s3api delete-object --bucket "$bucket" --key "$key" >/dev/null
+  fetch relay-after-delete "$relay_url" -H 'X-Allow: 1'
   fetch s3-after-delete "$s3_url"
   fetch cf-after-delete "$cf_url"
   inv=$(aws cloudfront create-invalidation --distribution-id "$cf_id" --paths "/$key" --query Invalidation.Id --output text)
   aws cloudfront wait invalidation-completed --distribution-id "$cf_id" --id "$inv"
+  fetch relay-after-invalidation "$relay_url" -H 'X-Allow: 1'
   fetch s3-after-invalidation "$s3_url"
   fetch cf-after-invalidation "$cf_url"
 }
@@ -274,11 +279,12 @@ write_summary() {
     echo
     echo '## After the object is deleted from S3'
     echo
-    echo 'HTTP status of the same two URLs, issued by the app for one object in `private/`: after CloudFront cached the object, after the object was deleted from S3, and after a CloudFront invalidation of the path completed.'
+    echo 'HTTP status for one object in `private/`, requested through the app with the permission header and with the same two URLs issued by the app: after CloudFront cached the object, after the object was deleted from S3, and after a CloudFront invalidation of the path completed.'
     echo
     log=deletion.jsonl
-    echo '| URL | Before deletion | After deletion | After invalidation |'
+    echo '| Request | Before deletion | After deletion | After invalidation |'
     echo '|---|---:|---:|---:|'
+    status_row 'Relay through the app' relay
     status_row 'S3 presigned URL' s3
     status_row 'CloudFront signed URL' cf
     echo

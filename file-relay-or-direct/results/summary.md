@@ -2,10 +2,11 @@
 
 ## After the object is deleted from S3
 
-HTTP status of the same two URLs, issued by the app for one object in `private/`: after CloudFront cached the object, after the object was deleted from S3, and after a CloudFront invalidation of the path completed.
+HTTP status for one object in `private/`, requested through the app with the permission header and with the same two URLs issued by the app: after CloudFront cached the object, after the object was deleted from S3, and after a CloudFront invalidation of the path completed.
 
-| URL | Before deletion | After deletion | After invalidation |
+| Request | Before deletion | After deletion | After invalidation |
 |---|---:|---:|---:|
+| Relay through the app | 200 | 502 | 502 |
 | S3 presigned URL | 200 | 403 | 403 |
 | CloudFront signed URL | 200 | 200 | 403 |
 
