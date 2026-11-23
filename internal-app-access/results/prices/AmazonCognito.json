@@ -1,0 +1,1834 @@
+{
+  "formatVersion" : "v1.0",
+  "disclaimer" : "This pricing list is for informational purposes only. All prices are subject to the additional terms included in the pricing pages on http://aws.amazon.com. All Free Tier prices are also subject to the terms included at https://aws.amazon.com/free/",
+  "offerCode" : "AmazonCognito",
+  "version" : "20261119183922",
+  "publicationDate" : "2026-11-19T18:39:22Z",
+  "products" : {
+    "QCNMFMGM22V8J25X" : {
+      "sku" : "QCNMFMGM22V8J25X",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserUpdateRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserUpdate",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "XJH7YMBJ2G3PS8B2" : {
+      "sku" : "XJH7YMBJ2G3PS8B2",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserAuthenticationRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserAuthentication",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "NVNU2CK9S376FFBT" : {
+      "sku" : "NVNU2CK9S376FFBT",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserResourceReadRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserResourceRead",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "XAGUU479DQM7ZXQ6" : {
+      "sku" : "XAGUU479DQM7ZXQ6",
+      "productFamily" : "User Pools M2M",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CUPM2MTokenRequestsMRRFull",
+        "operation" : "CognitoUserPoolsM2MTokenMRROp",
+        "duration" : "Full",
+        "m2mCategory" : "Tokens - MRR",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "JRGNUYCVEBKA6U9J" : {
+      "sku" : "JRGNUYCVEBKA6U9J",
+      "productFamily" : "User Pool MAU",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Any",
+        "locationType" : "AWS Region",
+        "usagetype" : "Global-CognitoUserPoolMAU",
+        "operation" : "CognitoUserPoolsOperation",
+        "regionCode" : "",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "EB2ZDDFD83BT3KGH" : {
+      "sku" : "EB2ZDDFD83BT3KGH",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserCreationRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserCreation",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "M8UVH2AW9KNVWFYG" : {
+      "sku" : "M8UVH2AW9KNVWFYG",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserAccountRecoveryRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserAccountRecovery",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "NDPFQCBR4BTD8CEU" : {
+      "sku" : "NDPFQCBR4BTD8CEU",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserReadRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserRead",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "E7U8WNGKV65HT33E" : {
+      "sku" : "E7U8WNGKV65HT33E",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserResourceUpdateRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserResourceUpdate",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "GMG7DB4K8N9SPPY5" : {
+      "sku" : "GMG7DB4K8N9SPPY5",
+      "productFamily" : "Amazon Cognito - MRR - Plus",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoPlusMRRMAU",
+        "operation" : "CognitoMRROperation",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "AES84AD84AUZZZMA" : {
+      "sku" : "AES84AD84AUZZZMA",
+      "productFamily" : "User Pools M2M",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CUPM2MAppClientsFull",
+        "operation" : "CognitoUserPoolsM2MAppClientOp",
+        "duration" : "Full",
+        "m2mCategory" : "AppClients",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "KXTRR9E66DN6XYW6" : {
+      "sku" : "KXTRR9E66DN6XYW6",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserAuthenticationRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserAuthentication",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "537UQMD47N65X23Q" : {
+      "sku" : "537UQMD47N65X23Q",
+      "productFamily" : "Amazon Cognito - Plus",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoPlusMAU",
+        "operation" : "CognitoPlusOperation",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "M748QZW4RNJKXJSV" : {
+      "sku" : "M748QZW4RNJKXJSV",
+      "productFamily" : "User Pool ASF MAU",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoASFMAU",
+        "operation" : "CognitoASFOperation",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "BXTFXPZGJ8G9QE6B" : {
+      "sku" : "BXTFXPZGJ8G9QE6B",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserUpdateRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserUpdate",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "Y6HYRH7CPZ6CMRQR" : {
+      "sku" : "Y6HYRH7CPZ6CMRQR",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserCreationRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserCreation",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "AH8UFFURUFH2VCD9" : {
+      "sku" : "AH8UFFURUFH2VCD9",
+      "productFamily" : "Amazon Cognito - Essentials",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Any",
+        "locationType" : "AWS Region",
+        "usagetype" : "Global-CognitoFreeTierMAU",
+        "operation" : "",
+        "regionCode" : "",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "S2F3CRP7M9MWJZDE" : {
+      "sku" : "S2F3CRP7M9MWJZDE",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserResourceReadRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserResourceRead",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "EYGZCKJ9V5QUD5H9" : {
+      "sku" : "EYGZCKJ9V5QUD5H9",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserTokenRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserToken",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "HFCJDV8G335WQURU" : {
+      "sku" : "HFCJDV8G335WQURU",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserResourceUpdateRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserResourceUpdate",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "44QZYJD7NEF5P7GQ" : {
+      "sku" : "44QZYJD7NEF5P7GQ",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserUpdateRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserUpdate",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "VUBBA8HTJRT6CKFS" : {
+      "sku" : "VUBBA8HTJRT6CKFS",
+      "productFamily" : "Amazon Bedrock",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-Bedrock-Agent-Core:Auth-Request:Oauth2",
+        "operation" : "",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "UBV68C4QNC3FY6DV" : {
+      "sku" : "UBV68C4QNC3FY6DV",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserFederationRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserFederation",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "S5HA5Q5C749BRC7P" : {
+      "sku" : "S5HA5Q5C749BRC7P",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserTokenRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserToken",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "EY9QB3PMSYTP6DZ2" : {
+      "sku" : "EY9QB3PMSYTP6DZ2",
+      "productFamily" : "User Pool Enterprise MAU",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Any",
+        "locationType" : "AWS Region",
+        "usagetype" : "Globalv1-CognitoEnterpriseMAU",
+        "operation" : "CognitoEnterpriseOperation",
+        "regionCode" : "",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "Z8TXS7D8XVJT3KY6" : {
+      "sku" : "Z8TXS7D8XVJT3KY6",
+      "productFamily" : "User Pools M2M",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CUPM2MTokenRequestsFull",
+        "operation" : "CognitoUserPoolsM2MTokenOp",
+        "duration" : "Full",
+        "m2mCategory" : "Tokens",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "CNHN82F3S2AZPTXR" : {
+      "sku" : "CNHN82F3S2AZPTXR",
+      "productFamily" : "Amazon Cognito - Lite",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoLiteMAU",
+        "operation" : "CognitoLiteOperation",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "5RP73H4RCPA7UESD" : {
+      "sku" : "5RP73H4RCPA7UESD",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserReadRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserRead",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "EEY7XEZXVWJHC7JT" : {
+      "sku" : "EEY7XEZXVWJHC7JT",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserFederationRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserFederation",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "PE388CYQYGADFAR6" : {
+      "sku" : "PE388CYQYGADFAR6",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserAccountRecoveryRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserAccountRecovery",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "N855U58SYPAW6FF6" : {
+      "sku" : "N855U58SYPAW6FF6",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserReadRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserRead",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "MZTUHZJ52A3VPA6T" : {
+      "sku" : "MZTUHZJ52A3VPA6T",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserResourceReadRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserResourceRead",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "XBS2J298SKKKUDD6" : {
+      "sku" : "XBS2J298SKKKUDD6",
+      "productFamily" : "User Pools M2M",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CUPM2MAppClientsFree",
+        "operation" : "CognitoUserPoolsM2MAppClientOp",
+        "duration" : "Free",
+        "m2mCategory" : "AppClients",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "9PDDFNADV5ZB6VC2" : {
+      "sku" : "9PDDFNADV5ZB6VC2",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserCreationRPSFree",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserCreation",
+        "duration" : "Free",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "PVNJNQNM2RM23UTB" : {
+      "sku" : "PVNJNQNM2RM23UTB",
+      "productFamily" : "Amazon Cognito - Essentials",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoEssentialsMAU",
+        "operation" : "CognitoEssentialsOperation",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "YNCTBURQ59GG7K9H" : {
+      "sku" : "YNCTBURQ59GG7K9H",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserResourceUpdateRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserResourceUpdate",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "BRWXZFXAXX34RPXB" : {
+      "sku" : "BRWXZFXAXX34RPXB",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserTokenRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserToken",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "WA9GT235BB66FUBV" : {
+      "sku" : "WA9GT235BB66FUBV",
+      "productFamily" : "Amazon Bedrock",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-Bedrock-Agent-Core:Auth-Request:API-Keys",
+        "operation" : "",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "P7QK52EKF38MD64X" : {
+      "sku" : "P7QK52EKF38MD64X",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserFederationRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserFederation",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "8M6MRSZJNU4DKJWB" : {
+      "sku" : "8M6MRSZJNU4DKJWB",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserAccountRecoveryRPSFull",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserAccountRecovery",
+        "duration" : "Full",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "9ZEZB59QJYN8CJNG" : {
+      "sku" : "9ZEZB59QJYN8CJNG",
+      "productFamily" : "Amazon Cognito - MRR - Essentials",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoEssentialsMRRMAU",
+        "operation" : "CognitoMRROperation",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "MFADPXYUTRVZGFXF" : {
+      "sku" : "MFADPXYUTRVZGFXF",
+      "productFamily" : "User Pool MAU",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserPoolsMAU",
+        "operation" : "CognitoUserPoolsOperation",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "67JBKJUC2F4KMGXB" : {
+      "sku" : "67JBKJUC2F4KMGXB",
+      "productFamily" : "User Pool Enterprise MAU",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoEnterpriseMAU",
+        "operation" : "CognitoEnterpriseOperation",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "6UCRZX735SBP6M5B" : {
+      "sku" : "6UCRZX735SBP6M5B",
+      "productFamily" : "User Pools M2M",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CUPM2MTokenRequestsFree",
+        "operation" : "CognitoUserPoolsM2MTokenOp",
+        "duration" : "Free",
+        "m2mCategory" : "Tokens",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    },
+    "NFTBD37DK82VK5HP" : {
+      "sku" : "NFTBD37DK82VK5HP",
+      "productFamily" : "User Pool RPS",
+      "attributes" : {
+        "servicecode" : "AmazonCognito",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-CognitoUserAuthenticationRPSPartial",
+        "operation" : "CognitoRPSOperation",
+        "apiCategory" : "UserAuthentication",
+        "duration" : "Partial",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Cognito"
+      }
+    }
+  },
+  "terms" : {
+    "OnDemand" : {
+      "M748QZW4RNJKXJSV" : {
+        "M748QZW4RNJKXJSV.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "M748QZW4RNJKXJSV",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "M748QZW4RNJKXJSV.JRTCKXETXF.ZM2XF3EGYR" : {
+              "rateCode" : "M748QZW4RNJKXJSV.JRTCKXETXF.ZM2XF3EGYR",
+              "description" : "Cognito User Pools ap-northeast-1 advanced security features users tier 1 pricing",
+              "beginRange" : "0",
+              "endRange" : "50000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0500000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "M748QZW4RNJKXJSV.JRTCKXETXF.MY3WCTDBMM" : {
+              "rateCode" : "M748QZW4RNJKXJSV.JRTCKXETXF.MY3WCTDBMM",
+              "description" : "Cognito User Pools ap-northeast-1 advanced security features users tier 2 pricing",
+              "beginRange" : "50000",
+              "endRange" : "100000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0350000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "M748QZW4RNJKXJSV.JRTCKXETXF.9H3PSG253F" : {
+              "rateCode" : "M748QZW4RNJKXJSV.JRTCKXETXF.9H3PSG253F",
+              "description" : "Cognito User Pools ap-northeast-1 advanced security features users tier 3 pricing",
+              "beginRange" : "100000",
+              "endRange" : "1000000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0200000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "M748QZW4RNJKXJSV.JRTCKXETXF.H9V8AVEXGG" : {
+              "rateCode" : "M748QZW4RNJKXJSV.JRTCKXETXF.H9V8AVEXGG",
+              "description" : "Cognito User Pools ap-northeast-1 advanced security features users tier 4 pricing",
+              "beginRange" : "1000000",
+              "endRange" : "10000000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0150000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "M748QZW4RNJKXJSV.JRTCKXETXF.EFRCQPS26J" : {
+              "rateCode" : "M748QZW4RNJKXJSV.JRTCKXETXF.EFRCQPS26J",
+              "description" : "Cognito User Pools ap-northeast-1 advanced security features users tier 5 pricing",
+              "beginRange" : "10000000",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "KXTRR9E66DN6XYW6" : {
+        "KXTRR9E66DN6XYW6.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "KXTRR9E66DN6XYW6",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "KXTRR9E66DN6XYW6.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "KXTRR9E66DN6XYW6.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserAuthentication (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "PVNJNQNM2RM23UTB" : {
+        "PVNJNQNM2RM23UTB.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "PVNJNQNM2RM23UTB",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "PVNJNQNM2RM23UTB.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "PVNJNQNM2RM23UTB.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "Cognito Essentials ap-northeast-1 tier 1 pricing",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0150000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "Y6HYRH7CPZ6CMRQR" : {
+        "Y6HYRH7CPZ6CMRQR.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "Y6HYRH7CPZ6CMRQR",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "Y6HYRH7CPZ6CMRQR.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "Y6HYRH7CPZ6CMRQR.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserCreation (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "EEY7XEZXVWJHC7JT" : {
+        "EEY7XEZXVWJHC7JT.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "EEY7XEZXVWJHC7JT",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "EEY7XEZXVWJHC7JT.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "EEY7XEZXVWJHC7JT.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserFederation (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "QCNMFMGM22V8J25X" : {
+        "QCNMFMGM22V8J25X.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "QCNMFMGM22V8J25X",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "QCNMFMGM22V8J25X.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "QCNMFMGM22V8J25X.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserUpdate (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "UBV68C4QNC3FY6DV" : {
+        "UBV68C4QNC3FY6DV.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "UBV68C4QNC3FY6DV",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "UBV68C4QNC3FY6DV.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "UBV68C4QNC3FY6DV.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserFederation (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "67JBKJUC2F4KMGXB" : {
+        "67JBKJUC2F4KMGXB.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "67JBKJUC2F4KMGXB",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "67JBKJUC2F4KMGXB.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "67JBKJUC2F4KMGXB.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "Cognito User Pools ap-northeast-1 enterprise users tier 1 pricing",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0150000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "EB2ZDDFD83BT3KGH" : {
+        "EB2ZDDFD83BT3KGH.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "EB2ZDDFD83BT3KGH",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "EB2ZDDFD83BT3KGH.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "EB2ZDDFD83BT3KGH.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserCreation (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "AES84AD84AUZZZMA" : {
+        "AES84AD84AUZZZMA.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "AES84AD84AUZZZMA",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "AES84AD84AUZZZMA.JRTCKXETXF.ETY2894C67" : {
+              "rateCode" : "AES84AD84AUZZZMA.JRTCKXETXF.ETY2894C67",
+              "description" : "$0.00 per client credential flow app client, pro-rated by the second in tier 1 in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "100",
+              "unit" : "CognitoUserPools-M2MAppClientMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "AES84AD84AUZZZMA.JRTCKXETXF.WQ4TY4VCYZ" : {
+              "rateCode" : "AES84AD84AUZZZMA.JRTCKXETXF.WQ4TY4VCYZ",
+              "description" : "$0.00 per client credential flow app client, pro-rated by the second in tier 2 in Asia Pacific (Tokyo)",
+              "beginRange" : "100",
+              "endRange" : "500",
+              "unit" : "CognitoUserPools-M2MAppClientMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "AES84AD84AUZZZMA.JRTCKXETXF.TAV9HKW45C" : {
+              "rateCode" : "AES84AD84AUZZZMA.JRTCKXETXF.TAV9HKW45C",
+              "description" : "$0.00 per client credential flow app client, pro-rated by the second in tier 3 in Asia Pacific (Tokyo)",
+              "beginRange" : "500",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPools-M2MAppClientMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "E7U8WNGKV65HT33E" : {
+        "E7U8WNGKV65HT33E.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "E7U8WNGKV65HT33E",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "E7U8WNGKV65HT33E.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "E7U8WNGKV65HT33E.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserResourceUpdate (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "XAGUU479DQM7ZXQ6" : {
+        "XAGUU479DQM7ZXQ6.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "XAGUU479DQM7ZXQ6",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "XAGUU479DQM7ZXQ6.JRTCKXETXF.925HBHWMHV" : {
+              "rateCode" : "XAGUU479DQM7ZXQ6.JRTCKXETXF.925HBHWMHV",
+              "description" : "$0.002925 per multi-region-replication client credential flow (M2M) token requests in tier 1 in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "250000",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0029250000"
+              },
+              "appliesTo" : [ ]
+            },
+            "XAGUU479DQM7ZXQ6.JRTCKXETXF.QFSY5JDYF6" : {
+              "rateCode" : "XAGUU479DQM7ZXQ6.JRTCKXETXF.QFSY5JDYF6",
+              "description" : "$0.00195 per multi-region-replication client credential flow (M2M) token requests in tier 2 in Asia Pacific (Tokyo)",
+              "beginRange" : "250000",
+              "endRange" : "5000000",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0019500000"
+              },
+              "appliesTo" : [ ]
+            },
+            "XAGUU479DQM7ZXQ6.JRTCKXETXF.XCXBHCFFQ2" : {
+              "rateCode" : "XAGUU479DQM7ZXQ6.JRTCKXETXF.XCXBHCFFQ2",
+              "description" : "$0.0014625 per multi-region-replication client credential flow (M2M) token requests in tier 3 in Asia Pacific (Tokyo)",
+              "beginRange" : "5000000",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0014625000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "S5HA5Q5C749BRC7P" : {
+        "S5HA5Q5C749BRC7P.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "S5HA5Q5C749BRC7P",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "S5HA5Q5C749BRC7P.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "S5HA5Q5C749BRC7P.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserToken (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "NFTBD37DK82VK5HP" : {
+        "NFTBD37DK82VK5HP.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "NFTBD37DK82VK5HP",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "NFTBD37DK82VK5HP.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "NFTBD37DK82VK5HP.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserAuthentication (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "P7QK52EKF38MD64X" : {
+        "P7QK52EKF38MD64X.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "P7QK52EKF38MD64X",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "P7QK52EKF38MD64X.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "P7QK52EKF38MD64X.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserFederation (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "XJH7YMBJ2G3PS8B2" : {
+        "XJH7YMBJ2G3PS8B2.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "XJH7YMBJ2G3PS8B2",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "XJH7YMBJ2G3PS8B2.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "XJH7YMBJ2G3PS8B2.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserAuthentication (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "GMG7DB4K8N9SPPY5" : {
+        "GMG7DB4K8N9SPPY5.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "GMG7DB4K8N9SPPY5",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "GMG7DB4K8N9SPPY5.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "GMG7DB4K8N9SPPY5.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "Cognito Plus multi-region-replication add-on ap-northeast-1 tier 1 pricing",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0060000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "N855U58SYPAW6FF6" : {
+        "N855U58SYPAW6FF6.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "N855U58SYPAW6FF6",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "N855U58SYPAW6FF6.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "N855U58SYPAW6FF6.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserRead (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "NVNU2CK9S376FFBT" : {
+        "NVNU2CK9S376FFBT.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "NVNU2CK9S376FFBT",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "NVNU2CK9S376FFBT.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "NVNU2CK9S376FFBT.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserResourceRead (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "6UCRZX735SBP6M5B" : {
+        "6UCRZX735SBP6M5B.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "6UCRZX735SBP6M5B",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "6UCRZX735SBP6M5B.JRTCKXETXF.925HBHWMHV" : {
+              "rateCode" : "6UCRZX735SBP6M5B.JRTCKXETXF.925HBHWMHV",
+              "description" : "USD 0.00 per client credential flow (M2M) token request in tier 1  in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "250000",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "6UCRZX735SBP6M5B.JRTCKXETXF.QFSY5JDYF6" : {
+              "rateCode" : "6UCRZX735SBP6M5B.JRTCKXETXF.QFSY5JDYF6",
+              "description" : "USD 0.00 per client credential flow (M2M) token request in tier 2  in Asia Pacific (Tokyo)",
+              "beginRange" : "250000",
+              "endRange" : "5000000",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "6UCRZX735SBP6M5B.JRTCKXETXF.XCXBHCFFQ2" : {
+              "rateCode" : "6UCRZX735SBP6M5B.JRTCKXETXF.XCXBHCFFQ2",
+              "description" : "USD 0.00 per client credential flow (M2M) token request in tier 3  in Asia Pacific (Tokyo)",
+              "beginRange" : "5000000",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "XBS2J298SKKKUDD6" : {
+        "XBS2J298SKKKUDD6.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "XBS2J298SKKKUDD6",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "XBS2J298SKKKUDD6.JRTCKXETXF.ETY2894C67" : {
+              "rateCode" : "XBS2J298SKKKUDD6.JRTCKXETXF.ETY2894C67",
+              "description" : "USD 0.00 per client credential flow app client, pro-rated by the second, in tier 1  in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "100",
+              "unit" : "CognitoUserPools-M2MAppClientMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "XBS2J298SKKKUDD6.JRTCKXETXF.WQ4TY4VCYZ" : {
+              "rateCode" : "XBS2J298SKKKUDD6.JRTCKXETXF.WQ4TY4VCYZ",
+              "description" : "USD 0.00 per client credential flow app client, pro-rated by the second, in tier 2  in Asia Pacific (Tokyo)",
+              "beginRange" : "100",
+              "endRange" : "500",
+              "unit" : "CognitoUserPools-M2MAppClientMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "XBS2J298SKKKUDD6.JRTCKXETXF.TAV9HKW45C" : {
+              "rateCode" : "XBS2J298SKKKUDD6.JRTCKXETXF.TAV9HKW45C",
+              "description" : "USD 0.00 per client credential flow app client, pro-rated by the second, in tier 3  in Asia Pacific (Tokyo)",
+              "beginRange" : "500",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPools-M2MAppClientMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "YNCTBURQ59GG7K9H" : {
+        "YNCTBURQ59GG7K9H.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "YNCTBURQ59GG7K9H",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "YNCTBURQ59GG7K9H.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "YNCTBURQ59GG7K9H.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserResourceUpdate (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "CNHN82F3S2AZPTXR" : {
+        "CNHN82F3S2AZPTXR.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "CNHN82F3S2AZPTXR",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "CNHN82F3S2AZPTXR.JRTCKXETXF.VV2AUKAVFP" : {
+              "rateCode" : "CNHN82F3S2AZPTXR.JRTCKXETXF.VV2AUKAVFP",
+              "description" : "Cognito Lite ap-northeast-1 tier 1 pricing",
+              "beginRange" : "0",
+              "endRange" : "90000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0055000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "CNHN82F3S2AZPTXR.JRTCKXETXF.Q9R5NSMVGC" : {
+              "rateCode" : "CNHN82F3S2AZPTXR.JRTCKXETXF.Q9R5NSMVGC",
+              "description" : "Cognito Lite ap-northeast-1 tier 2 pricing",
+              "beginRange" : "90000",
+              "endRange" : "990000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0046000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "CNHN82F3S2AZPTXR.JRTCKXETXF.KQSJQ3YMHA" : {
+              "rateCode" : "CNHN82F3S2AZPTXR.JRTCKXETXF.KQSJQ3YMHA",
+              "description" : "Cognito Lite ap-northeast-1 tier 3 pricing",
+              "beginRange" : "990000",
+              "endRange" : "9990000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0032500000"
+              },
+              "appliesTo" : [ ]
+            },
+            "CNHN82F3S2AZPTXR.JRTCKXETXF.75WZUA4FXN" : {
+              "rateCode" : "CNHN82F3S2AZPTXR.JRTCKXETXF.75WZUA4FXN",
+              "description" : "Cognito Lite ap-northeast-1 tier 4 pricing",
+              "beginRange" : "9990000",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0025000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "8M6MRSZJNU4DKJWB" : {
+        "8M6MRSZJNU4DKJWB.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "8M6MRSZJNU4DKJWB",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "8M6MRSZJNU4DKJWB.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "8M6MRSZJNU4DKJWB.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserAccountRecovery (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "EYGZCKJ9V5QUD5H9" : {
+        "EYGZCKJ9V5QUD5H9.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "EYGZCKJ9V5QUD5H9",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "EYGZCKJ9V5QUD5H9.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "EYGZCKJ9V5QUD5H9.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserToken (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "AH8UFFURUFH2VCD9" : {
+        "AH8UFFURUFH2VCD9.A429C66SYZ" : {
+          "offerTermCode" : "A429C66SYZ",
+          "sku" : "AH8UFFURUFH2VCD9",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "AH8UFFURUFH2VCD9.A429C66SYZ.A6VD9GXV7W" : {
+              "rateCode" : "AH8UFFURUFH2VCD9.A429C66SYZ.A6VD9GXV7W",
+              "description" : "Cognito  global free tier pricing",
+              "beginRange" : "0",
+              "endRange" : "10000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ "PAWEFWT3AVM5G88J", "JVU799QJR37664RR", "EVZAYBBFN7P2HUZQ", "DUEYJN2PTYBG4J3T", "BEFSFEYNF4BZA7MC", "Y63YB6CSPG7WZHBK", "Y8KDQDK39UDRG6XJ", "FCGBT3RQAZU8XG3H", "BXAB68AG56DFTJ7J", "RDQXCR9N423N6FHP", "PUSB2GCP8RF2MEMH", "SCWNSEWJPCRKJ4PU", "RB4QWZK5J9YCU7Q9", "5YCEBXG4JEW286ZP", "5J74Y3YBXDR26WXU", "536563UHCHJXTENY", "EWGAQDDF3DMFK2N3", "K3SY4K7YCTNPBUPK", "NQKE2UA6GA2HDANG", "PVNJNQNM2RM23UTB", "AQXZ7B2EDGBA5387", "3MY5CTD2GSP5F45Y", "CWU8WFA2ZYMH5EK9", "M6TB36F68GMWUH6T", "YZZRGFGGZZPMR92V", "3SBZU3S3XSNTN9XK", "YJ4TYMGXRS5N6ACK", "XK94SPH8SW72KYTT", "CNHN82F3S2AZPTXR", "5PJHSZU2XZMWHNTW", "3GVVE46F3BD9CRPA", "63GYR4KMEWCBT6DY", "Y4HPSE6CS9SD96JP", "UJ4M5FKHAN4TA9VD", "TTFFBJP2K9P7RKHQ", "XGDZTUEKH8EGQHEM", "2BTX6F7Y357WASFT", "ZZG43CRJJFCYX26Z", "SS63SQ6T3Y6ASC3Q", "BARM6XXPJNRY73CQ", "QKGZH5UTDUJE649F", "G2B28QW9VSYB6UVB", "5HKYV426P4G9BMSG", "YR928W49T5QRMP6S", "8ZY7Q5SKS4WKZHYF", "A7WPS857FB7PHDGS", "DYBNEDWSCPCS2BUZ", "BN6V69DXVARP9XZQ", "4YCJTDX7BUH9V54R", "7YJ8S5JYQJ6MZWSW", "BSXW287GKHPP2CFM", "TJFUTGYWGKNBSHG2", "XVYWD6TWRYVQWN85", "F4M2AY3YMYJKWJBS", "EBSF4REW8Q54M9PN", "YPQMGWCVPGDBE4V5", "CQDYDGHKVVFVZZRP", "CJUNATY8K3J8WJ5U", "QA55XHQT8NAY3D4U", "KSXMU6NXDGDEEHXQ", "NBCHU5WKQQ2GJ947", "BR4R96M4DGMHCFJE", "KXPEEH5NVRPPH6UH", "WZTQ7QDE9T262WNY", "EYGK5MNEV88JRZDR", "AHWP4TMEFUMZNQ7T", "VF5M4Q43UHW79W35", "D7UFP5TDYG2PN8M7" ]
+            }
+          },
+          "termAttributes" : {
+            "Restriction" : "Limited SKU Usage"
+          }
+        }
+      },
+      "PE388CYQYGADFAR6" : {
+        "PE388CYQYGADFAR6.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "PE388CYQYGADFAR6",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "PE388CYQYGADFAR6.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "PE388CYQYGADFAR6.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserAccountRecovery (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "BXTFXPZGJ8G9QE6B" : {
+        "BXTFXPZGJ8G9QE6B.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "BXTFXPZGJ8G9QE6B",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "BXTFXPZGJ8G9QE6B.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "BXTFXPZGJ8G9QE6B.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserUpdate (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "EY9QB3PMSYTP6DZ2" : {
+        "EY9QB3PMSYTP6DZ2.A429C66SYZ" : {
+          "offerTermCode" : "A429C66SYZ",
+          "sku" : "EY9QB3PMSYTP6DZ2",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "EY9QB3PMSYTP6DZ2.A429C66SYZ.ZRBZXHZTV5" : {
+              "rateCode" : "EY9QB3PMSYTP6DZ2.A429C66SYZ.ZRBZXHZTV5",
+              "description" : "Cognito User Pools global enterprise users free tier pricing",
+              "beginRange" : "0",
+              "endRange" : "50",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ "7XXGJPH5796APDTF", "DC7SJMH5CRSGKV6J", "VTJ85EU3DBNX3SB4", "NWMH8T6AC53W8YY4", "MJVKEDY4DD2B6Y58", "BBNTE25DFBR6DDUE", "NXW6CJJZPUH3D3CK", "TQFZZH26BBQA7GHH", "YZAGEJXZYAYR4WPV", "CS95M753FYJSYV2X", "MZB3R9M6VWVQPZVM", "Y8U7C9MHJSHW93G3", "DTP9Z65M7XXHYSFK", "BR6GNFXHPBACDKCM", "Q7BUCXU6C7FTXQU9", "2DHDTAQF7ACQETPT", "RX5H9JUWTXXVX875", "9CANBKTG5GKQUTYF", "FDFZG73V5QPZ2E6C", "QKZF6ZJJWDCFJEY2", "Y6ETJKK6T97XKSN3", "5CNZF82JRTXMWNC7", "F9EHJCADN6DGW823", "BVM9Q7QAZJ4FM7EG", "R9U9TGJ7JRJ6FPB9", "Q7YZDW7FTCA4KMBS", "GBG62C5SXBV8QNED", "ASTVU4472MWWRC3R", "EMJP7BJQXANKVJHW", "R8DBG27YA28VMKCV", "SFMQKUKJ3VJVCF8D", "8P3C9KAFXS5DUGHH", "67JBKJUC2F4KMGXB", "KEBTA5UPTFZX5A9J" ]
+            }
+          },
+          "termAttributes" : {
+            "Restriction" : "Limited SKU Usage"
+          }
+        }
+      },
+      "BRWXZFXAXX34RPXB" : {
+        "BRWXZFXAXX34RPXB.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "BRWXZFXAXX34RPXB",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "BRWXZFXAXX34RPXB.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "BRWXZFXAXX34RPXB.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserToken (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "9ZEZB59QJYN8CJNG" : {
+        "9ZEZB59QJYN8CJNG.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "9ZEZB59QJYN8CJNG",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "9ZEZB59QJYN8CJNG.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "9ZEZB59QJYN8CJNG.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "Cognito Essentials multi-region-replication add-on ap-northeast-1 tier 1 pricing",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0045000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "Z8TXS7D8XVJT3KY6" : {
+        "Z8TXS7D8XVJT3KY6.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "Z8TXS7D8XVJT3KY6",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "Z8TXS7D8XVJT3KY6.JRTCKXETXF.925HBHWMHV" : {
+              "rateCode" : "Z8TXS7D8XVJT3KY6.JRTCKXETXF.925HBHWMHV",
+              "description" : "USD 0.00225 per client credential flow (M2M) token request in tier 1  in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "250000",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0022500000"
+              },
+              "appliesTo" : [ ]
+            },
+            "Z8TXS7D8XVJT3KY6.JRTCKXETXF.QFSY5JDYF6" : {
+              "rateCode" : "Z8TXS7D8XVJT3KY6.JRTCKXETXF.QFSY5JDYF6",
+              "description" : "USD 0.0015 per client credential flow (M2M) token request in tier 2  in Asia Pacific (Tokyo)",
+              "beginRange" : "250000",
+              "endRange" : "5000000",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0015000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "Z8TXS7D8XVJT3KY6.JRTCKXETXF.XCXBHCFFQ2" : {
+              "rateCode" : "Z8TXS7D8XVJT3KY6.JRTCKXETXF.XCXBHCFFQ2",
+              "description" : "USD 0.001125 per client credential flow (M2M) token request in tier 3  in Asia Pacific (Tokyo)",
+              "beginRange" : "5000000",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPools-M2MTokens",
+              "pricePerUnit" : {
+                "USD" : "0.0011250000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "S2F3CRP7M9MWJZDE" : {
+        "S2F3CRP7M9MWJZDE.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "S2F3CRP7M9MWJZDE",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "S2F3CRP7M9MWJZDE.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "S2F3CRP7M9MWJZDE.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserResourceRead (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "NDPFQCBR4BTD8CEU" : {
+        "NDPFQCBR4BTD8CEU.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "NDPFQCBR4BTD8CEU",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "NDPFQCBR4BTD8CEU.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "NDPFQCBR4BTD8CEU.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserRead (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "HFCJDV8G335WQURU" : {
+        "HFCJDV8G335WQURU.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "HFCJDV8G335WQURU",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "HFCJDV8G335WQURU.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "HFCJDV8G335WQURU.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserResourceUpdate (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "MZTUHZJ52A3VPA6T" : {
+        "MZTUHZJ52A3VPA6T.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "MZTUHZJ52A3VPA6T",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "MZTUHZJ52A3VPA6T.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "MZTUHZJ52A3VPA6T.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserResourceRead (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "MFADPXYUTRVZGFXF" : {
+        "MFADPXYUTRVZGFXF.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "MFADPXYUTRVZGFXF",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "MFADPXYUTRVZGFXF.JRTCKXETXF.ZM2XF3EGYR" : {
+              "rateCode" : "MFADPXYUTRVZGFXF.JRTCKXETXF.ZM2XF3EGYR",
+              "description" : "Cognito User Pools ap-northeast-1 tier 1 pricing",
+              "beginRange" : "0",
+              "endRange" : "50000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0055000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "MFADPXYUTRVZGFXF.JRTCKXETXF.25RY46V5GS" : {
+              "rateCode" : "MFADPXYUTRVZGFXF.JRTCKXETXF.25RY46V5GS",
+              "description" : "Cognito User Pools ap-northeast-1 tier 2 pricing",
+              "beginRange" : "50000",
+              "endRange" : "950000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0046000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "MFADPXYUTRVZGFXF.JRTCKXETXF.HQHRVXU2H3" : {
+              "rateCode" : "MFADPXYUTRVZGFXF.JRTCKXETXF.HQHRVXU2H3",
+              "description" : "Cognito User Pools ap-northeast-1 tier 3 pricing",
+              "beginRange" : "950000",
+              "endRange" : "9950000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0032500000"
+              },
+              "appliesTo" : [ ]
+            },
+            "MFADPXYUTRVZGFXF.JRTCKXETXF.JVCK9G2KFH" : {
+              "rateCode" : "MFADPXYUTRVZGFXF.JRTCKXETXF.JVCK9G2KFH",
+              "description" : "Cognito User Pools ap-northeast-1 tier 4 pricing",
+              "beginRange" : "9950000",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0025000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "537UQMD47N65X23Q" : {
+        "537UQMD47N65X23Q.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "537UQMD47N65X23Q",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "537UQMD47N65X23Q.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "537UQMD47N65X23Q.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "Cognito Plus ap-northeast-1 tier 1 pricing",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0200000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "JRGNUYCVEBKA6U9J" : {
+        "JRGNUYCVEBKA6U9J.A429C66SYZ" : {
+          "offerTermCode" : "A429C66SYZ",
+          "sku" : "JRGNUYCVEBKA6U9J",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "JRGNUYCVEBKA6U9J.A429C66SYZ.ZM2XF3EGYR" : {
+              "rateCode" : "JRGNUYCVEBKA6U9J.A429C66SYZ.ZM2XF3EGYR",
+              "description" : "Cognito User Pools global free tier pricing",
+              "beginRange" : "0",
+              "endRange" : "50000",
+              "unit" : "CognitoUserPoolsMAU",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ "KPWUACHJQEQQ5SAB", "YHFNUF6PN2GDAETC", "FUE47UCUJ3EM92TN", "RUZVV46ZG267KS5G", "6X4DTEBVSFYKKK58", "S2S549DFNTJJS9ZT", "6P6MNAHPD4AWVTYV", "A7ZZQ9HSSR2SA5RQ", "2DHUBGW799QWJ7K2", "JB7EQU5EGJABZSBG", "AV3AT95VBDPKCN7Q", "QPUU797YAECSZFMT", "S5UMR9TJNRZSBCWS", "3K8FNSFZ78DTGJEX", "QJC3UE86XSTPJMMZ", "GEM568PKAS9ZHFB7", "WRTHZ3VYJTEJVHN4", "9PCA77APJSGK93BX", "SFR2YW74GW784U2M", "E6JRDQP3G56Y9N7M", "886UYXNP3ZGBUBYN", "CPPZG83Y8JKFV9CE", "3TYUUNY2VV5YJPXN", "47JUGDNC5N3DZT85", "TEQY6CZWWUAV7AU3", "MVD92S3FM3N8M2E5", "SJDJQB52YRYNVHRN", "YP8N49B32GN7P8ZR", "PDWYSF9WEFCNUQWX", "MFADPXYUTRVZGFXF", "AEA8HJGFVCZD3FKC", "QFPS9M9JEAF83EED", "Z7W3Z8V9CNY3HCTF", "8VEPRJK2R7H9653S" ]
+            }
+          },
+          "termAttributes" : {
+            "Restriction" : "Limited SKU Usage"
+          }
+        }
+      },
+      "M8UVH2AW9KNVWFYG" : {
+        "M8UVH2AW9KNVWFYG.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "M8UVH2AW9KNVWFYG",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "M8UVH2AW9KNVWFYG.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "M8UVH2AW9KNVWFYG.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserAccountRecovery (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "9PDDFNADV5ZB6VC2" : {
+        "9PDDFNADV5ZB6VC2.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "9PDDFNADV5ZB6VC2",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "9PDDFNADV5ZB6VC2.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "9PDDFNADV5ZB6VC2.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 0.00 per RPS-Month incremental RPS for UserCreation (exempt) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "5RP73H4RCPA7UESD" : {
+        "5RP73H4RCPA7UESD.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "5RP73H4RCPA7UESD",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "5RP73H4RCPA7UESD.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "5RP73H4RCPA7UESD.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 45.00 per RPS-Month incremental RPS for UserRead (partial month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "45.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "44QZYJD7NEF5P7GQ" : {
+        "44QZYJD7NEF5P7GQ.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "44QZYJD7NEF5P7GQ",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "44QZYJD7NEF5P7GQ.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "44QZYJD7NEF5P7GQ.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD 20.00 per RPS-Month incremental RPS for UserUpdate (full month) for users in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "CognitoUserPoolsRPSMo",
+              "pricePerUnit" : {
+                "USD" : "20.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "VUBBA8HTJRT6CKFS" : {
+        "VUBBA8HTJRT6CKFS.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "VUBBA8HTJRT6CKFS",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "VUBBA8HTJRT6CKFS.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "VUBBA8HTJRT6CKFS.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.00001 per Request for Bedrock-Agent-Core:Auth-Request:Oauth2 in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Requests",
+              "pricePerUnit" : {
+                "USD" : "0.0000100000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "WA9GT235BB66FUBV" : {
+        "WA9GT235BB66FUBV.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "WA9GT235BB66FUBV",
+          "effectiveDate" : "2026-09-01T00:00:00Z",
+          "priceDimensions" : {
+            "WA9GT235BB66FUBV.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "WA9GT235BB66FUBV.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.00001 per Request for Bedrock-Agent-Core:Auth-Request:API-Keys in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Requests",
+              "pricePerUnit" : {
+                "USD" : "0.0000100000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      }
+    }
+  },
+  "attributesList" : { }
+}

@@ -1,0 +1,235 @@
+module.alb.data.archive_file.app: Reading...
+module.alb.data.archive_file.app: Read complete after 0s [id=7d1b8141351ab438328f842acbfd0643b4a16e33]
+module.base.data.aws_availability_zones.available: Reading...
+aws_verifiedaccess_instance.this: Refreshing state... [id=vai-0541c6ce77af1c761]
+module.base.aws_vpc.this: Refreshing state... [id=vpc-04823bbd650938fb8]
+aws_verifiedaccess_trust_provider.crowdstrike: Refreshing state... [id=vatp-08bd078c6124ed3a6]
+aws_verifiedaccess_trust_provider.idc: Refreshing state... [id=vatp-0313e8d5a88367cf4]
+aws_acm_certificate.public: Refreshing state... [id=arn:aws:acm:us-east-1:111122223333:certificate/11f3cc1a-5e4c-478d-84f8-b51f444577b3]
+module.base.data.aws_availability_zones.available: Read complete after 0s [id=us-east-1]
+aws_acm_certificate_validation.public: Refreshing state... [id=2026-11-23 01:11:31.704 +0000 UTC]
+aws_verifiedaccess_instance_trust_provider_attachment.idc: Refreshing state... [id=vai-0541c6ce77af1c761/vatp-0313e8d5a88367cf4]
+aws_verifiedaccess_group.employees: Refreshing state... [id=vagr-0e1c34f26c29420d6]
+module.base.aws_subnet.private[1]: Refreshing state... [id=subnet-026001bddf7aea8de]
+module.base.aws_subnet.private[0]: Refreshing state... [id=subnet-00863ccc8c89627f7]
+aws_security_group.endpoint: Refreshing state... [id=sg-0f548964e9e2e90e2]
+module.alb.aws_security_group.alb: Refreshing state... [id=sg-0df83194c299d3068]
+module.alb.aws_lb.this: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps/c5c3f7653869413d]
+aws_verifiedaccess_endpoint.app["admin"]: Refreshing state... [id=vae-03fb7f65b534a80dd]
+aws_verifiedaccess_endpoint.app["expense"]: Refreshing state... [id=vae-06520e36fbcae6752]
+aws_verifiedaccess_endpoint.app["wiki"]: Refreshing state... [id=vae-00a22fffbedfa1eb0]
+
+Note: Objects have changed outside of Terraform
+
+Terraform detected the following changes made outside of Terraform since the
+last "terraform apply" which may have affected this plan:
+
+  # aws_acm_certificate.public has changed
+  ~ resource "aws_acm_certificate" "public" {
+        id                        = "arn:aws:acm:us-east-1:111122223333:certificate/11f3cc1a-5e4c-478d-84f8-b51f444577b3"
+      ~ renewal_eligibility       = "ELIGIBLE" -> "INELIGIBLE"
+        tags                      = {}
+        # (18 unchanged attributes hidden)
+
+        # (1 unchanged block hidden)
+    }
+
+  # aws_security_group.endpoint has changed
+  ~ resource "aws_security_group" "endpoint" {
+      ~ egress                 = [
+          - {
+              - cidr_blocks      = []
+              - from_port        = 443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0df83194c299d3068",
+                ]
+              - self             = false
+              - to_port          = 443
+                # (1 unchanged attribute hidden)
+            },
+        ]
+        id                     = "sg-0f548964e9e2e90e2"
+        name                   = "employee-apps-verified-access"
+        tags                   = {}
+        # (9 unchanged attributes hidden)
+    }
+
+  # aws_verifiedaccess_endpoint.app["admin"] has been deleted
+  - resource "aws_verifiedaccess_endpoint" "app" {
+      - application_domain          = "admin.internal-app-access.example.com" -> null
+      - attachment_type             = "vpc" -> null
+      - device_validation_domain    = "edge-075f5821eba779011.vld-096bd18dbec7fdcef.vld.prod.verified-access.us-east-1.amazonaws.com" -> null
+      - domain_certificate_arn      = "arn:aws:acm:us-east-1:111122223333:certificate/11f3cc1a-5e4c-478d-84f8-b51f444577b3" -> null
+      - endpoint_domain             = "admin.edge-075f5821eba779011.vai-0541c6ce77af1c761.prod.verified-access.us-east-1.amazonaws.com" -> null
+      - endpoint_domain_prefix      = "admin" -> null
+      - endpoint_type               = "load-balancer" -> null
+      - id                          = "vae-03fb7f65b534a80dd" -> null
+      - region                      = "us-east-1" -> null
+      - security_group_ids          = [
+          - "sg-0f548964e9e2e90e2",
+        ] -> null
+      - tags                        = {} -> null
+      - tags_all                    = {} -> null
+      - verified_access_group_id    = "vagr-0e1c34f26c29420d6" -> null
+      - verified_access_instance_id = "vai-0541c6ce77af1c761" -> null
+        # (2 unchanged attributes hidden)
+
+      - load_balancer_options {
+          - load_balancer_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps/c5c3f7653869413d" -> null
+          - port              = 443 -> null
+          - protocol          = "https" -> null
+          - subnet_ids        = [
+              - "subnet-00863ccc8c89627f7",
+              - "subnet-026001bddf7aea8de",
+            ] -> null
+        }
+
+      - sse_specification {
+          - customer_managed_key_enabled = false -> null
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # aws_verifiedaccess_endpoint.app["expense"] has been deleted
+  - resource "aws_verifiedaccess_endpoint" "app" {
+      - application_domain          = "expense.internal-app-access.example.com" -> null
+      - attachment_type             = "vpc" -> null
+      - device_validation_domain    = "edge-075f5821eba779011.vld-096bd18dbec7fdcef.vld.prod.verified-access.us-east-1.amazonaws.com" -> null
+      - domain_certificate_arn      = "arn:aws:acm:us-east-1:111122223333:certificate/11f3cc1a-5e4c-478d-84f8-b51f444577b3" -> null
+      - endpoint_domain             = "expense.edge-075f5821eba779011.vai-0541c6ce77af1c761.prod.verified-access.us-east-1.amazonaws.com" -> null
+      - endpoint_domain_prefix      = "expense" -> null
+      - endpoint_type               = "load-balancer" -> null
+      - id                          = "vae-06520e36fbcae6752" -> null
+      - region                      = "us-east-1" -> null
+      - security_group_ids          = [
+          - "sg-0f548964e9e2e90e2",
+        ] -> null
+      - tags                        = {} -> null
+      - tags_all                    = {} -> null
+      - verified_access_group_id    = "vagr-0e1c34f26c29420d6" -> null
+      - verified_access_instance_id = "vai-0541c6ce77af1c761" -> null
+        # (2 unchanged attributes hidden)
+
+      - load_balancer_options {
+          - load_balancer_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps/c5c3f7653869413d" -> null
+          - port              = 443 -> null
+          - protocol          = "https" -> null
+          - subnet_ids        = [
+              - "subnet-00863ccc8c89627f7",
+              - "subnet-026001bddf7aea8de",
+            ] -> null
+        }
+
+      - sse_specification {
+          - customer_managed_key_enabled = false -> null
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # aws_verifiedaccess_endpoint.app["wiki"] has been deleted
+  - resource "aws_verifiedaccess_endpoint" "app" {
+      - application_domain          = "wiki.internal-app-access.example.com" -> null
+      - attachment_type             = "vpc" -> null
+      - device_validation_domain    = "edge-075f5821eba779011.vld-096bd18dbec7fdcef.vld.prod.verified-access.us-east-1.amazonaws.com" -> null
+      - domain_certificate_arn      = "arn:aws:acm:us-east-1:111122223333:certificate/11f3cc1a-5e4c-478d-84f8-b51f444577b3" -> null
+      - endpoint_domain             = "wiki.edge-075f5821eba779011.vai-0541c6ce77af1c761.prod.verified-access.us-east-1.amazonaws.com" -> null
+      - endpoint_domain_prefix      = "wiki" -> null
+      - endpoint_type               = "load-balancer" -> null
+      - id                          = "vae-00a22fffbedfa1eb0" -> null
+      - region                      = "us-east-1" -> null
+      - security_group_ids          = [
+          - "sg-0f548964e9e2e90e2",
+        ] -> null
+      - tags                        = {} -> null
+      - tags_all                    = {} -> null
+      - verified_access_group_id    = "vagr-0e1c34f26c29420d6" -> null
+      - verified_access_instance_id = "vai-0541c6ce77af1c761" -> null
+        # (2 unchanged attributes hidden)
+
+      - load_balancer_options {
+          - load_balancer_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps/c5c3f7653869413d" -> null
+          - port              = 443 -> null
+          - protocol          = "https" -> null
+          - subnet_ids        = [
+              - "subnet-00863ccc8c89627f7",
+              - "subnet-026001bddf7aea8de",
+            ] -> null
+        }
+
+      - sse_specification {
+          - customer_managed_key_enabled = false -> null
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # aws_verifiedaccess_instance.this has changed
+  ~ resource "aws_verifiedaccess_instance" "this" {
+        id                              = "vai-0541c6ce77af1c761"
+      ~ last_updated_time               = "2026-11-23T01:48:53" -> "2026-11-23T01:58:22"
+        tags                            = {}
+        # (7 unchanged attributes hidden)
+    }
+
+  # module.alb.aws_security_group.alb has changed
+  ~ resource "aws_security_group" "alb" {
+        id                     = "sg-0df83194c299d3068"
+      ~ ingress                = [
+          - {
+              - cidr_blocks      = []
+              - from_port        = 443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0f548964e9e2e90e2",
+                ]
+              - self             = false
+              - to_port          = 443
+                # (1 unchanged attribute hidden)
+            },
+        ]
+        name                   = "employee-apps-alb"
+        tags                   = {}
+        # (9 unchanged attributes hidden)
+    }
+
+
+This is a refresh-only plan, so Terraform will not take any actions to undo
+these. If you were expecting these changes then you can apply this plan to
+record the updated values in the Terraform state without changing any remote
+objects.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Changes to Outputs:
+  + alb_name                       = "employee-apps"
+  + certificate_validation_records = [
+      + {
+          + name  = "_c5c6b2ef16d3a1bffc9f278019ffd972.internal-app-access.example.com."
+          + type  = "CNAME"
+          + value = "_21d953cf16360fde5b95af1363eabd0d.wzccmgtwzk.acm-validations.aws."
+        },
+    ]
+  + endpoint_domains               = {}
+  + log_group_name                 = (known after apply)
+
+You can apply this plan to save these new output values to the Terraform
+state, without changing any real infrastructure.
+
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+alb_name = "employee-apps"
+certificate_validation_records = [
+  {
+    "name" = "_c5c6b2ef16d3a1bffc9f278019ffd972.internal-app-access.example.com."
+    "type" = "CNAME"
+    "value" = "_21d953cf16360fde5b95af1363eabd0d.wzccmgtwzk.acm-validations.aws."
+  },
+]
+endpoint_domains = {}
+log_group_name = null

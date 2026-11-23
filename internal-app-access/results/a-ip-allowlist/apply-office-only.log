@@ -1,0 +1,84 @@
+module.base.tls_private_key.this: Refreshing state... [id=37acf5c62b915f0edf10a43492cd36b8f5ec6f6d]
+module.alb.data.archive_file.app: Reading...
+module.alb.data.archive_file.app: Read complete after 0s [id=7d1b8141351ab438328f842acbfd0643b4a16e33]
+module.base.tls_self_signed_cert.this: Refreshing state... [id=266051243549015739570682617976402945378]
+module.base.data.aws_availability_zones.available: Reading...
+module.alb.aws_iam_role.app: Refreshing state... [id=syw-employee-apps-a-app]
+module.alb.aws_cloudwatch_log_group.app: Refreshing state... [id=/aws/lambda/employee-apps-a-app]
+module.base.aws_acm_certificate.this: Refreshing state... [id=arn:aws:acm:us-east-1:111122223333:certificate/e3805ce7-c16a-4613-8ca2-e3e753566c4a]
+module.base.aws_vpc.this: Refreshing state... [id=vpc-0be42518694d49c2d]
+module.alb.aws_lb_target_group.app["admin"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-a-admin-fn/eeefab57c9b73385]
+module.alb.aws_lb_target_group.app["expense"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-a-expense-fn/da1d802cf1a261bc]
+module.alb.aws_lb_target_group.app["wiki"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-a-wiki-fn/6378bbb210026686]
+module.base.data.aws_availability_zones.available: Read complete after 1s [id=us-east-1]
+module.alb.aws_iam_role_policy.app_logs: Refreshing state... [id=syw-employee-apps-a-app:terraform-31748044488b3c7170433b522c]
+module.alb.aws_lambda_function.app: Refreshing state... [id=employee-apps-a-app]
+module.base.aws_internet_gateway.this: Refreshing state... [id=igw-045991bbed3451fa8]
+module.base.aws_subnet.private[1]: Refreshing state... [id=subnet-084c6a91e158f2580]
+module.base.aws_subnet.public[0]: Refreshing state... [id=subnet-0d07f06d3d66ae5bb]
+module.base.aws_subnet.public[1]: Refreshing state... [id=subnet-02c74fcdb6602994b]
+module.base.aws_subnet.private[0]: Refreshing state... [id=subnet-0ff2e0d5d34ccf77c]
+module.alb.aws_security_group.alb: Refreshing state... [id=sg-095ccc657aef77565]
+module.alb.aws_lambda_permission.alb["wiki"]: Refreshing state... [id=alb-wiki]
+module.alb.aws_lambda_permission.alb["admin"]: Refreshing state... [id=alb-admin]
+module.alb.aws_lambda_permission.alb["expense"]: Refreshing state... [id=alb-expense]
+module.base.aws_route_table.public: Refreshing state... [id=rtb-054b83d03189bee51]
+module.alb.aws_lb_target_group_attachment.app["wiki"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-a-wiki-fn/6378bbb210026686,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-a-app]
+module.alb.aws_lb_target_group_attachment.app["expense"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-a-expense-fn/da1d802cf1a261bc,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-a-app]
+module.alb.aws_lb_target_group_attachment.app["admin"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-a-admin-fn/eeefab57c9b73385,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-a-app]
+aws_vpc_security_group_ingress_rule.office["198.51.100.1/32"]: Refreshing state... [id=sgr-0393c8b34f1162b9e]
+module.alb.aws_lb.this: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-a/e35c0a43be2e9a31]
+module.base.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-08c8fa007046ba335]
+module.base.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-0fe18daed94e3b59c]
+module.alb.aws_lb_listener.https: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-a/e35c0a43be2e9a31/7d32c4934d7bcd5e]
+module.alb.aws_lb_listener_rule.app["admin"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-a/e35c0a43be2e9a31/7d32c4934d7bcd5e/c20ebebb3bf411dc]
+module.alb.aws_lb_listener_rule.app["expense"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-a/e35c0a43be2e9a31/7d32c4934d7bcd5e/85b3e120b7ffbdc4]
+module.alb.aws_lb_listener_rule.app["wiki"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-a/e35c0a43be2e9a31/7d32c4934d7bcd5e/75f3a94cc4da76cf]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+  - destroy
+
+Terraform will perform the following actions:
+
+  # aws_vpc_security_group_ingress_rule.office["198.51.100.1/32"] will be destroyed
+  # (because key ["198.51.100.1/32"] is not in for_each map)
+  - resource "aws_vpc_security_group_ingress_rule" "office" {
+      - arn                    = "arn:aws:ec2:us-east-1:111122223333:security-group-rule/sgr-0393c8b34f1162b9e" -> null
+      - cidr_ipv4              = "198.51.100.1/32" -> null
+      - from_port              = 443 -> null
+      - id                     = "sgr-0393c8b34f1162b9e" -> null
+      - ip_protocol            = "tcp" -> null
+      - region                 = "us-east-1" -> null
+      - security_group_id      = "sg-095ccc657aef77565" -> null
+      - security_group_rule_id = "sgr-0393c8b34f1162b9e" -> null
+      - tags_all               = {} -> null
+      - to_port                = 443 -> null
+    }
+
+  # aws_vpc_security_group_ingress_rule.office["203.0.113.10/32"] will be created
+  + resource "aws_vpc_security_group_ingress_rule" "office" {
+      + arn                    = (known after apply)
+      + cidr_ipv4              = "203.0.113.10/32"
+      + from_port              = 443
+      + id                     = (known after apply)
+      + ip_protocol            = "tcp"
+      + region                 = "us-east-1"
+      + security_group_id      = "sg-095ccc657aef77565"
+      + security_group_rule_id = (known after apply)
+      + tags_all               = {}
+      + to_port                = 443
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.
+aws_vpc_security_group_ingress_rule.office["198.51.100.1/32"]: Destroying... [id=sgr-0393c8b34f1162b9e]
+aws_vpc_security_group_ingress_rule.office["203.0.113.10/32"]: Creating...
+aws_vpc_security_group_ingress_rule.office["198.51.100.1/32"]: Destruction complete after 1s
+aws_vpc_security_group_ingress_rule.office["203.0.113.10/32"]: Creation complete after 1s [id=sgr-0dcd2fd4437a9b72d]
+
+Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
+
+Outputs:
+
+alb_name = "employee-apps-a"

@@ -1,0 +1,20 @@
+[
+    {
+        "ApplicationDomain": "expense.internal-app-access.example.com",
+        "EndpointType": "load-balancer",
+        "Status": "active",
+        "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps/c5c3f7653869413d"
+    },
+    {
+        "ApplicationDomain": "admin.internal-app-access.example.com",
+        "EndpointType": "load-balancer",
+        "Status": "active",
+        "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps/c5c3f7653869413d"
+    },
+    {
+        "ApplicationDomain": "wiki.internal-app-access.example.com",
+        "EndpointType": "load-balancer",
+        "Status": "active",
+        "LoadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps/c5c3f7653869413d"
+    }
+]

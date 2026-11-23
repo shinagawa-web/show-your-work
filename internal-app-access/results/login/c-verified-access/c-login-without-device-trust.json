@@ -1,0 +1,83 @@
+{
+  "label": "c-login-without-device-trust",
+  "operated_at": "2026-11-23T01:47:29Z (opened by an agent in the user's Chrome, where the user's own IAM Identity Center session was still active. The sign-in page was not shown)",
+  "note": "After the CrowdStrike device trust provider was detached from the instance (attach_device_trust = false). The app domains resolved through public DNS.",
+  "events": [
+    {
+      "timestamp": "2026-11-23T01:47:29Z",
+      "host": "wiki.internal-app-access.example.com",
+      "path": "/",
+      "header_names": [
+        "accept",
+        "accept-encoding",
+        "accept-language",
+        "cookie",
+        "host",
+        "priority",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "upgrade-insecure-requests",
+        "user-agent",
+        "x-amzn-ava-user-context",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
+        "x-forwarded-port",
+        "x-forwarded-proto"
+      ],
+      "decoded": {
+        "x-amzn-ava-user-context": {
+          "user": {
+            "user_id": "<redacted>",
+            "user_name": "<redacted>",
+            "email": {
+              "address": "user@example.com",
+              "verified": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-23T01:47:29Z",
+      "host": "wiki.internal-app-access.example.com",
+      "path": "/favicon.ico",
+      "header_names": [
+        "accept",
+        "accept-encoding",
+        "accept-language",
+        "cookie",
+        "host",
+        "priority",
+        "referer",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "user-agent",
+        "x-amzn-ava-user-context",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
+        "x-forwarded-port",
+        "x-forwarded-proto"
+      ],
+      "decoded": {
+        "x-amzn-ava-user-context": {
+          "user": {
+            "user_id": "<redacted>",
+            "user_name": "<redacted>",
+            "email": {
+              "address": "user@example.com",
+              "verified": true
+            }
+          }
+        }
+      }
+    }
+  ]
+}

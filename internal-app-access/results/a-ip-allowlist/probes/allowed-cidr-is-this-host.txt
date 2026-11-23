@@ -1,0 +1,33 @@
+Request: GET https://wiki.internal-app-access.example.com/ to the ALB from this host, with this host's egress IP (/32) as the only allowed CIDR
+Prediction: The app body is returned
+
+$ python3 -c 'socket.getaddrinfo("employee-apps-a-1516258297.us-east-1.elb.amazonaws.com", 443, socket.AF_INET)'
+44.214.49.226
+All addresses private: False
+
+$ curl -sS -k --max-time 10 -o body -D headers -w '%{http_code} %{exitcode}\n' --connect-to wiki.internal-app-access.example.com:443:employee-apps-a-1516258297.us-east-1.elb.amazonaws.com:443 https://wiki.internal-app-access.example.com/
+(attempts: 1)
+--- write-out (http_code exitcode)
+200 0
+--- headers
+HTTP/2 200 
+server: awselb/2.0
+date: Mon, 23 Nov 2026 01:00:42 GMT
+content-type: application/json
+content-length: 399
+--- body
+{
+  "message": "reached app wiki.internal-app-access.example.com",
+  "method": "GET",
+  "path": "/",
+  "headers": {
+    "accept": "*/*",
+    "host": "wiki.internal-app-access.example.com",
+    "user-agent": "curl/8.7.1",
+    "x-amzn-trace-id": "Root=1-6b03903a-0d46476b6359e2721d189d35",
+    "x-forwarded-for": "198.51.100.1",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+

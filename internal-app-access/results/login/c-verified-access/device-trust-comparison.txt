@@ -1,0 +1,16 @@
+Opening https://wiki.internal-app-access.example.com/ through the Verified Access endpoint, with and without the device trust provider attached to the instance.
+Policy of the group: context.idc.groups has "<verifiers-group-id>", no device condition.
+
+With the CrowdStrike device trust provider attached (attach_device_trust = true)
+- Time: 2026-11-23T01:3x, reported by the user
+- After signing in to IAM Identity Center, the browser stopped at
+  https://edge-075f5821eba779011.vld-...vld.prod.verified-access.us-east-1.amazonaws.com/validate_domain?redirect_url=https%3A%2F%2Fwiki.internal-app-access.example.com
+- Response: status 200, body "Redirecting..." (14 bytes), no Location header, no meta refresh, no script (reported by the user)
+- Requests that reached the app: 0 (c-login-with-device-trust.txt: the Lambda log group had no log stream at 2026-11-23T01:40:03Z)
+
+Without the device trust provider (attach_device_trust = false, results/c-verified-access/apply-without-device-trust.log)
+- Time: 2026-11-23T01:47:29Z, from the Lambda log
+- The page was opened by an agent in the user's Chrome, where the user's own IAM Identity Center session was still active. The sign-in page was not shown
+- Response: status 200 (read by the agent in the browser), body from the app, starting with "message": "reached app wiki.internal-app-access.example.com"
+- Requests that reached the app: 2 (/ and /favicon.ico, c-login-without-device-trust.txt), each with x-amzn-ava-user-context
+- Decoded x-amzn-ava-user-context: user.user_id, user.user_name, user.email.address, user.email.verified (true). No group claim

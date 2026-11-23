@@ -1,0 +1,84 @@
+{
+  "label": "c-user-window-with-cookies-again",
+  "opened_at": "2026-11-23T04:06:34Z (from x-amzn-trace-id)",
+  "note": "Measured (Lambda log): the request headers below. Set up: device trust provider detached, policy allows the verifiers group. sec-fetch-site of / is none, and the Cookie header held only Google Analytics cookies. This request was found in the log between the two openings reported; who opened it and how is not reported.",
+  "events": [
+    {
+      "timestamp": "2026-11-23T04:06:34Z",
+      "host": "wiki.internal-app-access.example.com",
+      "path": "/",
+      "header_names": [
+        "accept",
+        "accept-encoding",
+        "accept-language",
+        "cookie",
+        "host",
+        "priority",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "sec-fetch-user",
+        "upgrade-insecure-requests",
+        "user-agent",
+        "x-amzn-ava-user-context",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
+        "x-forwarded-port",
+        "x-forwarded-proto"
+      ],
+      "decoded": {
+        "x-amzn-ava-user-context": {
+          "user": {
+            "user_id": "<redacted>",
+            "user_name": "<redacted>",
+            "email": {
+              "address": "user@example.com",
+              "verified": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-23T04:06:35Z",
+      "host": "wiki.internal-app-access.example.com",
+      "path": "/favicon.ico",
+      "header_names": [
+        "accept",
+        "accept-encoding",
+        "accept-language",
+        "cookie",
+        "host",
+        "priority",
+        "referer",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "user-agent",
+        "x-amzn-ava-user-context",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
+        "x-forwarded-port",
+        "x-forwarded-proto"
+      ],
+      "decoded": {
+        "x-amzn-ava-user-context": {
+          "user": {
+            "user_id": "<redacted>",
+            "user_name": "<redacted>",
+            "email": {
+              "address": "user@example.com",
+              "verified": true
+            }
+          }
+        }
+      }
+    }
+  ]
+}

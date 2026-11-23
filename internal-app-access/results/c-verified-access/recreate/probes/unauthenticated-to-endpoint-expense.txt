@@ -1,0 +1,20 @@
+Request: GET https://expense.internal-app-access.example.com/ to the Verified Access endpoint of expense, without signing in
+Prediction: A 3xx to the IAM Identity Center sign-in, and no app body
+
+$ python3 -c 'socket.getaddrinfo("expense.edge-09db5b0283eee0643.vai-0541c6ce77af1c761.prod.verified-access.us-east-1.amazonaws.com", 443, socket.AF_INET)'
+3.213.4.30 3.217.182.26
+All addresses private: False
+
+$ curl -sS -k --max-time 10 -o body -D headers -w '%{http_code} %{exitcode}\n' --connect-to expense.internal-app-access.example.com:443:expense.edge-09db5b0283eee0643.vai-0541c6ce77af1c761.prod.verified-access.us-east-1.amazonaws.com:443 https://expense.internal-app-access.example.com/
+(attempts: 1)
+--- write-out (http_code exitcode)
+303 0
+--- headers
+HTTP/2 303 
+date: Mon, 23 Nov 2026 02:21:26 GMT
+content-length: 0
+location: https://us-east-1.signin.aws/platform/authorize?callback_url=https%3A%2F%2Foidc.us-east-1.amazonaws.com%2Fauthentication_result&request_uri=<redacted>&identitystore_id=d-0000000000&state=<redacted>&response_type=code&redirect_uri=https%3A%2F%2Fexpense.internal-app-access.example.com%2Faws-iam-identity-center%2Fidpresponse&client_id=p2ZSk18rj-VztgZre4x0M3VzLWVhc3QtMQ
+strict-transport-security: max-age=63072000
+--- body
+
+

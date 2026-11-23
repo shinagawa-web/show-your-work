@@ -1,0 +1,39 @@
+$ aws ec2 describe-verified-access-endpoints
+[
+    "vae-06520e36fbcae6752",
+    "vae-03fb7f65b534a80dd",
+    "vae-00a22fffbedfa1eb0"
+]
+$ aws ec2 describe-verified-access-groups
+[
+    "vagr-0e1c34f26c29420d6"
+]
+$ aws ec2 describe-verified-access-instances
+[
+    "vai-0541c6ce77af1c761"
+]
+$ aws ec2 describe-verified-access-trust-providers
+[
+    "vatp-08bd078c6124ed3a6",
+    "vatp-0313e8d5a88367cf4"
+]
+$ aws elbv2 describe-load-balancers
+[
+    "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps/c5c3f7653869413d",
+    "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-b/6fd6b2fce06b5b43"
+]
+$ aws cognito-idp list-user-pools --max-results 60
+[
+    "us-east-1_adF3rMmJ3"
+]
+$ aws acm list-certificates
+[
+    "arn:aws:acm:us-east-1:111122223333:certificate/c59ec385-11c9-41bc-bc60-5e15b020fcc3",
+    "arn:aws:acm:us-east-1:111122223333:certificate/11f3cc1a-5e4c-478d-84f8-b51f444577b3",
+    "arn:aws:acm:us-east-1:111122223333:certificate/55f678da-1633-482f-aa9b-698dd32b3a26"
+]
+$ aws ec2 describe-vpcs --filters 'Name=tag:Name,Values=employee-apps*'
+[
+    "vpc-0a9f89c37d7f12018",
+    "vpc-04823bbd650938fb8"
+]

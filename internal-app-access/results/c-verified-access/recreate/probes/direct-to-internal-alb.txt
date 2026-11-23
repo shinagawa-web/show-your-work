@@ -1,0 +1,18 @@
+Request: GET https://wiki.internal-app-access.example.com/ to the internal ALB from this host
+Prediction: The ALB name resolves only to private addresses, curl does not reach it, and no app body is returned
+
+$ python3 -c 'socket.getaddrinfo("internal-employee-apps-95275754.us-east-1.elb.amazonaws.com", 443, socket.AF_INET)'
+10.0.10.150 10.0.11.132
+All addresses private: True
+
+$ curl -sS -k --max-time 10 -o body -D headers -w '%{http_code} %{exitcode}\n' --connect-to wiki.internal-app-access.example.com:443:internal-employee-apps-95275754.us-east-1.elb.amazonaws.com:443 https://wiki.internal-app-access.example.com/
+(attempts: 1)
+--- write-out (http_code exitcode)
+000 28
+--- stderr
+curl: (28) Connection timed out after 10010 milliseconds
+--- headers
+
+--- body
+
+

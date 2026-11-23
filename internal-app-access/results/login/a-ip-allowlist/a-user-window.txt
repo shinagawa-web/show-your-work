@@ -1,0 +1,59 @@
+Opened at: 2026-11-23T04:03:33Z (from x-amzn-trace-id)
+Log group: /aws/lambda/employee-apps-a-app
+Log events since: 2026-11-23T04:03:30Z, until: 2026-11-23T04:03:40Z
+Note: Measured (Lambda log): the requests below reached the app, and no x-amzn-oidc-* or x-amzn-ava-user-context header arrived. Reported: opened by the user in a normal window of the user's Chrome. The allowed CIDR was this host's egress IP address (/32).
+
+--- log event at 2026-11-23T04:03:33Z (header values of cookie, x-amzn-ava-user-context, x-amzn-oidc-accesstoken, x-amzn-oidc-data, x-amzn-oidc-identity redacted)
+{
+  "message": "reached app employee-apps-a-1178252552.us-east-1.elb.amazonaws.com",
+  "method": "GET",
+  "path": "/",
+  "headers": {
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9,ja;q=0.8",
+    "cache-control": "max-age=0",
+    "host": "employee-apps-a-1178252552.us-east-1.elb.amazonaws.com",
+    "priority": "u=0, i",
+    "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "none",
+    "sec-fetch-user": "?1",
+    "upgrade-insecure-requests": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+    "x-amzn-trace-id": "Root=1-6b03bb15-0556edc61b8a9ae23bd4f259",
+    "x-forwarded-for": "<client address>",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+
+--- log event at 2026-11-23T04:03:34Z (header values of cookie, x-amzn-ava-user-context, x-amzn-oidc-accesstoken, x-amzn-oidc-data, x-amzn-oidc-identity redacted)
+{
+  "message": "reached app employee-apps-a-1178252552.us-east-1.elb.amazonaws.com",
+  "method": "GET",
+  "path": "/favicon.ico",
+  "headers": {
+    "accept": "image/jxl,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9,ja;q=0.8",
+    "host": "employee-apps-a-1178252552.us-east-1.elb.amazonaws.com",
+    "priority": "u=1, i",
+    "referer": "https://employee-apps-a-1178252552.us-east-1.elb.amazonaws.com/",
+    "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "image",
+    "sec-fetch-mode": "no-cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+    "x-amzn-trace-id": "Root=1-6b03bb16-6b58d4474f270fc255296e2b",
+    "x-forwarded-for": "<client address>",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+

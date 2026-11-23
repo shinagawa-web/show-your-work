@@ -1,0 +1,84 @@
+Opened at: 2026-11-23T04:06:34Z (from x-amzn-trace-id)
+Log group: /aws/lambda/employee-apps-app
+Log events since: 2026-11-23T04:06:30Z, until: 2026-11-23T04:06:40Z
+Note: Measured (Lambda log): the request headers below. Set up: device trust provider detached, policy allows the verifiers group. sec-fetch-site of / is none, and the Cookie header held only Google Analytics cookies. This request was found in the log between the two openings reported; who opened it and how is not reported.
+
+--- log event at 2026-11-23T04:06:34Z (header values of cookie, x-amzn-ava-user-context, x-amzn-oidc-accesstoken, x-amzn-oidc-data, x-amzn-oidc-identity redacted)
+{
+  "message": "reached app wiki.internal-app-access.example.com",
+  "method": "GET",
+  "path": "/",
+  "headers": {
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9,ja;q=0.8",
+    "cookie": "<redacted>",
+    "host": "wiki.internal-app-access.example.com",
+    "priority": "u=0, i",
+    "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "none",
+    "sec-fetch-user": "?1",
+    "upgrade-insecure-requests": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+    "x-amzn-ava-user-context": "<redacted>",
+    "x-amzn-trace-id": "Self=1-6b03bbca-2a8a2fa4087cf2df4d10c8e4;Root=1-6b03bbca-7de8b91f0f51fbe321668da0",
+    "x-forwarded-for": "<client address>",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+--- decoded payload of x-amzn-ava-user-context (values other than address, aud, custom:groups, email, exp, groups, identities, iss, username, verified redacted)
+{
+  "user": {
+    "user_id": "<redacted>",
+    "user_name": "<redacted>",
+    "email": {
+      "address": "user@example.com",
+      "verified": true
+    }
+  }
+}
+
+--- log event at 2026-11-23T04:06:35Z (header values of cookie, x-amzn-ava-user-context, x-amzn-oidc-accesstoken, x-amzn-oidc-data, x-amzn-oidc-identity redacted)
+{
+  "message": "reached app wiki.internal-app-access.example.com",
+  "method": "GET",
+  "path": "/favicon.ico",
+  "headers": {
+    "accept": "image/jxl,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9,ja;q=0.8",
+    "cookie": "<redacted>",
+    "host": "wiki.internal-app-access.example.com",
+    "priority": "u=1, i",
+    "referer": "https://wiki.internal-app-access.example.com/",
+    "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "image",
+    "sec-fetch-mode": "no-cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+    "x-amzn-ava-user-context": "<redacted>",
+    "x-amzn-trace-id": "Self=1-6b03bbca-63f0550c0bd25ba17b606c75;Root=1-6b03bbca-4a89cec07b2a7f50792e6382",
+    "x-forwarded-for": "<client address>",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+--- decoded payload of x-amzn-ava-user-context (values other than address, aud, custom:groups, email, exp, groups, identities, iss, username, verified redacted)
+{
+  "user": {
+    "user_id": "<redacted>",
+    "user_name": "<redacted>",
+    "email": {
+      "address": "user@example.com",
+      "verified": true
+    }
+  }
+}
+

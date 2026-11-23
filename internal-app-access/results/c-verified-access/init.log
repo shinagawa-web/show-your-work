@@ -1,0 +1,15 @@
+Initializing the backend...
+
+Initializing modules...
+- base in ../modules/base
+- alb in ../modules/alb
+
+Initializing provider plugins...
+- Reusing version 2.8.1 of hashicorp/archive from the dependency lock file
+- Reusing version 6.73.0 of hashicorp/aws from the dependency lock file
+- Reusing version 4.4.2 of hashicorp/tls from the dependency lock file
+- Using hashicorp/archive v2.8.1 from the shared cache directory
+- Using hashicorp/aws v6.73.0 from the shared cache directory
+- Using hashicorp/tls v4.4.2 from the shared cache directory
+
+Terraform has been successfully initialized!

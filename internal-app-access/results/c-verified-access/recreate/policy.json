@@ -1,0 +1,4 @@
+{
+    "PolicyEnabled": true,
+    "PolicyDocument": "permit(principal, action, resource)\nwhen {\n  context.idc.groups has \"<verifiers-group-id>\"\n};\n"
+}

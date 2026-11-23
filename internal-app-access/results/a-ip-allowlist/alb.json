@@ -1,0 +1,10 @@
+{
+    "Scheme": "internet-facing",
+    "State": "active",
+    "AvailabilityZones": 2
+}
+{
+    "NetworkInterfaces": 2,
+    "WithPublicIPv4": 2
+}
+{"SecondsWaitedForNetworkInterfaces": 27}

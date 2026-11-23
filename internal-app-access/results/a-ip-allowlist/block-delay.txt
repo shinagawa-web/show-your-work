@@ -1,0 +1,69 @@
+curl to the ALB every 2 s (--max-time 10), before, during and after an apply that replaces the allowed CIDR
+
+Security group rules before: 02:10:36.705Z [{"Egress": false, "From": 443, "To": 443, "Cidr": "198.51.100.1/32"}]
+terraform apply exit code 0 at 02:10:47.231Z
+02:10:46.112Z aws_vpc_security_group_ingress_rule.office["198.51.100.1/32"]: Destroying... [id=sgr-09ec2719f5702d347]
+02:10:46.117Z aws_vpc_security_group_ingress_rule.office["203.0.113.10/32"]: Creating...
+02:10:47.197Z aws_vpc_security_group_ingress_rule.office["203.0.113.10/32"]: Creation complete after 1s [id=sgr-0b3011c4737e8d4e5]
+02:10:47.207Z aws_vpc_security_group_ingress_rule.office["198.51.100.1/32"]: Destruction complete after 1s
+02:10:47.227Z Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
+Security group rules right after the apply: 02:10:48.205Z [{"Egress": false, "From": 443, "To": 443, "Cidr": "203.0.113.10/32"}]
+Security group rules at the end: 02:12:30.934Z [{"Egress": false, "From": 443, "To": 443, "Cidr": "203.0.113.10/32"}]
+
+Attempts (start time, seconds from the end of the rule destruction to the start of the attempt, http_code curl_exit, app body returned)
+02:10:36.706Z   -10.5s 200 0 True
+02:10:38.711Z    -8.5s 200 0 True
+02:10:40.716Z    -6.5s 200 0 True
+02:10:42.720Z    -4.5s 200 0 True
+02:10:44.722Z    -2.5s 200 0 True
+02:10:46.727Z    -0.5s 200 0 True
+02:10:48.728Z    +1.5s 000 28 False
+02:10:50.730Z    +3.5s 000 28 False
+02:10:52.735Z    +5.5s 000 28 False
+02:10:54.736Z    +7.5s 000 28 False
+02:10:56.742Z    +9.5s 000 28 False
+02:10:58.743Z   +11.5s 000 28 False
+02:11:00.749Z   +13.5s 000 28 False
+02:11:02.753Z   +15.5s 000 28 False
+02:11:04.756Z   +17.5s 000 28 False
+02:11:06.761Z   +19.6s 000 28 False
+02:11:08.767Z   +21.6s 000 28 False
+02:11:10.770Z   +23.6s 000 28 False
+02:11:12.775Z   +25.6s 000 28 False
+02:11:14.780Z   +27.6s 000 28 False
+02:11:16.785Z   +29.6s 000 28 False
+02:11:18.786Z   +31.6s 000 28 False
+02:11:20.789Z   +33.6s 000 28 False
+02:11:22.790Z   +35.6s 000 28 False
+02:11:24.796Z   +37.6s 000 28 False
+02:11:26.801Z   +39.6s 000 28 False
+02:11:28.807Z   +41.6s 000 28 False
+02:11:30.812Z   +43.6s 000 28 False
+02:11:32.820Z   +45.6s 000 28 False
+02:11:34.828Z   +47.6s 000 28 False
+02:11:36.829Z   +49.6s 000 28 False
+02:11:38.834Z   +51.6s 000 28 False
+02:11:40.840Z   +53.6s 000 28 False
+02:11:42.846Z   +55.6s 000 28 False
+02:11:44.849Z   +57.6s 000 28 False
+02:11:46.854Z   +59.6s 000 28 False
+02:11:48.860Z   +61.7s 000 28 False
+02:11:50.860Z   +63.7s 000 28 False
+02:11:52.863Z   +65.7s 000 28 False
+02:11:54.869Z   +67.7s 000 28 False
+02:11:56.870Z   +69.7s 000 28 False
+02:11:58.875Z   +71.7s 000 28 False
+02:12:00.882Z   +73.7s 000 28 False
+02:12:02.888Z   +75.7s 000 28 False
+02:12:04.896Z   +77.7s 000 28 False
+02:12:06.903Z   +79.7s 000 28 False
+02:12:08.908Z   +81.7s 000 28 False
+02:12:10.910Z   +83.7s 000 28 False
+02:12:12.919Z   +85.7s 000 28 False
+02:12:14.925Z   +87.7s 000 28 False
+02:12:16.929Z   +89.7s 000 28 False
+
+Last attempt that reached the app started -0.5 s from the rule destruction, -0.5 s from the end of the apply
+First attempt of the run that did not reach it and was never followed by one that did: +1.5 s from the rule destruction, +1.5 s from the end of the apply; 45 attempts in a row
+
+Seen in a browser (a separate Chrome profile, read by an agent): while only 203.0.113.10/32 was allowed, from 2026-11-23T02:13:06Z to 02:14:07Z, the page stayed blank for 60 s and no body appeared. No error page was seen within that time.

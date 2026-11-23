@@ -1,0 +1,916 @@
+module.alb.data.archive_file.app: Reading...
+module.alb.data.archive_file.app: Read complete after 0s [id=7d1b8141351ab438328f842acbfd0643b4a16e33]
+module.base.data.aws_availability_zones.available: Reading...
+module.base.data.aws_availability_zones.available: Read complete after 1s [id=us-east-1]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_acm_certificate.public will be created
+  + resource "aws_acm_certificate" "public" {
+      + arn                       = (known after apply)
+      + domain_name               = "*.internal-app-access.example.com"
+      + domain_validation_options = [
+          + {
+              + domain_name           = "*.internal-app-access.example.com"
+              + resource_record_name  = (known after apply)
+              + resource_record_type  = (known after apply)
+              + resource_record_value = (known after apply)
+            },
+        ]
+      + id                        = (known after apply)
+      + key_algorithm             = (known after apply)
+      + not_after                 = (known after apply)
+      + not_before                = (known after apply)
+      + pending_renewal           = (known after apply)
+      + private_key_wo            = (write-only attribute)
+      + region                    = "us-east-1"
+      + renewal_eligibility       = (known after apply)
+      + renewal_summary           = (known after apply)
+      + status                    = (known after apply)
+      + subject_alternative_names = [
+          + "*.internal-app-access.example.com",
+        ]
+      + tags_all                  = (known after apply)
+      + type                      = (known after apply)
+      + validation_emails         = (known after apply)
+      + validation_method         = "DNS"
+
+      + options (known after apply)
+    }
+
+  # aws_acm_certificate_validation.public will be created
+  + resource "aws_acm_certificate_validation" "public" {
+      + certificate_arn = (known after apply)
+      + id              = (known after apply)
+      + region          = "us-east-1"
+    }
+
+  # aws_security_group.endpoint will be created
+  + resource "aws_security_group" "endpoint" {
+      + arn                    = (known after apply)
+      + description            = "Managed by Terraform"
+      + egress                 = (known after apply)
+      + id                     = (known after apply)
+      + ingress                = (known after apply)
+      + name                   = "employee-apps-verified-access"
+      + name_prefix            = (known after apply)
+      + owner_id               = (known after apply)
+      + region                 = "us-east-1"
+      + revoke_rules_on_delete = false
+      + tags_all               = (known after apply)
+      + vpc_id                 = (known after apply)
+    }
+
+  # aws_verifiedaccess_endpoint.app["admin"] will be created
+  + resource "aws_verifiedaccess_endpoint" "app" {
+      + application_domain          = "admin.internal-app-access.example.com"
+      + attachment_type             = "vpc"
+      + device_validation_domain    = (known after apply)
+      + domain_certificate_arn      = (known after apply)
+      + endpoint_domain             = (known after apply)
+      + endpoint_domain_prefix      = "admin"
+      + endpoint_type               = "load-balancer"
+      + id                          = (known after apply)
+      + region                      = "us-east-1"
+      + security_group_ids          = (known after apply)
+      + tags_all                    = (known after apply)
+      + verified_access_group_id    = (known after apply)
+      + verified_access_instance_id = (known after apply)
+
+      + load_balancer_options {
+          + load_balancer_arn = (known after apply)
+          + port              = 443
+          + protocol          = "https"
+          + subnet_ids        = (known after apply)
+        }
+
+      + sse_specification (known after apply)
+    }
+
+  # aws_verifiedaccess_endpoint.app["expense"] will be created
+  + resource "aws_verifiedaccess_endpoint" "app" {
+      + application_domain          = "expense.internal-app-access.example.com"
+      + attachment_type             = "vpc"
+      + device_validation_domain    = (known after apply)
+      + domain_certificate_arn      = (known after apply)
+      + endpoint_domain             = (known after apply)
+      + endpoint_domain_prefix      = "expense"
+      + endpoint_type               = "load-balancer"
+      + id                          = (known after apply)
+      + region                      = "us-east-1"
+      + security_group_ids          = (known after apply)
+      + tags_all                    = (known after apply)
+      + verified_access_group_id    = (known after apply)
+      + verified_access_instance_id = (known after apply)
+
+      + load_balancer_options {
+          + load_balancer_arn = (known after apply)
+          + port              = 443
+          + protocol          = "https"
+          + subnet_ids        = (known after apply)
+        }
+
+      + sse_specification (known after apply)
+    }
+
+  # aws_verifiedaccess_endpoint.app["wiki"] will be created
+  + resource "aws_verifiedaccess_endpoint" "app" {
+      + application_domain          = "wiki.internal-app-access.example.com"
+      + attachment_type             = "vpc"
+      + device_validation_domain    = (known after apply)
+      + domain_certificate_arn      = (known after apply)
+      + endpoint_domain             = (known after apply)
+      + endpoint_domain_prefix      = "wiki"
+      + endpoint_type               = "load-balancer"
+      + id                          = (known after apply)
+      + region                      = "us-east-1"
+      + security_group_ids          = (known after apply)
+      + tags_all                    = (known after apply)
+      + verified_access_group_id    = (known after apply)
+      + verified_access_instance_id = (known after apply)
+
+      + load_balancer_options {
+          + load_balancer_arn = (known after apply)
+          + port              = 443
+          + protocol          = "https"
+          + subnet_ids        = (known after apply)
+        }
+
+      + sse_specification (known after apply)
+    }
+
+  # aws_verifiedaccess_group.employees will be created
+  + resource "aws_verifiedaccess_group" "employees" {
+      + creation_time              = (known after apply)
+      + deletion_time              = (known after apply)
+      + description                = (known after apply)
+      + id                         = (known after apply)
+      + last_updated_time          = (known after apply)
+      + owner                      = (known after apply)
+      + policy_document            = <<-EOT
+            permit(principal, action, resource)
+            when {
+              context.idc.groups has "00000000-0000-0000-0000-000000000000"
+            };
+        EOT
+      + region                     = "us-east-1"
+      + tags_all                   = (known after apply)
+      + verifiedaccess_group_arn   = (known after apply)
+      + verifiedaccess_group_id    = (known after apply)
+      + verifiedaccess_instance_id = (known after apply)
+
+      + sse_configuration (known after apply)
+    }
+
+  # aws_verifiedaccess_instance.this will be created
+  + resource "aws_verifiedaccess_instance" "this" {
+      + creation_time                   = (known after apply)
+      + description                     = "employee-apps"
+      + id                              = (known after apply)
+      + last_updated_time               = (known after apply)
+      + name_servers                    = (known after apply)
+      + region                          = "us-east-1"
+      + tags_all                        = (known after apply)
+      + verified_access_trust_providers = (known after apply)
+    }
+
+  # aws_verifiedaccess_instance_trust_provider_attachment.idc will be created
+  + resource "aws_verifiedaccess_instance_trust_provider_attachment" "idc" {
+      + id                               = (known after apply)
+      + region                           = "us-east-1"
+      + verifiedaccess_instance_id       = (known after apply)
+      + verifiedaccess_trust_provider_id = (known after apply)
+    }
+
+  # aws_verifiedaccess_trust_provider.crowdstrike will be created
+  + resource "aws_verifiedaccess_trust_provider" "crowdstrike" {
+      + device_trust_provider_type = "crowdstrike"
+      + id                         = (known after apply)
+      + policy_reference_name      = "crowdstrike"
+      + region                     = "us-east-1"
+      + tags_all                   = (known after apply)
+      + trust_provider_type        = "device"
+
+      + device_options {
+          + tenant_id = "00000000000000000000000000000000"
+        }
+
+      + sse_specification (known after apply)
+    }
+
+  # aws_verifiedaccess_trust_provider.idc will be created
+  + resource "aws_verifiedaccess_trust_provider" "idc" {
+      + id                       = (known after apply)
+      + policy_reference_name    = "idc"
+      + region                   = "us-east-1"
+      + tags_all                 = (known after apply)
+      + trust_provider_type      = "user"
+      + user_trust_provider_type = "iam-identity-center"
+
+      + sse_specification (known after apply)
+    }
+
+  # aws_vpc_security_group_egress_rule.endpoint_to_alb will be created
+  + resource "aws_vpc_security_group_egress_rule" "endpoint_to_alb" {
+      + arn                          = (known after apply)
+      + from_port                    = 443
+      + id                           = (known after apply)
+      + ip_protocol                  = "tcp"
+      + referenced_security_group_id = (known after apply)
+      + region                       = "us-east-1"
+      + security_group_id            = (known after apply)
+      + security_group_rule_id       = (known after apply)
+      + tags_all                     = {}
+      + to_port                      = 443
+    }
+
+  # aws_vpc_security_group_ingress_rule.alb_from_endpoint will be created
+  + resource "aws_vpc_security_group_ingress_rule" "alb_from_endpoint" {
+      + arn                          = (known after apply)
+      + from_port                    = 443
+      + id                           = (known after apply)
+      + ip_protocol                  = "tcp"
+      + referenced_security_group_id = (known after apply)
+      + region                       = "us-east-1"
+      + security_group_id            = (known after apply)
+      + security_group_rule_id       = (known after apply)
+      + tags_all                     = {}
+      + to_port                      = 443
+    }
+
+  # module.alb.aws_cloudwatch_log_group.app will be created
+  + resource "aws_cloudwatch_log_group" "app" {
+      + arn                         = (known after apply)
+      + deletion_protection_enabled = (known after apply)
+      + id                          = (known after apply)
+      + log_group_class             = (known after apply)
+      + name                        = "/aws/lambda/employee-apps-app"
+      + name_prefix                 = (known after apply)
+      + region                      = "us-east-1"
+      + retention_in_days           = 1
+      + skip_destroy                = false
+      + tags_all                    = (known after apply)
+    }
+
+  # module.alb.aws_iam_role.app will be created
+  + resource "aws_iam_role" "app" {
+      + arn                   = (known after apply)
+      + assume_role_policy    = jsonencode(
+            {
+              + Statement = [
+                  + {
+                      + Action    = "sts:AssumeRole"
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + Service = "lambda.amazonaws.com"
+                        }
+                    },
+                ]
+              + Version   = "2012-10-17"
+            }
+        )
+      + create_date           = (known after apply)
+      + force_detach_policies = false
+      + id                    = (known after apply)
+      + managed_policy_arns   = (known after apply)
+      + max_session_duration  = 3600
+      + name                  = "syw-employee-apps-app"
+      + name_prefix           = (known after apply)
+      + path                  = "/"
+      + tags_all              = (known after apply)
+      + unique_id             = (known after apply)
+
+      + inline_policy (known after apply)
+    }
+
+  # module.alb.aws_iam_role_policy.app_logs will be created
+  + resource "aws_iam_role_policy" "app_logs" {
+      + id          = (known after apply)
+      + name        = (known after apply)
+      + name_prefix = (known after apply)
+      + policy      = (known after apply)
+      + role        = (known after apply)
+    }
+
+  # module.alb.aws_lambda_function.app will be created
+  + resource "aws_lambda_function" "app" {
+      + architectures                  = (known after apply)
+      + arn                            = (known after apply)
+      + code_sha256                    = (known after apply)
+      + filename                       = "./.terraform-build/app.zip"
+      + function_name                  = "employee-apps-app"
+      + handler                        = "app.handler"
+      + id                             = (known after apply)
+      + invoke_arn                     = (known after apply)
+      + last_modified                  = (known after apply)
+      + memory_size                    = 128
+      + package_type                   = "Zip"
+      + publish                        = false
+      + qualified_arn                  = (known after apply)
+      + qualified_invoke_arn           = (known after apply)
+      + region                         = "us-east-1"
+      + reserved_concurrent_executions = -1
+      + response_streaming_invoke_arn  = (known after apply)
+      + role                           = (known after apply)
+      + runtime                        = "python3.13"
+      + signing_job_arn                = (known after apply)
+      + signing_profile_version_arn    = (known after apply)
+      + skip_destroy                   = false
+      + source_code_hash               = "TAtEi5jrptiFJSFOJZN40xnCVFbf57s/BHMKE02nng8="
+      + source_code_size               = (known after apply)
+      + tags_all                       = (known after apply)
+      + timeout                        = 3
+      + version                        = (known after apply)
+
+      + ephemeral_storage (known after apply)
+
+      + logging_config (known after apply)
+
+      + tracing_config (known after apply)
+    }
+
+  # module.alb.aws_lambda_permission.alb["admin"] will be created
+  + resource "aws_lambda_permission" "alb" {
+      + action              = "lambda:InvokeFunction"
+      + function_name       = "employee-apps-app"
+      + id                  = (known after apply)
+      + principal           = "elasticloadbalancing.amazonaws.com"
+      + region              = "us-east-1"
+      + source_arn          = (known after apply)
+      + statement_id        = "alb-admin"
+      + statement_id_prefix = (known after apply)
+    }
+
+  # module.alb.aws_lambda_permission.alb["expense"] will be created
+  + resource "aws_lambda_permission" "alb" {
+      + action              = "lambda:InvokeFunction"
+      + function_name       = "employee-apps-app"
+      + id                  = (known after apply)
+      + principal           = "elasticloadbalancing.amazonaws.com"
+      + region              = "us-east-1"
+      + source_arn          = (known after apply)
+      + statement_id        = "alb-expense"
+      + statement_id_prefix = (known after apply)
+    }
+
+  # module.alb.aws_lambda_permission.alb["wiki"] will be created
+  + resource "aws_lambda_permission" "alb" {
+      + action              = "lambda:InvokeFunction"
+      + function_name       = "employee-apps-app"
+      + id                  = (known after apply)
+      + principal           = "elasticloadbalancing.amazonaws.com"
+      + region              = "us-east-1"
+      + source_arn          = (known after apply)
+      + statement_id        = "alb-wiki"
+      + statement_id_prefix = (known after apply)
+    }
+
+  # module.alb.aws_lb.this will be created
+  + resource "aws_lb" "this" {
+      + arn                                                          = (known after apply)
+      + arn_suffix                                                   = (known after apply)
+      + client_keep_alive                                            = 3600
+      + desync_mitigation_mode                                       = "defensive"
+      + dns_name                                                     = (known after apply)
+      + drop_invalid_header_fields                                   = false
+      + enable_deletion_protection                                   = false
+      + enable_http2                                                 = true
+      + enable_prefix_for_ipv6_source_nat                            = (known after apply)
+      + enable_tls_version_and_cipher_suite_headers                  = false
+      + enable_waf_fail_open                                         = false
+      + enable_xff_client_port                                       = false
+      + enable_zonal_shift                                           = false
+      + enforce_security_group_inbound_rules_on_private_link_traffic = (known after apply)
+      + id                                                           = (known after apply)
+      + idle_timeout                                                 = 60
+      + internal                                                     = true
+      + ip_address_type                                              = (known after apply)
+      + load_balancer_type                                           = "application"
+      + name                                                         = "employee-apps"
+      + name_prefix                                                  = (known after apply)
+      + preserve_host_header                                         = false
+      + region                                                       = "us-east-1"
+      + secondary_ips_auto_assigned_per_subnet                       = (known after apply)
+      + security_groups                                              = (known after apply)
+      + subnets                                                      = (known after apply)
+      + tags_all                                                     = (known after apply)
+      + vpc_id                                                       = (known after apply)
+      + xff_header_processing_mode                                   = "append"
+      + zone_id                                                      = (known after apply)
+
+      + subnet_mapping (known after apply)
+    }
+
+  # module.alb.aws_lb_listener.https will be created
+  + resource "aws_lb_listener" "https" {
+      + arn                                                                   = (known after apply)
+      + certificate_arn                                                       = (known after apply)
+      + id                                                                    = (known after apply)
+      + load_balancer_arn                                                     = (known after apply)
+      + port                                                                  = 443
+      + protocol                                                              = "HTTPS"
+      + region                                                                = "us-east-1"
+      + routing_http_request_x_amzn_mtls_clientcert_header_name               = (known after apply)
+      + routing_http_request_x_amzn_mtls_clientcert_issuer_header_name        = (known after apply)
+      + routing_http_request_x_amzn_mtls_clientcert_leaf_header_name          = (known after apply)
+      + routing_http_request_x_amzn_mtls_clientcert_serial_number_header_name = (known after apply)
+      + routing_http_request_x_amzn_mtls_clientcert_subject_header_name       = (known after apply)
+      + routing_http_request_x_amzn_mtls_clientcert_validity_header_name      = (known after apply)
+      + routing_http_request_x_amzn_tls_cipher_suite_header_name              = (known after apply)
+      + routing_http_request_x_amzn_tls_version_header_name                   = (known after apply)
+      + routing_http_response_access_control_allow_credentials_header_value   = (known after apply)
+      + routing_http_response_access_control_allow_headers_header_value       = (known after apply)
+      + routing_http_response_access_control_allow_methods_header_value       = (known after apply)
+      + routing_http_response_access_control_allow_origin_header_value        = (known after apply)
+      + routing_http_response_access_control_expose_headers_header_value      = (known after apply)
+      + routing_http_response_access_control_max_age_header_value             = (known after apply)
+      + routing_http_response_content_security_policy_header_value            = (known after apply)
+      + routing_http_response_server_enabled                                  = (known after apply)
+      + routing_http_response_strict_transport_security_header_value          = (known after apply)
+      + routing_http_response_x_content_type_options_header_value             = (known after apply)
+      + routing_http_response_x_frame_options_header_value                    = (known after apply)
+      + ssl_policy                                                            = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+      + tags_all                                                              = (known after apply)
+      + tcp_idle_timeout_seconds                                              = (known after apply)
+
+      + default_action {
+          + order = (known after apply)
+          + type  = "fixed-response"
+
+          + fixed_response {
+              + content_type = "text/plain"
+              + status_code  = "404"
+            }
+        }
+
+      + mutual_authentication (known after apply)
+    }
+
+  # module.alb.aws_lb_listener_rule.app["admin"] will be created
+  + resource "aws_lb_listener_rule" "app" {
+      + arn          = (known after apply)
+      + id           = (known after apply)
+      + listener_arn = (known after apply)
+      + priority     = 10
+      + region       = "us-east-1"
+      + tags_all     = (known after apply)
+
+      + action {
+          + order            = 2
+          + target_group_arn = (known after apply)
+          + type             = "forward"
+        }
+
+      + condition {
+          + host_header {
+              + regex_values = []
+              + values       = [
+                  + "admin.internal-app-access.example.com",
+                ]
+            }
+        }
+    }
+
+  # module.alb.aws_lb_listener_rule.app["expense"] will be created
+  + resource "aws_lb_listener_rule" "app" {
+      + arn          = (known after apply)
+      + id           = (known after apply)
+      + listener_arn = (known after apply)
+      + priority     = 11
+      + region       = "us-east-1"
+      + tags_all     = (known after apply)
+
+      + action {
+          + order            = 2
+          + target_group_arn = (known after apply)
+          + type             = "forward"
+        }
+
+      + condition {
+          + host_header {
+              + regex_values = []
+              + values       = [
+                  + "expense.internal-app-access.example.com",
+                ]
+            }
+        }
+    }
+
+  # module.alb.aws_lb_listener_rule.app["wiki"] will be created
+  + resource "aws_lb_listener_rule" "app" {
+      + arn          = (known after apply)
+      + id           = (known after apply)
+      + listener_arn = (known after apply)
+      + priority     = 12
+      + region       = "us-east-1"
+      + tags_all     = (known after apply)
+
+      + action {
+          + order            = 2
+          + target_group_arn = (known after apply)
+          + type             = "forward"
+        }
+
+      + condition {
+          + host_header {
+              + regex_values = []
+              + values       = [
+                  + "wiki.internal-app-access.example.com",
+                ]
+            }
+        }
+    }
+
+  # module.alb.aws_lb_target_group.app["admin"] will be created
+  + resource "aws_lb_target_group" "app" {
+      + arn                                = (known after apply)
+      + arn_suffix                         = (known after apply)
+      + connection_termination             = (known after apply)
+      + deregistration_delay               = "300"
+      + id                                 = (known after apply)
+      + ip_address_type                    = (known after apply)
+      + lambda_multi_value_headers_enabled = false
+      + load_balancer_arns                 = (known after apply)
+      + load_balancing_algorithm_type      = (known after apply)
+      + load_balancing_anomaly_mitigation  = (known after apply)
+      + load_balancing_cross_zone_enabled  = (known after apply)
+      + name                               = "employee-apps-admin-fn"
+      + name_prefix                        = (known after apply)
+      + preserve_client_ip                 = (known after apply)
+      + protocol_version                   = (known after apply)
+      + proxy_protocol_v2                  = false
+      + region                             = "us-east-1"
+      + slow_start                         = 0
+      + tags_all                           = (known after apply)
+      + target_type                        = "lambda"
+
+      + health_check (known after apply)
+
+      + stickiness (known after apply)
+
+      + target_failover (known after apply)
+
+      + target_group_health (known after apply)
+
+      + target_health_state (known after apply)
+    }
+
+  # module.alb.aws_lb_target_group.app["expense"] will be created
+  + resource "aws_lb_target_group" "app" {
+      + arn                                = (known after apply)
+      + arn_suffix                         = (known after apply)
+      + connection_termination             = (known after apply)
+      + deregistration_delay               = "300"
+      + id                                 = (known after apply)
+      + ip_address_type                    = (known after apply)
+      + lambda_multi_value_headers_enabled = false
+      + load_balancer_arns                 = (known after apply)
+      + load_balancing_algorithm_type      = (known after apply)
+      + load_balancing_anomaly_mitigation  = (known after apply)
+      + load_balancing_cross_zone_enabled  = (known after apply)
+      + name                               = "employee-apps-expense-fn"
+      + name_prefix                        = (known after apply)
+      + preserve_client_ip                 = (known after apply)
+      + protocol_version                   = (known after apply)
+      + proxy_protocol_v2                  = false
+      + region                             = "us-east-1"
+      + slow_start                         = 0
+      + tags_all                           = (known after apply)
+      + target_type                        = "lambda"
+
+      + health_check (known after apply)
+
+      + stickiness (known after apply)
+
+      + target_failover (known after apply)
+
+      + target_group_health (known after apply)
+
+      + target_health_state (known after apply)
+    }
+
+  # module.alb.aws_lb_target_group.app["wiki"] will be created
+  + resource "aws_lb_target_group" "app" {
+      + arn                                = (known after apply)
+      + arn_suffix                         = (known after apply)
+      + connection_termination             = (known after apply)
+      + deregistration_delay               = "300"
+      + id                                 = (known after apply)
+      + ip_address_type                    = (known after apply)
+      + lambda_multi_value_headers_enabled = false
+      + load_balancer_arns                 = (known after apply)
+      + load_balancing_algorithm_type      = (known after apply)
+      + load_balancing_anomaly_mitigation  = (known after apply)
+      + load_balancing_cross_zone_enabled  = (known after apply)
+      + name                               = "employee-apps-wiki-fn"
+      + name_prefix                        = (known after apply)
+      + preserve_client_ip                 = (known after apply)
+      + protocol_version                   = (known after apply)
+      + proxy_protocol_v2                  = false
+      + region                             = "us-east-1"
+      + slow_start                         = 0
+      + tags_all                           = (known after apply)
+      + target_type                        = "lambda"
+
+      + health_check (known after apply)
+
+      + stickiness (known after apply)
+
+      + target_failover (known after apply)
+
+      + target_group_health (known after apply)
+
+      + target_health_state (known after apply)
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["admin"] will be created
+  + resource "aws_lb_target_group_attachment" "app" {
+      + id               = (known after apply)
+      + region           = "us-east-1"
+      + target_group_arn = (known after apply)
+      + target_id        = (known after apply)
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["expense"] will be created
+  + resource "aws_lb_target_group_attachment" "app" {
+      + id               = (known after apply)
+      + region           = "us-east-1"
+      + target_group_arn = (known after apply)
+      + target_id        = (known after apply)
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["wiki"] will be created
+  + resource "aws_lb_target_group_attachment" "app" {
+      + id               = (known after apply)
+      + region           = "us-east-1"
+      + target_group_arn = (known after apply)
+      + target_id        = (known after apply)
+    }
+
+  # module.alb.aws_security_group.alb will be created
+  + resource "aws_security_group" "alb" {
+      + arn                    = (known after apply)
+      + description            = "Managed by Terraform"
+      + egress                 = (known after apply)
+      + id                     = (known after apply)
+      + ingress                = (known after apply)
+      + name                   = "employee-apps-alb"
+      + name_prefix            = (known after apply)
+      + owner_id               = (known after apply)
+      + region                 = "us-east-1"
+      + revoke_rules_on_delete = false
+      + tags_all               = (known after apply)
+      + vpc_id                 = (known after apply)
+    }
+
+  # module.base.aws_acm_certificate.this will be created
+  + resource "aws_acm_certificate" "this" {
+      + arn                       = (known after apply)
+      + certificate_body          = (known after apply)
+      + domain_name               = (known after apply)
+      + domain_validation_options = (known after apply)
+      + id                        = (known after apply)
+      + key_algorithm             = (known after apply)
+      + not_after                 = (known after apply)
+      + not_before                = (known after apply)
+      + pending_renewal           = (known after apply)
+      + private_key               = (sensitive value)
+      + private_key_wo            = (write-only attribute)
+      + region                    = "us-east-1"
+      + renewal_eligibility       = (known after apply)
+      + renewal_summary           = (known after apply)
+      + status                    = (known after apply)
+      + subject_alternative_names = (known after apply)
+      + tags_all                  = (known after apply)
+      + type                      = (known after apply)
+      + validation_emails         = (known after apply)
+      + validation_method         = (known after apply)
+
+      + options (known after apply)
+    }
+
+  # module.base.aws_internet_gateway.this will be created
+  + resource "aws_internet_gateway" "this" {
+      + arn      = (known after apply)
+      + id       = (known after apply)
+      + owner_id = (known after apply)
+      + region   = "us-east-1"
+      + tags_all = (known after apply)
+      + vpc_id   = (known after apply)
+    }
+
+  # module.base.aws_route_table.public will be created
+  + resource "aws_route_table" "public" {
+      + arn              = (known after apply)
+      + id               = (known after apply)
+      + owner_id         = (known after apply)
+      + propagating_vgws = (known after apply)
+      + region           = "us-east-1"
+      + route            = [
+          + {
+              + cidr_block                 = "0.0.0.0/0"
+              + gateway_id                 = (known after apply)
+                # (12 unchanged attributes hidden)
+            },
+        ]
+      + tags_all         = (known after apply)
+      + vpc_id           = (known after apply)
+    }
+
+  # module.base.aws_route_table_association.public[0] will be created
+  + resource "aws_route_table_association" "public" {
+      + id             = (known after apply)
+      + region         = "us-east-1"
+      + route_table_id = (known after apply)
+      + subnet_id      = (known after apply)
+    }
+
+  # module.base.aws_route_table_association.public[1] will be created
+  + resource "aws_route_table_association" "public" {
+      + id             = (known after apply)
+      + region         = "us-east-1"
+      + route_table_id = (known after apply)
+      + subnet_id      = (known after apply)
+    }
+
+  # module.base.aws_subnet.private[0] will be created
+  + resource "aws_subnet" "private" {
+      + arn                                            = (known after apply)
+      + assign_ipv6_address_on_creation                = false
+      + availability_zone                              = "us-east-1a"
+      + availability_zone_id                           = (known after apply)
+      + cidr_block                                     = "10.0.10.0/24"
+      + enable_dns64                                   = false
+      + enable_resource_name_dns_a_record_on_launch    = false
+      + enable_resource_name_dns_aaaa_record_on_launch = false
+      + id                                             = (known after apply)
+      + ipv6_cidr_block                                = (known after apply)
+      + ipv6_cidr_block_association_id                 = (known after apply)
+      + ipv6_native                                    = false
+      + map_public_ip_on_launch                        = false
+      + owner_id                                       = (known after apply)
+      + private_dns_hostname_type_on_launch            = (known after apply)
+      + region                                         = "us-east-1"
+      + tags_all                                       = (known after apply)
+      + vpc_id                                         = (known after apply)
+    }
+
+  # module.base.aws_subnet.private[1] will be created
+  + resource "aws_subnet" "private" {
+      + arn                                            = (known after apply)
+      + assign_ipv6_address_on_creation                = false
+      + availability_zone                              = "us-east-1b"
+      + availability_zone_id                           = (known after apply)
+      + cidr_block                                     = "10.0.11.0/24"
+      + enable_dns64                                   = false
+      + enable_resource_name_dns_a_record_on_launch    = false
+      + enable_resource_name_dns_aaaa_record_on_launch = false
+      + id                                             = (known after apply)
+      + ipv6_cidr_block                                = (known after apply)
+      + ipv6_cidr_block_association_id                 = (known after apply)
+      + ipv6_native                                    = false
+      + map_public_ip_on_launch                        = false
+      + owner_id                                       = (known after apply)
+      + private_dns_hostname_type_on_launch            = (known after apply)
+      + region                                         = "us-east-1"
+      + tags_all                                       = (known after apply)
+      + vpc_id                                         = (known after apply)
+    }
+
+  # module.base.aws_subnet.public[0] will be created
+  + resource "aws_subnet" "public" {
+      + arn                                            = (known after apply)
+      + assign_ipv6_address_on_creation                = false
+      + availability_zone                              = "us-east-1a"
+      + availability_zone_id                           = (known after apply)
+      + cidr_block                                     = "10.0.0.0/24"
+      + enable_dns64                                   = false
+      + enable_resource_name_dns_a_record_on_launch    = false
+      + enable_resource_name_dns_aaaa_record_on_launch = false
+      + id                                             = (known after apply)
+      + ipv6_cidr_block                                = (known after apply)
+      + ipv6_cidr_block_association_id                 = (known after apply)
+      + ipv6_native                                    = false
+      + map_public_ip_on_launch                        = false
+      + owner_id                                       = (known after apply)
+      + private_dns_hostname_type_on_launch            = (known after apply)
+      + region                                         = "us-east-1"
+      + tags_all                                       = (known after apply)
+      + vpc_id                                         = (known after apply)
+    }
+
+  # module.base.aws_subnet.public[1] will be created
+  + resource "aws_subnet" "public" {
+      + arn                                            = (known after apply)
+      + assign_ipv6_address_on_creation                = false
+      + availability_zone                              = "us-east-1b"
+      + availability_zone_id                           = (known after apply)
+      + cidr_block                                     = "10.0.1.0/24"
+      + enable_dns64                                   = false
+      + enable_resource_name_dns_a_record_on_launch    = false
+      + enable_resource_name_dns_aaaa_record_on_launch = false
+      + id                                             = (known after apply)
+      + ipv6_cidr_block                                = (known after apply)
+      + ipv6_cidr_block_association_id                 = (known after apply)
+      + ipv6_native                                    = false
+      + map_public_ip_on_launch                        = false
+      + owner_id                                       = (known after apply)
+      + private_dns_hostname_type_on_launch            = (known after apply)
+      + region                                         = "us-east-1"
+      + tags_all                                       = (known after apply)
+      + vpc_id                                         = (known after apply)
+    }
+
+  # module.base.aws_vpc.this will be created
+  + resource "aws_vpc" "this" {
+      + arn                                  = (known after apply)
+      + cidr_block                           = "10.0.0.0/16"
+      + default_network_acl_id               = (known after apply)
+      + default_route_table_id               = (known after apply)
+      + default_security_group_id            = (known after apply)
+      + dhcp_options_id                      = (known after apply)
+      + enable_dns_hostnames                 = (known after apply)
+      + enable_dns_support                   = true
+      + enable_network_address_usage_metrics = (known after apply)
+      + id                                   = (known after apply)
+      + instance_tenancy                     = "default"
+      + ipv6_association_id                  = (known after apply)
+      + ipv6_cidr_block                      = (known after apply)
+      + ipv6_cidr_block_network_border_group = (known after apply)
+      + main_route_table_id                  = (known after apply)
+      + owner_id                             = (known after apply)
+      + region                               = "us-east-1"
+      + tags                                 = {
+          + "Name" = "employee-apps"
+        }
+      + tags_all                             = {
+          + "Name" = "employee-apps"
+        }
+    }
+
+  # module.base.tls_private_key.this will be created
+  + resource "tls_private_key" "this" {
+      + algorithm                     = "RSA"
+      + ecdsa_curve                   = "P224"
+      + id                            = (known after apply)
+      + private_key_openssh           = (sensitive value)
+      + private_key_pem               = (sensitive value)
+      + private_key_pem_pkcs8         = (sensitive value)
+      + public_key_fingerprint_md5    = (known after apply)
+      + public_key_fingerprint_sha256 = (known after apply)
+      + public_key_openssh            = (known after apply)
+      + public_key_pem                = (known after apply)
+      + rsa_bits                      = 2048
+    }
+
+  # module.base.tls_self_signed_cert.this will be created
+  + resource "tls_self_signed_cert" "this" {
+      + allowed_uses          = [
+          + "server_auth",
+          + "digital_signature",
+          + "key_encipherment",
+        ]
+      + cert_pem              = (known after apply)
+      + dns_names             = [
+          + "*.internal-app-access.example.com",
+        ]
+      + early_renewal_hours   = 0
+      + id                    = (known after apply)
+      + is_ca_certificate     = false
+      + key_algorithm         = (known after apply)
+      + max_path_length       = (known after apply)
+      + private_key_pem       = (sensitive value)
+      + private_key_pem_wo    = (write-only attribute)
+      + ready_for_renewal     = false
+      + set_authority_key_id  = false
+      + set_subject_key_id    = false
+      + validity_end_time     = (known after apply)
+      + validity_period_hours = 24
+      + validity_start_time   = (known after apply)
+
+      + subject {
+          + common_name = "*.internal-app-access.example.com"
+        }
+    }
+
+Plan: 44 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + alb_name                       = "employee-apps"
+  + certificate_validation_records = [
+      + {
+          + name  = (known after apply)
+          + type  = (known after apply)
+          + value = (known after apply)
+        },
+    ]
+  + endpoint_domains               = {
+      + "admin.internal-app-access.example.com"   = (known after apply)
+      + "expense.internal-app-access.example.com" = (known after apply)
+      + "wiki.internal-app-access.example.com"    = (known after apply)
+    }
+  + log_group_name                 = "/aws/lambda/employee-apps-app"

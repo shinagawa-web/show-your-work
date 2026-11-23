@@ -1,0 +1,7 @@
+Opened at: 2026-11-23T01:57:30Z, approximate (opened by an agent in the user's Chrome, where the user's own IAM Identity Center session was still active. The sign-in page was not shown)
+Log group: /aws/lambda/employee-apps-app
+Log events since: 2026-11-23T01:50:00Z
+Note: Policy of the group: context.idc.groups has "00000000-0000-0000-0000-000000000000" (results/c-verified-access/apply-policy-nonexistent-group.log), device trust provider detached. The browser got status 403 and the body '403 Unauthorized' for both / and /favicon.ico (read by the agent in the browser).
+
+
+Requests in the Lambda log since 2026-11-23T01:50:00Z: 0 (checked at 2026-11-23T01:58:05Z)
