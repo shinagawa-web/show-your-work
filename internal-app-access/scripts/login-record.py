@@ -8,7 +8,8 @@ import subprocess
 
 TOKEN_HEADERS = {"x-amzn-oidc-accesstoken", "x-amzn-oidc-identity", "x-amzn-oidc-data", "x-amzn-ava-user-context", "cookie"}
 JWT_HEADERS = {"x-amzn-oidc-data", "x-amzn-ava-user-context"}
-SHOWN_CLAIMS = {"email", "custom:groups", "groups", "iss", "exp", "aud"}
+GROUP_CLAIMS = {"custom:groups", "groups"}
+SHOWN_CLAIMS = {"email", "custom:groups", "groups", "identities", "username", "iss", "exp", "aud"}
 
 p = argparse.ArgumentParser()
 p.add_argument("--log-group", required=True)
@@ -25,8 +26,9 @@ masks = [m.split("=", 1) for m in args.mask]
 def mask(text):
     for old, new in masks:
         text = text.replace(old, new)
-    text = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "user@example.com", text)
+    text = re.sub(r"(GoogleWorkspace_)?[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", lambda m: (m.group(1) or "") + "user@example.com", text)
     text = re.sub(r"identitystore_id=d-[0-9a-f]+", "identitystore_id=d-0000000000", text)
+    text = re.sub(r"idpid=[A-Za-z0-9]+", "idpid=C00000000", text)
     return re.sub(r"\bd-[0-9a-f]{10}\b", "d-0000000000", text)
 
 
@@ -36,11 +38,19 @@ def jwt_payload(token):
     return json.loads(base64.urlsafe_b64decode(part))
 
 
+def group_names(v):
+    if isinstance(v, list):
+        return ["<group-name>" for _ in v]
+    return ",".join("<group-name>" for _ in str(v).split(","))
+
+
 def claim_view(claims):
     out = {}
     for k, v in claims.items():
         if isinstance(v, dict):
             out[k] = claim_view(v)
+        elif k in GROUP_CLAIMS:
+            out[k] = group_names(v)
         elif k in SHOWN_CLAIMS:
             out[k] = v
         else:
