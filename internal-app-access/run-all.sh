@@ -14,14 +14,29 @@ session=$(cut -d/ -f3 <<<"$caller_arn")
 
 host_ip=$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')
 host_ip_re=${host_ip//./\\.}
-domain=internal-app-access.example.com
+domain=${APP_DOMAIN_SUFFIX:-internal-app-access.example.com}
+parent_domain=${domain#*.}
+if [[ -n ${APP_DOMAIN_SUFFIX:-} ]]; then
+  export TF_VAR_app_domain_suffix=$APP_DOMAIN_SUFFIX
+else
+  parent_domain=parent-domain-unset
+fi
 
 group_id=${VERIFIERS_GROUP_ID:-verifiers-group-id-unset}
 if [[ -n ${VERIFIERS_GROUP_ID:-} ]]; then export TF_VAR_idc_group_id=$VERIFIERS_GROUP_ID; fi
 
 mask() {
   sed -e "s/$account/111122223333/g" -e "s#assumed-role/$role/$session#assumed-role/verify/verify#g" -e "s/$host_ip_re/198.51.100.1/g" \
-    -e "s/$group_id/<verifiers-group-id>/g" -e 's/identitystore_id=d-[0-9a-f]*/identitystore_id=d-0000000000/g'
+    -e "s/$group_id/<verifiers-group-id>/g" -e 's/identitystore_id=d-[0-9a-f]*/identitystore_id=d-0000000000/g' \
+    -e "s/${parent_domain//./\\.}/example.com/g"
+}
+
+scan_results() {
+  {
+    grep -rlE -e "$account" -e "$role" -e "${host_ip//./\\.}" -e "$group_id" -e "${parent_domain//./\\.}" \
+      -e 'PRIVATE KEY' -e '(ASIA|AKIA)[A-Z0-9]{16}' "$results" || true
+    grep -roE '(^|[^A-Za-z0-9])(d-[0-9a-f]{10}|idpid=[A-Za-z0-9]+)' "$results" | grep -vE 'd-0000000000|idpid=C00000000' | cut -d: -f1 || true
+  } | sort -u
 }
 
 tf() {
@@ -73,6 +88,12 @@ finish() {
     echo 'Resources are left in the account, or a check failed, see results/leftovers.log'
     rc=1
   fi
+  local leaks
+  leaks=$(scan_results)
+  if [[ -n $leaks ]]; then
+    echo "Values to mask remain in: $leaks"
+    rc=1
+  fi
   if [[ -f $results/prices/prices.json ]]; then
     python3 -I "$here/scripts/summary.py" "$results" "$here" || rc=1
   fi
@@ -106,7 +127,7 @@ check_endpoints() {
 
 probe() {
   python3 -I "$here/scripts/probe.py" --out "$results/$cfg/probes" --mask "$host_ip=198.51.100.1" --mask "$account=111122223333" \
-    --mask "$group_id=<verifiers-group-id>" "$@"
+    --mask "$group_id=<verifiers-group-id>" --mask "$parent_domain=example.com" "$@"
 }
 
 last_location() {
