@@ -21,7 +21,7 @@ AWS_PROFILE=<profile> AWS_REGION=ap-northeast-1 ./run-all.sh down
 | `s2` | The setup before the migration: the app password in Secrets Manager, the `SecretsManagerRDSMySQLRotationSingleUser` rotation function, External Secrets Operator, Reloader, the app (`app/before`) and the load client (`app/loadgen`). Then one `rotate-secret` |
 | `s3` | Enables IAM database authentication on the instance and creates the DB user `app_iam` with the same grants as `app` |
 | `s4` | A role allowed `rds-db:connect` on the instance and `app_iam`, associated with the app ServiceAccount, and the app Pods recreated (`terraform/s4`) |
-| `s5` | Switches the app to `app/after`, which builds a token for every new connection, then compares the connections `app_iam` opened on the DB with the tokens the app logged |
+| `s5` | Switches the app to `app/after`, which builds a token for every new connection, then records the `app_iam` connection IDs on the DB next to the tokens the app logged |
 | `s6` | RDS Proxy with `default_auth_scheme = "IAM_AUTH"` (`terraform/s6`), then the role policy and `DB_HOST` moved to the proxy, with Amazon Root CA 1 added to the CA bundle |
 | `reset` | Undoes `s3` to `s6` and deletes the app and the load client, so that `token s2 s3 s4 s5 s6` can run again from the start |
 | `down` | Deletes everything |
