@@ -34,7 +34,7 @@ mask() {
 scan_results() {
   {
     grep -rlE -e "$account" -e "$role" -e "${host_ip//./\\.}" -e "$group_id" -e "${parent_domain//./\\.}" \
-      -e 'PRIVATE KEY' -e '(ASIA|AKIA)[A-Z0-9]{16}' "$results" || true
+      -e 'PRIVATE KEY' -e '(ASIA|AKIA)[A-Z0-9]{16}' -e 'eyJ[A-Za-z0-9_-]{10}' -e '/(private|Users|var/folders)/' "$results" || true
     grep -roE '(^|[^A-Za-z0-9])(d-[0-9a-f]{10}|idpid=[A-Za-z0-9]+)' "$results" | grep -vE 'd-0000000000|idpid=C00000000' | cut -d: -f1 || true
   } | sort -u
 }
