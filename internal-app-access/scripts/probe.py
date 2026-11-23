@@ -34,7 +34,9 @@ masks = [m.split("=", 1) for m in args.mask]
 def mask(text):
     for old, new in masks:
         text = text.replace(old, new)
-    return re.sub(r"identitystore_id=d-[0-9a-f]+", "identitystore_id=d-0000000000", text)
+    text = re.sub(r"identitystore_id=d-[0-9a-f]+", "identitystore_id=d-0000000000", text)
+    text = re.sub(r"\b(request_uri|state|SAMLRequest|RelayState|nonce)=[^&\s\"]+", r"\1=<redacted>", text)
+    return re.sub(r"(?i)(set-cookie: [A-Za-z0-9_-]+=)[^;\r\n]*", r"\1<redacted>", text)
 
 
 lines = [f"Request: {args.request}", f"Prediction: {args.prediction}", ""]
