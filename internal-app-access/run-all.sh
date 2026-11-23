@@ -3,6 +3,15 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 results=$here/results
 TERRAFORM=1.17.1
+for arg in "$@"; do
+  case $arg in
+    baseline | a-ip-allowlist | b-alb-cognito | c-verified-access) ;;
+    *)
+      echo "unknown configuration: $arg. Nothing was run." >&2
+      exit 2
+      ;;
+  esac
+done
 CONFIGS=${*:-baseline a-ip-allowlist b-alb-cognito c-verified-access}
 if [[ " $CONFIGS " == *" c-verified-access "* && -z ${APP_DOMAIN_SUFFIX:-} ]]; then
   echo 'c-verified-access needs APP_DOMAIN_SUFFIX, a domain whose DNS can validate its certificate. Nothing was run.' >&2
