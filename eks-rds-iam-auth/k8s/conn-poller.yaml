@@ -17,7 +17,7 @@ spec:
             - |
               end=$(( $(date +%s) + @SECONDS@ ))
               while [ "$(date +%s)" -lt "$end" ]; do
-                mysql -N -B -h "$DB_HOST" -u admin -e "SELECT DATE_FORMAT(UTC_TIMESTAMP(6), '%Y-%m-%dT%H:%i:%s.%fZ'), ID FROM information_schema.PROCESSLIST WHERE USER = 'app_iam'"
+                mysql -N -B -h "$DB_HOST" -u admin -e "SELECT DATE_FORMAT(UTC_TIMESTAMP(6), '%Y-%m-%dT%H:%i:%s.%fZ'), IFNULL(GROUP_CONCAT(ID ORDER BY ID), '') FROM information_schema.PROCESSLIST WHERE USER = 'app_iam'"
                 sleep 1
               done
           env:

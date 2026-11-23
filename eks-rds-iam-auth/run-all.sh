@@ -406,24 +406,25 @@ s5() {
   sleep 150
   wait_job dbadmin conn-poller 180
   kubectl -n dbadmin logs job/conn-poller >"$dir/processlist.log"
-  local from to
-  from=$(head -1 "$dir/processlist.log" | cut -f1)
-  to=$(tail -1 "$dir/processlist.log" | cut -f1)
   for p in $(jq -r '.[].name' "$dir/pods-after.json"); do
     kubectl -n app logs "$p" --timestamps | grep 'building auth token'
   done | sort >"$dir/token-lines.log"
-  jq -Rn --rawfile tokens "$dir/token-lines.log" --arg to "$to" --arg from "$from" '
-    def e: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601;
-    (($to | e) - 5) as $cut
-    | (($from | e) + 1) as $start
-    | [inputs | split("\t") | {t: .[0], id: .[1]}] | group_by(.id) | map(min_by(.t)) as $ids
-    | ($tokens | split("\n") | map(select(length > 0) | split(" ")[0])) as $tok
-    | {from: $from, to: $to,
-       counted_until: ($cut | todate),
-       connections_opened: ($ids | map(select((.t | e) | . >= $start and . <= $cut + 2)) | length),
-       auth_token_log_lines: ($tok | map(select((. | e) | . >= $start and . <= $cut)) | length),
-       connection_ids: ($ids | map(.id | tonumber) | sort)}' "$dir/processlist.log" | tee "$dir/connections.json"
-  jq -e '.connections_opened == .auth_token_log_lines and .connections_opened > 0' "$dir/connections.json" >/dev/null
+  jq -Rn --rawfile tokens "$dir/token-lines.log" '
+    def e: (sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) + (capture("\\.(?<f>[0-9]+)Z$").f | "0." + . | tonumber);
+    [inputs | split("\t") | {t: .[0], s: (.[0] | e), ids: (.[1] | split(",") | map(select(length > 0)))}] as $polls
+    | ($polls[0].s) as $from | ($polls[-1].s) as $to
+    | ($polls[0].ids) as $already
+    | [$polls[] | .t as $t | .s as $s | .ids[] | {id: ., t: $t, s: $s}] | group_by(.id) | map(min_by(.s))
+    | map(select(.id as $i | $already | index($i) | not)) as $opened
+    | [$tokens | split("\n")[] | select(length > 0) | split(" ")[0] | {t: ., s: e}] | map(select(.s >= $from and .s <= $to - 3)) as $tok
+    | [$tok[] | . as $k | ($opened | map(select(.s >= $k.s and .s <= $k.s + 3)) | first) as $c | {token: $k.t, connection_id: $c.id, first_seen: $c.t}] as $pairs
+    | {from: $polls[0].t, to: $polls[-1].t,
+       auth_token_log_lines: ($tok | length),
+       connections_opened: ($opened | length),
+       tokens_without_connection: ($pairs | map(select(.connection_id == null)) | length),
+       connections_without_token: ($opened | map(select(.s >= $from + 3 and .s <= $to - 3 and (.id as $i | $pairs | map(.connection_id) | index($i) | not))) | length),
+       pairs: $pairs}' "$dir/processlist.log" | tee "$dir/connections.json"
+  jq -e '.auth_token_log_lines > 0 and .tokens_without_connection == 0 and .connections_without_token == 0' "$dir/connections.json" >/dev/null
 }
 
 s6() {
@@ -572,7 +573,7 @@ write_summary() {
     echo
     echo 'With the connection max lifetime set to 1 minute, from before the switch until about 150 seconds after the step: connection IDs of `app_iam` seen on the DB (`information_schema.PROCESSLIST`, read every second), and `building auth token` lines in the logs of the new Pods.'
     echo
-    jq -r '"- " + .from + " to " + .counted_until + ": " + (.connections_opened | tostring) + " connections opened, " + (.auth_token_log_lines | tostring) + " `building auth token` lines"' "$results/s5/connections.json" 2>/dev/null || true
+    jq -r '"- " + .from + " to " + .to + ": " + (.auth_token_log_lines | tostring) + " `building auth token` lines, " + (.connections_opened | tostring) + " new connection IDs, " + (.tokens_without_connection | tostring) + " lines without a new connection within 3 seconds, " + (.connections_without_token | tostring) + " connections without a line"' "$results/s5/connections.json" 2>/dev/null || true
     echo
     echo '## Section 6: connecting through RDS Proxy'
     echo
@@ -587,7 +588,7 @@ write_summary() {
     echo '- Pod Identity token check (`results/token/tokencheck.log`): '"$(grep -c 'token check: ok' "$results/token/tokencheck.log" 2>/dev/null || echo 0)"' ok line'
     echo '- Section 2 requests and failures: `'"$(jq -c '{requests, failures}' "$results/s2/load.json" 2>/dev/null || echo null)"'`'
     echo '- Section 2 requests answered by the old Pods after AWSCURRENT moved: `'"$(jq -c '.old_pods_after_rotation' "$results/s2/analysis.json" 2>/dev/null || echo null)"'`'
-    echo '- Section 5 connection IDs of `app_iam` on the DB: `'"$(jq -c '.connection_ids' "$results/s5/connections.json" 2>/dev/null || echo null)"'`'
+    echo '- Section 5 pairs of token line and connection ID: `results/s5/connections.json`'
     echo '- Section 6 requests and failures while switching to the proxy: `'"$(jq -c '{requests, failures}' "$results/s6/load.json" 2>/dev/null || echo null)"'`'
     echo -n '- Seconds per step:'
     for s in up token s2 s3 s4 s5 s6; do
