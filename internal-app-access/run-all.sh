@@ -4,6 +4,10 @@ here=$(cd "$(dirname "$0")" && pwd)
 results=$here/results
 TERRAFORM=1.17.1
 CONFIGS=${*:-baseline a-ip-allowlist b-alb-cognito c-verified-access}
+if [[ " $CONFIGS " == *" c-verified-access "* && -z ${APP_DOMAIN_SUFFIX:-} ]]; then
+  echo 'c-verified-access needs APP_DOMAIN_SUFFIX, a domain whose DNS can validate its certificate. Nothing was run.' >&2
+  exit 1
+fi
 export AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1
 export TF_IN_AUTOMATION=1 TF_INPUT=0
 export TF_PLUGIN_CACHE_DIR=$here/.bin/plugin-cache
