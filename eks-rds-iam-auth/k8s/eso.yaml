@@ -1,0 +1,26 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: aws
+  namespace: app
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: @REGION@
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: app-db
+  namespace: app
+spec:
+  refreshInterval: 30s
+  secretStoreRef:
+    kind: SecretStore
+    name: aws
+  target:
+    name: app-db
+  dataFrom:
+    - extract:
+        key: eks-rds-iam-auth/app-db

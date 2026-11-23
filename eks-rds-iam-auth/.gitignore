@@ -1,0 +1,4 @@
+results/
+state/
+.bin/
+.terraform.lock.hcl

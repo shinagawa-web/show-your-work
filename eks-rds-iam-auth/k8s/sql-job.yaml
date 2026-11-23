@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: @NAME@
+  namespace: dbadmin
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: mysql
+          image: @IMAGE@
+          command: ["sh", "-c", "mysql --table -h \"$DB_HOST\" -u admin appdb < /sql/run.sql"]
+          env:
+            - name: DB_HOST
+              value: @DB_HOST@
+            - name: MYSQL_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: db-admin
+                  key: password
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+      volumes:
+        - name: sql
+          secret:
+            secretName: @NAME@

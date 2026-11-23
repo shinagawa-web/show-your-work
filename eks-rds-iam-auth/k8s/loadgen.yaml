@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loadgen
+  template:
+    metadata:
+      labels:
+        app: loadgen
+    spec:
+      containers:
+        - name: loadgen
+          image: @IMAGE@
+          env:
+            - name: TARGET_URL
+              value: http://app.app.svc.cluster.local/
+            - name: INTERVAL
+              value: 200ms

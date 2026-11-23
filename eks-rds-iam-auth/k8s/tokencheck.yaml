@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tokencheck
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tokencheck
+  namespace: tokencheck
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tokencheck
+  namespace: tokencheck
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      serviceAccountName: tokencheck
+      restartPolicy: Never
+      containers:
+        - name: tokencheck
+          image: @IMAGE@
+          env:
+            - name: DB_HOST
+              value: @DB_HOST@
+            - name: DB_USER
+              value: app_iam
