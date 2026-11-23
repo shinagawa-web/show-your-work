@@ -1,0 +1,6 @@
+{"name":"s3-presigned-get","at":"2026-11-23T01:05:07Z","status":200,"x_cache":"","bytes":2097152,"body":""}
+{"name":"cf-signed-private","at":"2026-11-23T01:05:07Z","status":200,"x_cache":"Miss from cloudfront","bytes":2097152,"body":""}
+{"name":"cf-unsigned-public","at":"2026-11-23T01:05:08Z","status":200,"x_cache":"Miss from cloudfront","bytes":2097152,"body":""}
+{"name":"cf-unsigned-private","at":"2026-11-23T01:05:08Z","status":403,"x_cache":"Error from cloudfront","bytes":146,"body":"<?xml version=\"1.0\" encoding=\"UTF-8\"?><Error><Code>MissingKey</Code><Message>Missing Key-Pair-Id query parameter or cookie value</Message></Error>"}
+{"name":"relay-download-without-header","at":"2026-11-23T01:05:08Z","status":403,"x_cache":"","bytes":10,"body":"forbidden"}
+{"name":"sign-cf-without-header","at":"2026-11-23T01:05:08Z","status":403,"x_cache":"","bytes":10,"body":"forbidden"}
