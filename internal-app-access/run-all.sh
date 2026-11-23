@@ -13,7 +13,6 @@ role=$(cut -d/ -f2 <<<"$caller_arn")
 session=$(cut -d/ -f3 <<<"$caller_arn")
 
 host_ip=$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')
-host_ip_re=${host_ip//./\\.}
 domain=${APP_DOMAIN_SUFFIX:-internal-app-access.example.com}
 parent_domain=${domain#*.}
 if [[ -n ${APP_DOMAIN_SUFFIX:-} ]]; then
@@ -25,18 +24,15 @@ fi
 group_id=${VERIFIERS_GROUP_ID:-verifiers-group-id-unset}
 if [[ -n ${VERIFIERS_GROUP_ID:-} ]]; then export TF_VAR_idc_group_id=$VERIFIERS_GROUP_ID; fi
 
+export MASK_ACCOUNT=$account MASK_ASSUMED_ROLE=assumed-role/$role/$session MASK_HOST_IP=$host_ip SCAN_ROLE=$role
+export MASK_GROUP_ID=${VERIFIERS_GROUP_ID:-} MASK_PARENT_DOMAIN=${APP_DOMAIN_SUFFIX:+$parent_domain}
+
 mask() {
-  sed -e "s/$account/111122223333/g" -e "s#assumed-role/$role/$session#assumed-role/verify/verify#g" -e "s/$host_ip_re/198.51.100.1/g" \
-    -e "s/$group_id/<verifiers-group-id>/g" -e 's/identitystore_id=d-[0-9a-f]*/identitystore_id=d-0000000000/g' \
-    -e "s/${parent_domain//./\\.}/example.com/g"
+  python3 -I "$here/scripts/mask.py"
 }
 
 scan_results() {
-  {
-    grep -rlE -e "$account" -e "$role" -e "${host_ip//./\\.}" -e "$group_id" -e "${parent_domain//./\\.}" \
-      -e 'PRIVATE KEY' -e '(ASIA|AKIA)[A-Z0-9]{16}' -e 'eyJ[A-Za-z0-9_-]{10}' -e '/(private|Users|var/folders)/' "$results" || true
-    grep -roE '(^|[^A-Za-z0-9])(d-[0-9a-f]{10}|idpid=[A-Za-z0-9]+)' "$results" | grep -vE 'd-0000000000|idpid=C00000000' | cut -d: -f1 || true
-  } | sort -u
+  python3 -I "$here/scripts/scan-results.py" "$results"
 }
 
 tf() {

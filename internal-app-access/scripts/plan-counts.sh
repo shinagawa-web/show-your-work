@@ -19,7 +19,7 @@ plan() {
   mkdir -p "$results/$name"
   export TF_DATA_DIR=$work/data-$dir
   "$terraform" -chdir="$work/terraform/$dir" init -lockfile=readonly -no-color >/dev/null
-  "$terraform" -chdir="$work/terraform/$dir" plan -no-color -out="$work/$name.plan" "$@" 2>&1 | sed "s/$account/111122223333/g" >"$results/$name/plan.log"
+  "$terraform" -chdir="$work/terraform/$dir" plan -no-color -out="$work/$name.plan" "$@" 2>&1 | MASK_ACCOUNT=$account python3 -I "$here/scripts/mask.py" >"$results/$name/plan.log"
   "$terraform" -chdir="$work/terraform/$dir" show -json "$work/$name.plan" | python3 -I "$here/scripts/plan-counts.py" >"$results/$name/resources.json"
   echo "$name: $(grep '^Plan:' "$results/$name/plan.log")"
 }
