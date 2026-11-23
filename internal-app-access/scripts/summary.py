@@ -165,7 +165,7 @@ def costs(plan):
         lines.append(("Cognito SAML users over the free tier", max(0, assumptions["employees"] - free), "MAU", "cognito_saml_mau"))
     endpoints = after(plan, "aws_verifiedaccess_endpoint")
     if endpoints:
-        app_hours = len(endpoints) * hours
+        app_hours = assumptions["applications"] * hours
         end = prices["verified_access_app_hour"]["end_range"]
         if end != "Inf" and app_hours > float(end):
             errors.append(f"Verified Access app hours {app_hours} exceed the first tier ending at {end}")
@@ -323,7 +323,7 @@ for name, letter, section, title in CONFIGS:
         detail["configs"]["c-without-device-trust"] = {"plan_line": without["line"], "resources": len(without["creates"])}
     out += [
         "",
-        f"Monthly cost of {letter}, from the resources in its plan, the unit prices in section 2 and `assumptions.json`.",
+        f"Monthly cost of {letter}, estimated for {assumptions['applications']} application from the unit prices in section 2 and `assumptions.json`. The resources above were counted in a plan with 3 applications.",
         "",
         "| Item | Quantity | Unit | Unit price (USD) | Monthly (USD) |",
         "|---|--:|---|--:|--:|",
@@ -336,7 +336,7 @@ for name, letter, section, title in CONFIGS:
 out += [
     "## Section 7: comparison",
     "",
-    "Resources each plan adds over the baseline plan, and the monthly totals from sections 3 to 5.",
+    f"Resources each plan adds over the baseline plan, counted with 3 applications, and the monthly totals from sections 3 to 5, estimated for {assumptions['applications']} application.",
     "",
     "| Configuration | Resources added over the baseline | Monthly (USD) |",
     "|---|--:|--:|",

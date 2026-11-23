@@ -37,7 +37,7 @@ Resource types that A adds over the baseline.
 |---|--:|
 | `aws_vpc_security_group_ingress_rule` | 1 |
 
-Monthly cost of A, from the resources in its plan, the unit prices in section 2 and `assumptions.json`.
+Monthly cost of A, estimated for 1 application from the unit prices in section 2 and `assumptions.json`. The resources above were counted in a plan with 3 applications.
 
 | Item | Quantity | Unit | Unit price (USD) | Monthly (USD) |
 |---|--:|---|--:|--:|
@@ -88,7 +88,7 @@ Resource types that B adds over the baseline.
 | `aws_vpc_security_group_egress_rule` | 1 |
 | `aws_vpc_security_group_ingress_rule` | 1 |
 
-Monthly cost of B, from the resources in its plan, the unit prices in section 2 and `assumptions.json`.
+Monthly cost of B, estimated for 1 application from the unit prices in section 2 and `assumptions.json`. The resources above were counted in a plan with 3 applications.
 
 | Item | Quantity | Unit | Unit price (USD) | Monthly (USD) |
 |---|--:|---|--:|--:|
@@ -154,15 +154,15 @@ The same plan with the device trust provider left off the Verified Access instan
 
 In the applied C, 3 Verified Access endpoints of type load-balancer were active and all pointed to 1 internal ALB.
 
-Monthly cost of C, from the resources in its plan, the unit prices in section 2 and `assumptions.json`.
+Monthly cost of C, estimated for 1 application from the unit prices in section 2 and `assumptions.json`. The resources above were counted in a plan with 3 applications.
 
 | Item | Quantity | Unit | Unit price (USD) | Monthly (USD) |
 |---|--:|---|--:|--:|
 | ALB hours | 730 | ALB-hour | 0.0243 | 17.74 |
 | ALB LCU (new connections) | 22.22 | LCU-hour | 0.008 | 0.18 |
-| Verified Access applications | 2,190 | App-hour | 0.35 | 766.50 |
+| Verified Access applications | 730 | App-hour | 0.35 | 255.50 |
 | Verified Access data processing | 10 | GB | 0.02 | 0.20 |
-| Total | | | | 784.62 |
+| Total | | | | 273.62 |
 
 curl sent from the maintainer's host to the three Verified Access endpoints and to the internal ALB of the applied C, without signing in.
 
@@ -191,10 +191,10 @@ Headers the app received through Verified Access in the rows above where the req
 
 ## Section 7: comparison
 
-Resources each plan adds over the baseline plan, and the monthly totals from sections 3 to 5.
+Resources each plan adds over the baseline plan, counted with 3 applications, and the monthly totals from sections 3 to 5, estimated for 1 application.
 
 | Configuration | Resources added over the baseline | Monthly (USD) |
 |---|--:|--:|
 | A: IP allowlist on the internet-facing ALB | 1 | 25.22 |
 | B: ALB authentication with Cognito and Google Workspace SAML | 6 | 25.97 |
-| C: Verified Access in front of an internal ALB | 14 | 784.62 |
+| C: Verified Access in front of an internal ALB | 14 | 273.62 |

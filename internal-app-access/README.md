@@ -55,12 +55,12 @@ The default SAML metadata, the IAM Identity Center group ID and the CrowdStrike 
 
 ## Cost model
 
-`assumptions.json` holds the traffic, the number of employees and the hours in a month. `scripts/summary.py` takes the resources from `results/plans/`:
+`assumptions.json` holds the traffic, the number of employees and applications, and the hours in a month. The number of applications is for the cost only; the configurations have three. `scripts/summary.py` takes the resources from `results/plans/`:
 
 - Each ALB: its hours, and its LCU-hours from the largest of the four dimensions, with every request opening a new connection that stays open for `connection_seconds`, the processed bytes spread over the month, and the rule evaluations over the 10 free rules
 - The public IPv4 addresses of the ALB, as counted in `alb.json`
 - A SAML identity provider: every employee as a federated monthly active user, over the free tier in the price list
-- Verified Access: the hours of each endpoint, and the processed bytes
+- Verified Access, when the plan has endpoints: the hours of each of the `applications`, and the processed bytes
 
 ## Pinned versions
 

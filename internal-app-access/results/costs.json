@@ -3,6 +3,7 @@
     "region": "ap-northeast-1",
     "hours_per_month": 730,
     "employees": 100,
+    "applications": 1,
     "requests_per_month": 2000000,
     "data_gb_per_month": 10,
     "connection_seconds": 60
@@ -150,10 +151,10 @@
         },
         {
           "item": "Verified Access applications",
-          "quantity": 2190,
+          "quantity": 730,
           "unit": "App-hour",
           "price": "verified_access_app_hour",
-          "usd": 766.5
+          "usd": 255.49999999999997
         },
         {
           "item": "Verified Access data processing",
@@ -163,7 +164,7 @@
           "usd": 0.2
         }
       ],
-      "monthly_total_usd": 784.6167777777778
+      "monthly_total_usd": 273.61677777777777
     },
     "c-without-device-trust": {
       "plan_line": "Plan: 44 to add, 0 to change, 0 to destroy.",
