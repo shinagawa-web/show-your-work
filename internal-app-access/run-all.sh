@@ -269,7 +269,10 @@ main() {
     case $cfg in
       a-ip-allowlist) checks_a ;;
       b-alb-cognito) checks_b ;;
-      c-verified-access) check_endpoints && checks_c ;;
+      c-verified-access)
+        check_endpoints
+        checks_c
+        ;;
     esac
     if [[ " ${KEEP:-} " == *" $cfg "* ]]; then
       applied=
