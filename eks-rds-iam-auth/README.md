@@ -43,7 +43,8 @@ Under `results/`, one folder per step, each with `run.log` (the output of the st
 | `s3/status.log` | The instance status while IAM authentication was enabled |
 | `s4/pod-identity-env.jsonl` | The `AWS_*` variables that Pod Identity added to the recreated Pods |
 | `s5/app.diff` | `diff -u app/before/main.go app/after/main.go` |
-| `s5/connections.json` | Connections opened by `app_iam`, `building auth token` lines and connection IDs seen by the client, over the same period |
+| `s5/processlist.log` | The connection IDs of `app_iam` in `information_schema.PROCESSLIST`, read every second during the step |
+| `s5/connections.json` | The number of those connections and of `building auth token` lines in the app logs, over the same period |
 | `s6/events.json` | When the role policy was moved to the proxy, when `DB_HOST` was switched and when the rollout finished |
 | `s6/proxy.json` | The first request answered by a Pod connected through the proxy |
 

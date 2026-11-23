@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: conn-poller
+  namespace: dbadmin
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: mysql
+          image: @IMAGE@
+          command:
+            - sh
+            - -c
+            - |
+              end=$(( $(date +%s) + @SECONDS@ ))
+              while [ "$(date +%s)" -lt "$end" ]; do
+                mysql -N -B -h "$DB_HOST" -u admin -e "SELECT DATE_FORMAT(UTC_TIMESTAMP(6), '%Y-%m-%dT%H:%i:%s.%fZ'), ID FROM information_schema.PROCESSLIST WHERE USER = 'app_iam'"
+                sleep 1
+              done
+          env:
+            - name: DB_HOST
+              value: @DB_HOST@
+            - name: MYSQL_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: db-admin
+                  key: password
