@@ -13,6 +13,7 @@ RELOADER_CHART=2.2.19
 ROTATION_APP=arn:aws:serverlessrepo:us-east-1:297356227824:applications/SecretsManagerRDSMySQLRotationSingleUser
 ROTATION_VERSION=1.1.749
 MYSQL_IMAGE=public.ecr.aws/docker/library/mysql:8.4.11
+BUSYBOX_IMAGE=public.ecr.aws/docker/library/busybox:1.37.0
 NAME=eks-rds-iam-auth
 SECRET=$NAME/app-db
 ROTATION_STACK=serverlessrepo-$NAME-rotation
@@ -480,6 +481,51 @@ s5() {
   analyze_s5 "$dir" | tee "$dir/connections.json"
 }
 
+authoritative_dns() {
+  local name=$1 ns ans chain=
+  while :; do
+    ns=$(dig +noall +answer +authority SOA "${name#*.}" | awk '$4 == "SOA" {print $5; exit}')
+    ans=$(dig +short +norecurse "@$ns" "$name" A | sort | paste -sd' ' -)
+    if [[ $ans == *. && $ans != *' '* ]]; then
+      chain+="$ans "
+      name=$ans
+    else
+      echo "$chain$ans"
+      return
+    fi
+  done
+}
+
+cluster_dns() {
+  { kubectl -n app exec dns -- nslookup "$1" 2>&1 || true; } |
+    awk '/canonical name/ {c = $NF} /^Address/ && $2 !~ /:53$/ {print $2} /NXDOMAIN/ {x = "NXDOMAIN"}
+      END {if (c) print "0 " c; if (x) print "1 " x}' | sort -u | sed 's/^[01] //' | paste -sd' ' -
+}
+
+wait_dns() {
+  local host=$1 deadline=$((SECONDS + 1800)) a c last=
+  kubectl -n app run dns --image="$BUSYBOX_IMAGE" --restart=Never --dry-run=client -o yaml --command -- sleep 86400 | kubectl apply -f -
+  kubectl -n app wait --for=condition=Ready pod/dns --timeout=120s
+  log "proxy target available, $host" | tee "$dir/dns.log"
+  while :; do
+    a=$(authoritative_dns "$host")
+    [[ $a == "$last" ]] || log "authoritative: ${a:-no answer}" | tee -a "$dir/dns.log"
+    last=$a
+    [[ $a =~ [0-9]$ ]] && break
+    ((SECONDS < deadline)) || return 1
+    sleep 5
+  done
+  last=
+  while :; do
+    c=$(cluster_dns "$host")
+    [[ $c == "$last" ]] || log "cluster: ${c:-no answer}" | tee -a "$dir/dns.log"
+    last=$c
+    [[ $c =~ [0-9]$ ]] && break
+    ((SECONDS < deadline)) || return 1
+    sleep 10
+  done
+}
+
 s6() {
   context
   tf_apply s6 -var "vpc_id=$(out vpc_id)" -var "subnet_ids=$(tf up output -json subnet_ids)" \
@@ -494,6 +540,7 @@ s6() {
   local proxy_endpoint proxy_id
   proxy_endpoint=$(tf s6 output -raw proxy_endpoint)
   proxy_id=$(tf s6 output -raw proxy_resource_id)
+  wait_dns "$proxy_endpoint"
   window_start
   pods_json >"$dir/pods-before.json"
   tf_apply s4 -var "cluster_name=$cluster" -var "connect_resource_id=$proxy_id"
@@ -626,6 +673,14 @@ write_summary() {
     echo '| `building auth token` logged | Connection ID | First seen on the DB |'
     echo '|---|--:|---|'
     jq -r '.pairs[] | "| " + .token + " | " + (.connection_id // "") + " | " + (.first_seen // "") + " |"' "$results/s5/connections.json" 2>/dev/null || true
+    echo
+    echo '## Section 6: the proxy endpoint in DNS'
+    echo
+    echo 'From the time the proxy target was available, what the endpoint resolved to on its authoritative name servers (queried directly), and then inside the cluster. A line is written each time the answer changed.'
+    echo
+    echo '```'
+    cat "$results/s6/dns.log" 2>/dev/null || true
+    echo '```'
     echo
     echo '## Section 6: connecting through RDS Proxy'
     echo

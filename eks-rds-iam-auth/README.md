@@ -4,7 +4,7 @@ This moves an app on EKS from a MySQL password in Secrets Manager (synced by Ext
 
 ## Run
 
-There is no workflow for this folder. It runs from a machine with AWS credentials for the verification account, against an environment that stays up between runs:
+There is no workflow for this folder. It runs from a machine with `dig` and AWS credentials for the verification account, against an environment that stays up between runs:
 
 ```
 AWS_PROFILE=<profile> AWS_REGION=ap-northeast-1 ./run-all.sh up
@@ -22,7 +22,7 @@ AWS_PROFILE=<profile> AWS_REGION=ap-northeast-1 ./run-all.sh down
 | `s3` | Enables IAM database authentication on the instance and creates the DB user `app_iam` with the same grants as `app` |
 | `s4` | A role allowed `rds-db:connect` on the instance and `app_iam`, associated with the app ServiceAccount, and the app Pods recreated (`terraform/s4`) |
 | `s5` | Switches the app to `app/after`, which builds a token for every new connection, then records the `app_iam` connection IDs on the DB next to the tokens the app logged |
-| `s6` | RDS Proxy with `default_auth_scheme = "IAM_AUTH"` (`terraform/s6`), then the role policy and `DB_HOST` moved to the proxy, with Amazon Root CA 1 added to the CA bundle |
+| `s6` | RDS Proxy with `default_auth_scheme = "IAM_AUTH"` (`terraform/s6`). Once the proxy endpoint resolves on its authoritative name servers and then inside the cluster, the role policy and `DB_HOST` are moved to the proxy, with Amazon Root CA 1 added to the CA bundle |
 | `reset` | Undoes `s3` to `s6` and deletes the app and the load client, so that `token s2 s3 s4 s5 s6` can run again from the start |
 | `down` | Deletes everything |
 
@@ -45,6 +45,7 @@ Under `results/`, one folder per step, each with `run.log` (the output of the st
 | `s5/app.diff` | `diff -u app/before/main.go app/after/main.go` |
 | `s5/processlist.log` | The connection IDs of `app_iam` in `information_schema.PROCESSLIST`, read every second during the step |
 | `s5/connections.json` | The number of those connections and of `building auth token` lines in the app logs, over the same period |
+| `s6/dns.log` | What the proxy endpoint resolved to on its authoritative name servers and inside the cluster, each time the answer changed |
 | `s6/events.json` | When the role policy was moved to the proxy, when `DB_HOST` was switched and when the rollout finished |
 | `s6/proxy.json` | The first request answered by a Pod connected through the proxy |
 
