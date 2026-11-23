@@ -1,0 +1,6 @@
+{
+  "label": "c-login-with-device-trust",
+  "operated_at": "2026-11-23T01:3x (reported by the user)",
+  "note": "With the CrowdStrike device trust provider attached to the instance. After signing in to IAM Identity Center the browser stopped at https://edge-075f5821eba779011.vld-...vld.prod.verified-access.us-east-1.amazonaws.com/validate_domain?redirect_url=https%3A%2F%2Fwiki.internal-app-access.example.com with status 200 and the body 'Redirecting...' (14 bytes), no Location header, no meta refresh and no script (as reported by the user). The app domains resolved through public DNS (CNAME to the endpoint domains).",
+  "events": []
+}

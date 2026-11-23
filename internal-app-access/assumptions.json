@@ -1,0 +1,9 @@
+{
+  "region": "ap-northeast-1",
+  "hours_per_month": 730,
+  "employees": 100,
+  "applications": 1,
+  "requests_per_month": 2000000,
+  "data_gb_per_month": 10,
+  "connection_seconds": 60
+}

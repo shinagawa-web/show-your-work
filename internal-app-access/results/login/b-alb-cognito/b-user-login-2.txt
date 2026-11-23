@@ -1,0 +1,89 @@
+Opened at: 2026-11-23T04:08:34Z (x-amzn-trace-id; auth_time of the access token is 04:08:33Z)
+Log group: /aws/lambda/employee-apps-b-app
+Log events since: 2026-11-23T04:08:30Z, until: 2026-11-23T04:08:40Z
+Note: Measured (Lambda log): the request headers below. auth_time of the access token is 04:08:33Z, / has referer https://accounts.google.com/ and sec-fetch-site cross-site, and the Cookie header held only AWSALBAuthNonce. Reported: the user signed in to B. Not confirmed with the user: the kind of window, and whether anything was typed on the Google pages.
+
+--- log event at 2026-11-23T04:08:34Z (header values of cookie, x-amzn-ava-user-context, x-amzn-oidc-accesstoken, x-amzn-oidc-data, x-amzn-oidc-identity redacted)
+{
+  "message": "reached app employee-apps-b-1503386973.us-east-1.elb.amazonaws.com",
+  "method": "GET",
+  "path": "/",
+  "headers": {
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9",
+    "cache-control": "max-age=0",
+    "cookie": "<redacted>",
+    "host": "employee-apps-b-1503386973.us-east-1.elb.amazonaws.com",
+    "priority": "u=0, i",
+    "referer": "https://accounts.google.com/",
+    "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "cross-site",
+    "upgrade-insecure-requests": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+    "x-amzn-oidc-accesstoken": "<redacted>",
+    "x-amzn-oidc-data": "<redacted>",
+    "x-amzn-oidc-identity": "<redacted>",
+    "x-amzn-trace-id": "Root=1-6b03bc42-65ae58206d4a8bea1795c8b5",
+    "x-forwarded-for": "<client address>",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+--- decoded payload of x-amzn-oidc-data (values other than address, aud, custom:groups, email, exp, groups, identities, iss, username, verified redacted)
+{
+  "sub": "<redacted>",
+  "email_verified": "<redacted>",
+  "identities": "[{\"dateCreated\":\"1795395802733\",\"userId\":\"user@example.com\",\"providerName\":\"GoogleWorkspace\",\"providerType\":\"SAML\",\"issuer\":\"https://accounts.google.com/o/saml2?idpid=C00000000\",\"primary\":\"true\"}]",
+  "email": "user@example.com",
+  "custom:groups": "<group-name>",
+  "username": "GoogleWorkspace_user@example.com",
+  "exp": 1795407034,
+  "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_adF3rMmJ3"
+}
+
+--- log event at 2026-11-23T04:08:35Z (header values of cookie, x-amzn-ava-user-context, x-amzn-oidc-accesstoken, x-amzn-oidc-data, x-amzn-oidc-identity redacted)
+{
+  "message": "reached app employee-apps-b-1503386973.us-east-1.elb.amazonaws.com",
+  "method": "GET",
+  "path": "/favicon.ico",
+  "headers": {
+    "accept": "image/jxl,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9",
+    "cookie": "<redacted>",
+    "host": "employee-apps-b-1503386973.us-east-1.elb.amazonaws.com",
+    "priority": "u=1, i",
+    "referer": "https://employee-apps-b-1503386973.us-east-1.elb.amazonaws.com/",
+    "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "image",
+    "sec-fetch-mode": "no-cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+    "x-amzn-oidc-accesstoken": "<redacted>",
+    "x-amzn-oidc-data": "<redacted>",
+    "x-amzn-oidc-identity": "<redacted>",
+    "x-amzn-trace-id": "Root=1-6b03bc42-3497c7cf233d7b174ea94254",
+    "x-forwarded-for": "<client address>",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+--- decoded payload of x-amzn-oidc-data (values other than address, aud, custom:groups, email, exp, groups, identities, iss, username, verified redacted)
+{
+  "sub": "<redacted>",
+  "email_verified": "<redacted>",
+  "identities": "[{\"dateCreated\":\"1795395802733\",\"userId\":\"user@example.com\",\"providerName\":\"GoogleWorkspace\",\"providerType\":\"SAML\",\"issuer\":\"https://accounts.google.com/o/saml2?idpid=C00000000\",\"primary\":\"true\"}]",
+  "email": "user@example.com",
+  "custom:groups": "<group-name>",
+  "username": "GoogleWorkspace_user@example.com",
+  "exp": 1795407034,
+  "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_adF3rMmJ3"
+}
+

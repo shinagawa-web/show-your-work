@@ -1,0 +1,199 @@
+{
+  "assumptions": {
+    "region": "ap-northeast-1",
+    "hours_per_month": 730,
+    "employees": 100,
+    "applications": 1,
+    "requests_per_month": 2000000,
+    "data_gb_per_month": 10,
+    "connection_seconds": 60
+  },
+  "configs": {
+    "a-ip-allowlist": {
+      "plan_line": "Plan: 32 to add, 0 to change, 0 to destroy.",
+      "resources": 32,
+      "added_over_baseline": 1,
+      "types_added": {
+        "aws_vpc_security_group_ingress_rule": 1
+      },
+      "lcu": {
+        "requests_per_second": 0.76103500761035,
+        "listener_rules": 3,
+        "lcu_by_dimension": {
+          "new_connections": 0.030441400304414,
+          "active_connections": 0.015220700152207002,
+          "processed_bytes": 0.0136986301369863,
+          "rule_evaluations": 0.0
+        },
+        "largest": "new_connections"
+      },
+      "monthly": [
+        {
+          "item": "ALB hours",
+          "quantity": 730,
+          "unit": "ALB-hour",
+          "price": "alb_hour",
+          "usd": 17.739
+        },
+        {
+          "item": "ALB LCU (new connections)",
+          "quantity": 22.22222222222222,
+          "unit": "LCU-hour",
+          "price": "alb_lcu_hour",
+          "usd": 0.17777777777777778
+        },
+        {
+          "item": "ALB public IPv4 addresses",
+          "quantity": 1460,
+          "unit": "IPv4 address-hour",
+          "price": "public_ipv4_hour",
+          "usd": 7.3
+        }
+      ],
+      "monthly_total_usd": 25.21677777777778
+    },
+    "b-alb-cognito": {
+      "plan_line": "Plan: 37 to add, 0 to change, 0 to destroy.",
+      "resources": 37,
+      "added_over_baseline": 6,
+      "types_added": {
+        "aws_cognito_identity_provider": 1,
+        "aws_cognito_user_pool": 1,
+        "aws_cognito_user_pool_client": 1,
+        "aws_cognito_user_pool_domain": 1,
+        "aws_vpc_security_group_egress_rule": 1,
+        "aws_vpc_security_group_ingress_rule": 1
+      },
+      "lcu": {
+        "requests_per_second": 0.76103500761035,
+        "listener_rules": 3,
+        "lcu_by_dimension": {
+          "new_connections": 0.030441400304414,
+          "active_connections": 0.015220700152207002,
+          "processed_bytes": 0.0136986301369863,
+          "rule_evaluations": 0.0
+        },
+        "largest": "new_connections"
+      },
+      "monthly": [
+        {
+          "item": "ALB hours",
+          "quantity": 730,
+          "unit": "ALB-hour",
+          "price": "alb_hour",
+          "usd": 17.739
+        },
+        {
+          "item": "ALB LCU (new connections)",
+          "quantity": 22.22222222222222,
+          "unit": "LCU-hour",
+          "price": "alb_lcu_hour",
+          "usd": 0.17777777777777778
+        },
+        {
+          "item": "ALB public IPv4 addresses",
+          "quantity": 1460,
+          "unit": "IPv4 address-hour",
+          "price": "public_ipv4_hour",
+          "usd": 7.3
+        },
+        {
+          "item": "Cognito SAML users over the free tier",
+          "quantity": 50.0,
+          "unit": "MAU",
+          "price": "cognito_saml_mau",
+          "usd": 0.75
+        }
+      ],
+      "monthly_total_usd": 25.96677777777778
+    },
+    "c-verified-access": {
+      "plan_line": "Plan: 45 to add, 0 to change, 0 to destroy.",
+      "resources": 45,
+      "added_over_baseline": 14,
+      "types_added": {
+        "aws_acm_certificate": 1,
+        "aws_acm_certificate_validation": 1,
+        "aws_security_group": 1,
+        "aws_verifiedaccess_endpoint": 3,
+        "aws_verifiedaccess_group": 1,
+        "aws_verifiedaccess_instance": 1,
+        "aws_verifiedaccess_instance_trust_provider_attachment": 2,
+        "aws_verifiedaccess_trust_provider": 2,
+        "aws_vpc_security_group_egress_rule": 1,
+        "aws_vpc_security_group_ingress_rule": 1
+      },
+      "lcu": {
+        "requests_per_second": 0.76103500761035,
+        "listener_rules": 3,
+        "lcu_by_dimension": {
+          "new_connections": 0.030441400304414,
+          "active_connections": 0.015220700152207002,
+          "processed_bytes": 0.0136986301369863,
+          "rule_evaluations": 0.0
+        },
+        "largest": "new_connections"
+      },
+      "monthly": [
+        {
+          "item": "ALB hours",
+          "quantity": 730,
+          "unit": "ALB-hour",
+          "price": "alb_hour",
+          "usd": 17.739
+        },
+        {
+          "item": "ALB LCU (new connections)",
+          "quantity": 22.22222222222222,
+          "unit": "LCU-hour",
+          "price": "alb_lcu_hour",
+          "usd": 0.17777777777777778
+        },
+        {
+          "item": "Verified Access applications",
+          "quantity": 730,
+          "unit": "App-hour",
+          "price": "verified_access_app_hour",
+          "usd": 255.49999999999997
+        },
+        {
+          "item": "Verified Access data processing",
+          "quantity": 10,
+          "unit": "GB",
+          "price": "verified_access_gb",
+          "usd": 0.2
+        }
+      ],
+      "monthly_total_usd": 273.61677777777777
+    },
+    "c-without-device-trust": {
+      "plan_line": "Plan: 44 to add, 0 to change, 0 to destroy.",
+      "resources": 44
+    }
+  },
+  "baseline": {
+    "plan_line": "Plan: 31 to add, 0 to change, 0 to destroy.",
+    "resources": 31,
+    "types": {
+      "aws_cloudwatch_log_group": 1,
+      "aws_iam_role": 1,
+      "aws_iam_role_policy": 1,
+      "aws_lambda_function": 1,
+      "aws_lambda_permission": 3,
+      "aws_lb": 1,
+      "aws_lb_listener": 1,
+      "aws_lb_listener_rule": 3,
+      "aws_lb_target_group": 3,
+      "aws_lb_target_group_attachment": 3,
+      "aws_security_group": 1,
+      "aws_acm_certificate": 1,
+      "aws_internet_gateway": 1,
+      "aws_route_table": 1,
+      "aws_route_table_association": 2,
+      "aws_subnet": 4,
+      "aws_vpc": 1,
+      "tls_private_key": 1,
+      "tls_self_signed_cert": 1
+    }
+  }
+}

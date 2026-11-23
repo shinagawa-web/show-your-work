@@ -1,0 +1,83 @@
+Opened at: 2026-11-23T01:47:29Z (opened by an agent in the user's Chrome, where the user's own IAM Identity Center session was still active. The sign-in page was not shown)
+Log group: /aws/lambda/employee-apps-app
+Log events since: 2026-11-23T01:40:00Z
+Note: After the CrowdStrike device trust provider was detached from the instance (attach_device_trust = false). The app domains resolved through public DNS.
+
+--- log event at 2026-11-23T01:47:29Z (header values of cookie, x-amzn-ava-user-context, x-amzn-oidc-accesstoken, x-amzn-oidc-data, x-amzn-oidc-identity redacted)
+{
+  "message": "reached app wiki.internal-app-access.example.com",
+  "method": "GET",
+  "path": "/",
+  "headers": {
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9,ja;q=0.8",
+    "cookie": "<redacted>",
+    "host": "wiki.internal-app-access.example.com",
+    "priority": "u=0, i",
+    "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "cross-site",
+    "upgrade-insecure-requests": "1",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+    "x-amzn-ava-user-context": "<redacted>",
+    "x-amzn-trace-id": "Self=1-6b039b30-2c20bbc930d821af722f9663;Root=1-6b039b30-4240262952237d5e52f01419",
+    "x-forwarded-for": "<client address>",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+--- decoded payload of x-amzn-ava-user-context (values other than address, aud, custom:groups, email, exp, groups, identities, iss, username, verified redacted)
+{
+  "user": {
+    "user_id": "<redacted>",
+    "user_name": "<redacted>",
+    "email": {
+      "address": "user@example.com",
+      "verified": true
+    }
+  }
+}
+
+--- log event at 2026-11-23T01:47:29Z (header values of cookie, x-amzn-ava-user-context, x-amzn-oidc-accesstoken, x-amzn-oidc-data, x-amzn-oidc-identity redacted)
+{
+  "message": "reached app wiki.internal-app-access.example.com",
+  "method": "GET",
+  "path": "/favicon.ico",
+  "headers": {
+    "accept": "image/jxl,image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9,ja;q=0.8",
+    "cookie": "<redacted>",
+    "host": "wiki.internal-app-access.example.com",
+    "priority": "u=1, i",
+    "referer": "https://wiki.internal-app-access.example.com/",
+    "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "image",
+    "sec-fetch-mode": "no-cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+    "x-amzn-ava-user-context": "<redacted>",
+    "x-amzn-trace-id": "Self=1-6b039b31-14ca620f1ff93be3599217a5;Root=1-6b039b31-7706f69f7fa4cf8a4b4f3acc",
+    "x-forwarded-for": "<client address>",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  }
+}
+--- decoded payload of x-amzn-ava-user-context (values other than address, aud, custom:groups, email, exp, groups, identities, iss, username, verified redacted)
+{
+  "user": {
+    "user_id": "<redacted>",
+    "user_name": "<redacted>",
+    "email": {
+      "address": "user@example.com",
+      "verified": true
+    }
+  }
+}
+

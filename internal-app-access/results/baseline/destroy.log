@@ -1,0 +1,900 @@
+module.base.tls_private_key.this: Refreshing state... [id=2dad0fdd3cf7e8bdf985a0a007a3281f5bf308fc]
+module.alb.data.archive_file.app: Reading...
+module.alb.data.archive_file.app: Read complete after 0s [id=7d1b8141351ab438328f842acbfd0643b4a16e33]
+module.base.tls_self_signed_cert.this: Refreshing state... [id=317156823366325032594257035066029454893]
+module.base.data.aws_availability_zones.available: Reading...
+module.alb.aws_iam_role.app: Refreshing state... [id=syw-employee-apps-base-app]
+module.alb.aws_cloudwatch_log_group.app: Refreshing state... [id=/aws/lambda/employee-apps-base-app]
+module.base.aws_vpc.this: Refreshing state... [id=vpc-0c59bd67074c6f778]
+module.base.aws_acm_certificate.this: Refreshing state... [id=arn:aws:acm:us-east-1:111122223333:certificate/3e2a972c-da08-422a-ad0b-0d658b065586]
+module.alb.aws_lb_target_group.app["expense"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec]
+module.alb.aws_lb_target_group.app["admin"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2]
+module.alb.aws_lb_target_group.app["wiki"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a]
+module.base.data.aws_availability_zones.available: Read complete after 1s [id=us-east-1]
+module.alb.aws_iam_role_policy.app_logs: Refreshing state... [id=syw-employee-apps-base-app:terraform-83b0dcb1441ac3b483207a2be4]
+module.alb.aws_lambda_function.app: Refreshing state... [id=employee-apps-base-app]
+module.base.aws_internet_gateway.this: Refreshing state... [id=igw-0faa388b22ca05030]
+module.base.aws_subnet.public[0]: Refreshing state... [id=subnet-01218334ea39acb54]
+module.base.aws_subnet.private[1]: Refreshing state... [id=subnet-01857e64df2aee7d3]
+module.base.aws_subnet.public[1]: Refreshing state... [id=subnet-088656b1cb40899f4]
+module.alb.aws_security_group.alb: Refreshing state... [id=sg-0f823ea79904a732e]
+module.base.aws_subnet.private[0]: Refreshing state... [id=subnet-042fcb75ee6460673]
+module.base.aws_route_table.public: Refreshing state... [id=rtb-0e0497df91a7fbabd]
+module.alb.aws_lambda_permission.alb["wiki"]: Refreshing state... [id=alb-wiki]
+module.alb.aws_lambda_permission.alb["admin"]: Refreshing state... [id=alb-admin]
+module.alb.aws_lambda_permission.alb["expense"]: Refreshing state... [id=alb-expense]
+module.alb.aws_lb_target_group_attachment.app["wiki"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app]
+module.alb.aws_lb_target_group_attachment.app["expense"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app]
+module.alb.aws_lb_target_group_attachment.app["admin"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app]
+module.alb.aws_lb.this: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-base/9f0c4f008528ae07]
+module.base.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-03a9ee517d7daf71b]
+module.base.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-07f3967ae953bb6c2]
+module.alb.aws_lb_listener.https: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7]
+module.alb.aws_lb_listener_rule.app["admin"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/1b65fe925285e0e2]
+module.alb.aws_lb_listener_rule.app["wiki"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/497ef62f6d9fbc6e]
+module.alb.aws_lb_listener_rule.app["expense"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/b8f91612dfa86e69]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # module.alb.aws_cloudwatch_log_group.app will be destroyed
+  - resource "aws_cloudwatch_log_group" "app" {
+      - arn                         = "arn:aws:logs:us-east-1:111122223333:log-group:/aws/lambda/employee-apps-base-app" -> null
+      - deletion_protection_enabled = false -> null
+      - id                          = "/aws/lambda/employee-apps-base-app" -> null
+      - log_group_class             = "STANDARD" -> null
+      - name                        = "/aws/lambda/employee-apps-base-app" -> null
+      - region                      = "us-east-1" -> null
+      - retention_in_days           = 1 -> null
+      - skip_destroy                = false -> null
+      - tags                        = {} -> null
+      - tags_all                    = {} -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.alb.aws_iam_role.app will be destroyed
+  - resource "aws_iam_role" "app" {
+      - arn                   = "arn:aws:iam::111122223333:role/syw-employee-apps-base-app" -> null
+      - assume_role_policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "sts:AssumeRole"
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - Service = "lambda.amazonaws.com"
+                        }
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - create_date           = "2026-11-23T00:54:10Z" -> null
+      - force_detach_policies = false -> null
+      - id                    = "syw-employee-apps-base-app" -> null
+      - managed_policy_arns   = [] -> null
+      - max_session_duration  = 3600 -> null
+      - name                  = "syw-employee-apps-base-app" -> null
+      - path                  = "/" -> null
+      - tags                  = {} -> null
+      - tags_all              = {} -> null
+      - unique_id             = "<unique-id>" -> null
+        # (3 unchanged attributes hidden)
+
+      - inline_policy {
+          - name   = "terraform-83b0dcb1441ac3b483207a2be4" -> null
+          - policy = jsonencode(
+                {
+                  - Statement = [
+                      - {
+                          - Action   = [
+                              - "logs:CreateLogStream",
+                              - "logs:PutLogEvents",
+                            ]
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:logs:us-east-1:111122223333:log-group:/aws/lambda/employee-apps-base-app:*"
+                        },
+                    ]
+                  - Version   = "2012-10-17"
+                }
+            ) -> null
+        }
+    }
+
+  # module.alb.aws_iam_role_policy.app_logs will be destroyed
+  - resource "aws_iam_role_policy" "app_logs" {
+      - id          = "syw-employee-apps-base-app:terraform-83b0dcb1441ac3b483207a2be4" -> null
+      - name        = "terraform-83b0dcb1441ac3b483207a2be4" -> null
+      - name_prefix = "terraform-" -> null
+      - policy      = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action   = [
+                          - "logs:CreateLogStream",
+                          - "logs:PutLogEvents",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:logs:us-east-1:111122223333:log-group:/aws/lambda/employee-apps-base-app:*"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - role        = "syw-employee-apps-base-app" -> null
+    }
+
+  # module.alb.aws_lambda_function.app will be destroyed
+  - resource "aws_lambda_function" "app" {
+      - architectures                  = [
+          - "x86_64",
+        ] -> null
+      - arn                            = "arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app" -> null
+      - code_sha256                    = "TAtEi5jrptiFJSFOJZN40xnCVFbf57s/BHMKE02nng8=" -> null
+      - filename                       = "./.terraform-build/app.zip" -> null
+      - function_name                  = "employee-apps-base-app" -> null
+      - handler                        = "app.handler" -> null
+      - id                             = "employee-apps-base-app" -> null
+      - invoke_arn                     = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app/invocations" -> null
+      - last_modified                  = "2026-11-23T00:54:21.885+0000" -> null
+      - layers                         = [] -> null
+      - memory_size                    = 128 -> null
+      - package_type                   = "Zip" -> null
+      - publish                        = false -> null
+      - qualified_arn                  = "arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app:$LATEST" -> null
+      - qualified_invoke_arn           = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app:$LATEST/invocations" -> null
+      - region                         = "us-east-1" -> null
+      - reserved_concurrent_executions = -1 -> null
+      - response_streaming_invoke_arn  = "arn:aws:apigateway:us-east-1:lambda:path/2021-11-15/functions/arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app/response-streaming-invocations" -> null
+      - role                           = "arn:aws:iam::111122223333:role/syw-employee-apps-base-app" -> null
+      - runtime                        = "python3.13" -> null
+      - skip_destroy                   = false -> null
+      - source_code_hash               = "TAtEi5jrptiFJSFOJZN40xnCVFbf57s/BHMKE02nng8=" -> null
+      - source_code_size               = 410 -> null
+      - tags                           = {} -> null
+      - tags_all                       = {} -> null
+      - timeout                        = 3 -> null
+      - version                        = "$LATEST" -> null
+        # (7 unchanged attributes hidden)
+
+      - ephemeral_storage {
+          - size = 512 -> null
+        }
+
+      - logging_config {
+          - log_format            = "Text" -> null
+          - log_group             = "/aws/lambda/employee-apps-base-app" -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - tracing_config {
+          - mode = "PassThrough" -> null
+        }
+    }
+
+  # module.alb.aws_lambda_permission.alb["admin"] will be destroyed
+  - resource "aws_lambda_permission" "alb" {
+      - action              = "lambda:InvokeFunction" -> null
+      - function_name       = "employee-apps-base-app" -> null
+      - id                  = "alb-admin" -> null
+      - principal           = "elasticloadbalancing.amazonaws.com" -> null
+      - region              = "us-east-1" -> null
+      - source_arn          = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2" -> null
+      - statement_id        = "alb-admin" -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.alb.aws_lambda_permission.alb["expense"] will be destroyed
+  - resource "aws_lambda_permission" "alb" {
+      - action              = "lambda:InvokeFunction" -> null
+      - function_name       = "employee-apps-base-app" -> null
+      - id                  = "alb-expense" -> null
+      - principal           = "elasticloadbalancing.amazonaws.com" -> null
+      - region              = "us-east-1" -> null
+      - source_arn          = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec" -> null
+      - statement_id        = "alb-expense" -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.alb.aws_lambda_permission.alb["wiki"] will be destroyed
+  - resource "aws_lambda_permission" "alb" {
+      - action              = "lambda:InvokeFunction" -> null
+      - function_name       = "employee-apps-base-app" -> null
+      - id                  = "alb-wiki" -> null
+      - principal           = "elasticloadbalancing.amazonaws.com" -> null
+      - region              = "us-east-1" -> null
+      - source_arn          = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a" -> null
+      - statement_id        = "alb-wiki" -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.alb.aws_lb.this will be destroyed
+  - resource "aws_lb" "this" {
+      - arn                                                          = "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-base/9f0c4f008528ae07" -> null
+      - arn_suffix                                                   = "app/employee-apps-base/9f0c4f008528ae07" -> null
+      - client_keep_alive                                            = 3600 -> null
+      - desync_mitigation_mode                                       = "defensive" -> null
+      - dns_name                                                     = "employee-apps-base-1658977536.us-east-1.elb.amazonaws.com" -> null
+      - drop_invalid_header_fields                                   = false -> null
+      - enable_cross_zone_load_balancing                             = true -> null
+      - enable_deletion_protection                                   = false -> null
+      - enable_http2                                                 = true -> null
+      - enable_prefix_for_ipv6_source_nat                            = "off" -> null
+      - enable_tls_version_and_cipher_suite_headers                  = false -> null
+      - enable_waf_fail_open                                         = false -> null
+      - enable_xff_client_port                                       = false -> null
+      - enable_zonal_shift                                           = false -> null
+      - id                                                           = "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-base/9f0c4f008528ae07" -> null
+      - idle_timeout                                                 = 60 -> null
+      - internal                                                     = false -> null
+      - ip_address_type                                              = "ipv4" -> null
+      - load_balancer_type                                           = "application" -> null
+      - name                                                         = "employee-apps-base" -> null
+      - preserve_host_header                                         = false -> null
+      - region                                                       = "us-east-1" -> null
+      - security_groups                                              = [
+          - "sg-0f823ea79904a732e",
+        ] -> null
+      - subnets                                                      = [
+          - "subnet-01218334ea39acb54",
+          - "subnet-088656b1cb40899f4",
+        ] -> null
+      - tags                                                         = {} -> null
+      - tags_all                                                     = {} -> null
+      - vpc_id                                                       = "vpc-0c59bd67074c6f778" -> null
+      - xff_header_processing_mode                                   = "append" -> null
+      - zone_id                                                      = "Z35SXDOTRQ7X7K" -> null
+        # (3 unchanged attributes hidden)
+
+      - access_logs {
+          - enabled = false -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - connection_logs {
+          - enabled = false -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - health_check_logs {
+          - enabled = false -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - subnet_mapping {
+          - subnet_id            = "subnet-01218334ea39acb54" -> null
+            # (4 unchanged attributes hidden)
+        }
+      - subnet_mapping {
+          - subnet_id            = "subnet-088656b1cb40899f4" -> null
+            # (4 unchanged attributes hidden)
+        }
+    }
+
+  # module.alb.aws_lb_listener.https will be destroyed
+  - resource "aws_lb_listener" "https" {
+      - arn                                                                   = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7" -> null
+      - certificate_arn                                                       = "arn:aws:acm:us-east-1:111122223333:certificate/3e2a972c-da08-422a-ad0b-0d658b065586" -> null
+      - id                                                                    = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7" -> null
+      - load_balancer_arn                                                     = "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-base/9f0c4f008528ae07" -> null
+      - port                                                                  = 443 -> null
+      - protocol                                                              = "HTTPS" -> null
+      - region                                                                = "us-east-1" -> null
+      - routing_http_response_server_enabled                                  = true -> null
+      - ssl_policy                                                            = "ELBSecurityPolicy-TLS13-1-2-2021-06" -> null
+      - tags                                                                  = {} -> null
+      - tags_all                                                              = {} -> null
+        # (18 unchanged attributes hidden)
+
+      - default_action {
+          - order            = 1 -> null
+          - type             = "fixed-response" -> null
+            # (1 unchanged attribute hidden)
+
+          - fixed_response {
+              - content_type = "text/plain" -> null
+              - status_code  = "404" -> null
+                # (1 unchanged attribute hidden)
+            }
+        }
+
+      - mutual_authentication {
+          - ignore_client_certificate_expiry = false -> null
+          - mode                             = "off" -> null
+            # (2 unchanged attributes hidden)
+        }
+    }
+
+  # module.alb.aws_lb_listener_rule.app["admin"] will be destroyed
+  - resource "aws_lb_listener_rule" "app" {
+      - arn          = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/1b65fe925285e0e2" -> null
+      - id           = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/1b65fe925285e0e2" -> null
+      - listener_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7" -> null
+      - priority     = 10 -> null
+      - region       = "us-east-1" -> null
+      - tags         = {} -> null
+      - tags_all     = {} -> null
+
+      - action {
+          - order            = 2 -> null
+          - target_group_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2" -> null
+          - type             = "forward" -> null
+        }
+
+      - condition {
+          - host_header {
+              - regex_values = [] -> null
+              - values       = [
+                  - "admin.internal-app-access.example.com",
+                ] -> null
+            }
+        }
+    }
+
+  # module.alb.aws_lb_listener_rule.app["expense"] will be destroyed
+  - resource "aws_lb_listener_rule" "app" {
+      - arn          = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/b8f91612dfa86e69" -> null
+      - id           = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/b8f91612dfa86e69" -> null
+      - listener_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7" -> null
+      - priority     = 11 -> null
+      - region       = "us-east-1" -> null
+      - tags         = {} -> null
+      - tags_all     = {} -> null
+
+      - action {
+          - order            = 2 -> null
+          - target_group_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec" -> null
+          - type             = "forward" -> null
+        }
+
+      - condition {
+          - host_header {
+              - regex_values = [] -> null
+              - values       = [
+                  - "expense.internal-app-access.example.com",
+                ] -> null
+            }
+        }
+    }
+
+  # module.alb.aws_lb_listener_rule.app["wiki"] will be destroyed
+  - resource "aws_lb_listener_rule" "app" {
+      - arn          = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/497ef62f6d9fbc6e" -> null
+      - id           = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/497ef62f6d9fbc6e" -> null
+      - listener_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7" -> null
+      - priority     = 12 -> null
+      - region       = "us-east-1" -> null
+      - tags         = {} -> null
+      - tags_all     = {} -> null
+
+      - action {
+          - order            = 2 -> null
+          - target_group_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a" -> null
+          - type             = "forward" -> null
+        }
+
+      - condition {
+          - host_header {
+              - regex_values = [] -> null
+              - values       = [
+                  - "wiki.internal-app-access.example.com",
+                ] -> null
+            }
+        }
+    }
+
+  # module.alb.aws_lb_target_group.app["admin"] will be destroyed
+  - resource "aws_lb_target_group" "app" {
+      - arn                                = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2" -> null
+      - arn_suffix                         = "targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2" -> null
+      - deregistration_delay               = "300" -> null
+      - id                                 = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2" -> null
+      - ip_address_type                    = "ipv4" -> null
+      - lambda_multi_value_headers_enabled = false -> null
+      - load_balancer_arns                 = [
+          - "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-base/9f0c4f008528ae07",
+        ] -> null
+      - name                               = "employee-apps-base-admin-fn" -> null
+      - proxy_protocol_v2                  = false -> null
+      - region                             = "us-east-1" -> null
+      - slow_start                         = 0 -> null
+      - tags                               = {} -> null
+      - tags_all                           = {} -> null
+      - target_control_port                = 0 -> null
+      - target_type                        = "lambda" -> null
+        # (1 unchanged attribute hidden)
+
+      - health_check {
+          - enabled             = false -> null
+          - healthy_threshold   = 5 -> null
+          - interval            = 35 -> null
+          - matcher             = "200" -> null
+          - path                = "/" -> null
+          - timeout             = 30 -> null
+          - unhealthy_threshold = 2 -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - stickiness {}
+
+      - target_failover {}
+
+      - target_group_health {
+          - dns_failover {}
+          - unhealthy_state_routing {}
+        }
+
+      - target_health_state {}
+    }
+
+  # module.alb.aws_lb_target_group.app["expense"] will be destroyed
+  - resource "aws_lb_target_group" "app" {
+      - arn                                = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec" -> null
+      - arn_suffix                         = "targetgroup/employee-apps-base-expense-fn/50611494f24f7fec" -> null
+      - deregistration_delay               = "300" -> null
+      - id                                 = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec" -> null
+      - ip_address_type                    = "ipv4" -> null
+      - lambda_multi_value_headers_enabled = false -> null
+      - load_balancer_arns                 = [
+          - "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-base/9f0c4f008528ae07",
+        ] -> null
+      - name                               = "employee-apps-base-expense-fn" -> null
+      - proxy_protocol_v2                  = false -> null
+      - region                             = "us-east-1" -> null
+      - slow_start                         = 0 -> null
+      - tags                               = {} -> null
+      - tags_all                           = {} -> null
+      - target_control_port                = 0 -> null
+      - target_type                        = "lambda" -> null
+        # (1 unchanged attribute hidden)
+
+      - health_check {
+          - enabled             = false -> null
+          - healthy_threshold   = 5 -> null
+          - interval            = 35 -> null
+          - matcher             = "200" -> null
+          - path                = "/" -> null
+          - timeout             = 30 -> null
+          - unhealthy_threshold = 2 -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - stickiness {}
+
+      - target_failover {}
+
+      - target_group_health {
+          - dns_failover {}
+          - unhealthy_state_routing {}
+        }
+
+      - target_health_state {}
+    }
+
+  # module.alb.aws_lb_target_group.app["wiki"] will be destroyed
+  - resource "aws_lb_target_group" "app" {
+      - arn                                = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a" -> null
+      - arn_suffix                         = "targetgroup/employee-apps-base-wiki-fn/df9207581707d58a" -> null
+      - deregistration_delay               = "300" -> null
+      - id                                 = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a" -> null
+      - ip_address_type                    = "ipv4" -> null
+      - lambda_multi_value_headers_enabled = false -> null
+      - load_balancer_arns                 = [
+          - "arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-base/9f0c4f008528ae07",
+        ] -> null
+      - name                               = "employee-apps-base-wiki-fn" -> null
+      - proxy_protocol_v2                  = false -> null
+      - region                             = "us-east-1" -> null
+      - slow_start                         = 0 -> null
+      - tags                               = {} -> null
+      - tags_all                           = {} -> null
+      - target_control_port                = 0 -> null
+      - target_type                        = "lambda" -> null
+        # (1 unchanged attribute hidden)
+
+      - health_check {
+          - enabled             = false -> null
+          - healthy_threshold   = 5 -> null
+          - interval            = 35 -> null
+          - matcher             = "200" -> null
+          - path                = "/" -> null
+          - timeout             = 30 -> null
+          - unhealthy_threshold = 2 -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - stickiness {}
+
+      - target_failover {}
+
+      - target_group_health {
+          - dns_failover {}
+          - unhealthy_state_routing {}
+        }
+
+      - target_health_state {}
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["admin"] will be destroyed
+  - resource "aws_lb_target_group_attachment" "app" {
+      - id               = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app" -> null
+      - region           = "us-east-1" -> null
+      - target_group_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2" -> null
+      - target_id        = "arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app" -> null
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["expense"] will be destroyed
+  - resource "aws_lb_target_group_attachment" "app" {
+      - id               = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app" -> null
+      - region           = "us-east-1" -> null
+      - target_group_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec" -> null
+      - target_id        = "arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app" -> null
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["wiki"] will be destroyed
+  - resource "aws_lb_target_group_attachment" "app" {
+      - id               = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app" -> null
+      - region           = "us-east-1" -> null
+      - target_group_arn = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a" -> null
+      - target_id        = "arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app" -> null
+    }
+
+  # module.alb.aws_security_group.alb will be destroyed
+  - resource "aws_security_group" "alb" {
+      - arn                    = "arn:aws:ec2:us-east-1:111122223333:security-group/sg-0f823ea79904a732e" -> null
+      - description            = "Managed by Terraform" -> null
+      - egress                 = [] -> null
+      - id                     = "sg-0f823ea79904a732e" -> null
+      - ingress                = [] -> null
+      - name                   = "employee-apps-base-alb" -> null
+      - owner_id               = "111122223333" -> null
+      - region                 = "us-east-1" -> null
+      - revoke_rules_on_delete = false -> null
+      - tags                   = {} -> null
+      - tags_all               = {} -> null
+      - vpc_id                 = "vpc-0c59bd67074c6f778" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.base.aws_acm_certificate.this will be destroyed
+  - resource "aws_acm_certificate" "this" {
+      - arn                       = "arn:aws:acm:us-east-1:111122223333:certificate/3e2a972c-da08-422a-ad0b-0d658b065586" -> null
+      - certificate_body          = <<-EOT
+            -----BEGIN CERTIFICATE-----
+<certificate>
+            -----END CERTIFICATE-----
+        EOT -> null
+      - domain_name               = "*.internal-app-access.example.com" -> null
+      - domain_validation_options = [] -> null
+      - id                        = "arn:aws:acm:us-east-1:111122223333:certificate/3e2a972c-da08-422a-ad0b-0d658b065586" -> null
+      - key_algorithm             = "RSA_2048" -> null
+      - not_after                 = "2026-11-24T00:54:08Z" -> null
+      - not_before                = "2026-11-23T00:54:08Z" -> null
+      - pending_renewal           = false -> null
+      - private_key               = (sensitive value) -> null
+      - private_key_wo            = (write-only attribute) -> null
+      - region                    = "us-east-1" -> null
+      - renewal_eligibility       = "INELIGIBLE" -> null
+      - renewal_summary           = [] -> null
+      - status                    = "ISSUED" -> null
+      - subject_alternative_names = [
+          - "*.internal-app-access.example.com",
+        ] -> null
+      - tags                      = {} -> null
+      - tags_all                  = {} -> null
+      - type                      = "IMPORTED" -> null
+      - validation_emails         = [] -> null
+      - validation_method         = "NONE" -> null
+        # (2 unchanged attributes hidden)
+
+      - options {
+          - certificate_transparency_logging_preference = "DISABLED" -> null
+          - export                                      = "DISABLED" -> null
+        }
+    }
+
+  # module.base.aws_internet_gateway.this will be destroyed
+  - resource "aws_internet_gateway" "this" {
+      - arn      = "arn:aws:ec2:us-east-1:111122223333:internet-gateway/igw-0faa388b22ca05030" -> null
+      - id       = "igw-0faa388b22ca05030" -> null
+      - owner_id = "111122223333" -> null
+      - region   = "us-east-1" -> null
+      - tags     = {} -> null
+      - tags_all = {} -> null
+      - vpc_id   = "vpc-0c59bd67074c6f778" -> null
+    }
+
+  # module.base.aws_route_table.public will be destroyed
+  - resource "aws_route_table" "public" {
+      - arn              = "arn:aws:ec2:us-east-1:111122223333:route-table/rtb-0e0497df91a7fbabd" -> null
+      - id               = "rtb-0e0497df91a7fbabd" -> null
+      - owner_id         = "111122223333" -> null
+      - propagating_vgws = [] -> null
+      - region           = "us-east-1" -> null
+      - route            = [
+          - {
+              - cidr_block                 = "0.0.0.0/0"
+              - gateway_id                 = "igw-0faa388b22ca05030"
+                # (12 unchanged attributes hidden)
+            },
+        ] -> null
+      - tags             = {} -> null
+      - tags_all         = {} -> null
+      - vpc_id           = "vpc-0c59bd67074c6f778" -> null
+    }
+
+  # module.base.aws_route_table_association.public[0] will be destroyed
+  - resource "aws_route_table_association" "public" {
+      - id             = "rtbassoc-07f3967ae953bb6c2" -> null
+      - region         = "us-east-1" -> null
+      - route_table_id = "rtb-0e0497df91a7fbabd" -> null
+      - subnet_id      = "subnet-01218334ea39acb54" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.base.aws_route_table_association.public[1] will be destroyed
+  - resource "aws_route_table_association" "public" {
+      - id             = "rtbassoc-03a9ee517d7daf71b" -> null
+      - region         = "us-east-1" -> null
+      - route_table_id = "rtb-0e0497df91a7fbabd" -> null
+      - subnet_id      = "subnet-088656b1cb40899f4" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.base.aws_subnet.private[0] will be destroyed
+  - resource "aws_subnet" "private" {
+      - arn                                            = "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-042fcb75ee6460673" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "us-east-1a" -> null
+      - availability_zone_id                           = "use1-az1" -> null
+      - cidr_block                                     = "10.0.10.0/24" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-042fcb75ee6460673" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = false -> null
+      - owner_id                                       = "111122223333" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "us-east-1" -> null
+      - tags                                           = {} -> null
+      - tags_all                                       = {} -> null
+      - vpc_id                                         = "vpc-0c59bd67074c6f778" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.base.aws_subnet.private[1] will be destroyed
+  - resource "aws_subnet" "private" {
+      - arn                                            = "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-01857e64df2aee7d3" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "us-east-1b" -> null
+      - availability_zone_id                           = "use1-az2" -> null
+      - cidr_block                                     = "10.0.11.0/24" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-01857e64df2aee7d3" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = false -> null
+      - owner_id                                       = "111122223333" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "us-east-1" -> null
+      - tags                                           = {} -> null
+      - tags_all                                       = {} -> null
+      - vpc_id                                         = "vpc-0c59bd67074c6f778" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.base.aws_subnet.public[0] will be destroyed
+  - resource "aws_subnet" "public" {
+      - arn                                            = "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-01218334ea39acb54" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "us-east-1a" -> null
+      - availability_zone_id                           = "use1-az1" -> null
+      - cidr_block                                     = "10.0.0.0/24" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-01218334ea39acb54" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = false -> null
+      - owner_id                                       = "111122223333" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "us-east-1" -> null
+      - tags                                           = {} -> null
+      - tags_all                                       = {} -> null
+      - vpc_id                                         = "vpc-0c59bd67074c6f778" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.base.aws_subnet.public[1] will be destroyed
+  - resource "aws_subnet" "public" {
+      - arn                                            = "arn:aws:ec2:us-east-1:111122223333:subnet/subnet-088656b1cb40899f4" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "us-east-1b" -> null
+      - availability_zone_id                           = "use1-az2" -> null
+      - cidr_block                                     = "10.0.1.0/24" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-088656b1cb40899f4" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = false -> null
+      - owner_id                                       = "111122223333" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "us-east-1" -> null
+      - tags                                           = {} -> null
+      - tags_all                                       = {} -> null
+      - vpc_id                                         = "vpc-0c59bd67074c6f778" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.base.aws_vpc.this will be destroyed
+  - resource "aws_vpc" "this" {
+      - arn                                  = "arn:aws:ec2:us-east-1:111122223333:vpc/vpc-0c59bd67074c6f778" -> null
+      - assign_generated_ipv6_cidr_block     = false -> null
+      - cidr_block                           = "10.0.0.0/16" -> null
+      - default_network_acl_id               = "acl-091e37c46c27a2775" -> null
+      - default_route_table_id               = "rtb-0150f96ac366e44d3" -> null
+      - default_security_group_id            = "sg-05bddc133474163a2" -> null
+      - dhcp_options_id                      = "dopt-0d684bd579a06d6c1" -> null
+      - enable_dns_hostnames                 = false -> null
+      - enable_dns_support                   = true -> null
+      - enable_network_address_usage_metrics = false -> null
+      - id                                   = "vpc-0c59bd67074c6f778" -> null
+      - instance_tenancy                     = "default" -> null
+      - ipv6_netmask_length                  = 0 -> null
+      - main_route_table_id                  = "rtb-0150f96ac366e44d3" -> null
+      - owner_id                             = "111122223333" -> null
+      - region                               = "us-east-1" -> null
+      - tags                                 = {
+          - "Name" = "employee-apps-base"
+        } -> null
+      - tags_all                             = {
+          - "Name" = "employee-apps-base"
+        } -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.base.tls_private_key.this will be destroyed
+  - resource "tls_private_key" "this" {
+      - algorithm                     = "RSA" -> null
+      - ecdsa_curve                   = "P224" -> null
+      - id                            = "2dad0fdd3cf7e8bdf985a0a007a3281f5bf308fc" -> null
+      - private_key_openssh           = (sensitive value) -> null
+      - private_key_pem               = (sensitive value) -> null
+      - private_key_pem_pkcs8         = (sensitive value) -> null
+      - public_key_fingerprint_md5    = "06:85:89:b9:c0:67:52:94:6d:bd:15:f4:00:d3:7e:69" -> null
+      - public_key_fingerprint_sha256 = "SHA256:pGub+YDOceFy6SesF6n+RTw6kBKZ1GerSW6oUJPvxC0" -> null
+      - public_key_openssh            = <<-EOT
+            ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDrhnsUNaALVFgSzG+NtN92dsdfyvWOpQooYhUJvCSKM0wwtw7xJgK8ISwggDnNhOf5C1GFCFKO5dzqaMa/HviHQRvHtwca3I3NB/plhJlOl2VUS82Vi8N1y5pVAGsvCTwVLv9HdhjD64eAJIdyFuWuNEcrVesny+fONfJlfu5lV2wBgxMxUrIZGe+aMOPHXApUHW3ySBK+5QGevGkQw1Dg992CbzUxdv9azilhgp3EkWq9HXXyFRxC/k3f4QT4GD3OQXx6yYJq6Nlj0CSw+w+LqxIww3DJFk6+B4hHgGpqi4ybaPJLvjcIGI09sVL7Gnio0aYG+39zYOrH1SsoXrfz
+        EOT -> null
+      - public_key_pem                = <<-EOT
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA64Z7FDWgC1RYEsxvjbTf
+            dnbHX8r1jqUKKGIVCbwkijNMMLcO8SYCvCEsIIA5zYTn+QtRhQhSjuXc6mjGvx74
+            h0Ebx7cHGtyNzQf6ZYSZTpdlVEvNlYvDdcuaVQBrLwk8FS7/R3YYw+uHgCSHchbl
+            rjRHK1XrJ8vnzjXyZX7uZVdsAYMTMVKyGRnvmjDjx1wKVB1t8kgSvuUBnrxpEMNQ
+            4Pfdgm81MXb/Ws4pYYKdxJFqvR118hUcQv5N3+EE+Bg9zkF8esmCaujZY9AksPsP
+            i6sSMMNwyRZOvgeIR4BqaouMm2jyS743CBiNPbFS+xp4qNGmBvt/c2Dqx9UrKF63
+            8wIDAQAB
+            -----END PUBLIC KEY-----
+        EOT -> null
+      - rsa_bits                      = 2048 -> null
+    }
+
+  # module.base.tls_self_signed_cert.this will be destroyed
+  - resource "tls_self_signed_cert" "this" {
+      - allowed_uses          = [
+          - "server_auth",
+          - "digital_signature",
+          - "key_encipherment",
+        ] -> null
+      - cert_pem              = <<-EOT
+            -----BEGIN CERTIFICATE-----
+<certificate>
+            -----END CERTIFICATE-----
+        EOT -> null
+      - dns_names             = [
+          - "*.internal-app-access.example.com",
+        ] -> null
+      - early_renewal_hours   = 0 -> null
+      - id                    = "317156823366325032594257035066029454893" -> null
+      - is_ca_certificate     = false -> null
+      - key_algorithm         = "RSA" -> null
+      - private_key_pem       = (sensitive value) -> null
+      - private_key_pem_wo    = (write-only attribute) -> null
+      - ready_for_renewal     = false -> null
+      - set_authority_key_id  = false -> null
+      - set_subject_key_id    = false -> null
+      - validity_end_time     = "2026-11-24T09:54:08.029648+09:00" -> null
+      - validity_period_hours = 24 -> null
+      - validity_start_time   = "2026-11-23T09:54:08.029648+09:00" -> null
+
+      - subject {
+          - common_name = "*.internal-app-access.example.com" -> null
+        }
+    }
+
+Plan: 0 to add, 0 to change, 31 to destroy.
+
+Changes to Outputs:
+  - alb_name = "employee-apps-base" -> null
+module.base.aws_route_table_association.public[1]: Destroying... [id=rtbassoc-03a9ee517d7daf71b]
+module.alb.aws_lb_target_group_attachment.app["wiki"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app]
+module.base.aws_route_table_association.public[0]: Destroying... [id=rtbassoc-07f3967ae953bb6c2]
+module.alb.aws_lb_target_group_attachment.app["expense"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app]
+module.alb.aws_lb_target_group_attachment.app["admin"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-base-app]
+module.base.aws_subnet.private[1]: Destroying... [id=subnet-01857e64df2aee7d3]
+module.base.aws_subnet.private[0]: Destroying... [id=subnet-042fcb75ee6460673]
+module.alb.aws_lb_listener_rule.app["wiki"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/497ef62f6d9fbc6e]
+module.alb.aws_lb_listener_rule.app["admin"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/1b65fe925285e0e2]
+module.alb.aws_lb_listener_rule.app["expense"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7/b8f91612dfa86e69]
+module.alb.aws_lb_target_group_attachment.app["expense"]: Destruction complete after 1s
+module.alb.aws_lb_target_group_attachment.app["admin"]: Destruction complete after 1s
+module.alb.aws_lb_target_group_attachment.app["wiki"]: Destruction complete after 1s
+module.alb.aws_lb_listener_rule.app["admin"]: Destruction complete after 1s
+module.alb.aws_lambda_permission.alb["expense"]: Destroying... [id=alb-expense]
+module.alb.aws_lambda_permission.alb["admin"]: Destroying... [id=alb-admin]
+module.alb.aws_lambda_permission.alb["wiki"]: Destroying... [id=alb-wiki]
+module.alb.aws_lb_listener_rule.app["expense"]: Destruction complete after 1s
+module.base.aws_route_table_association.public[1]: Destruction complete after 1s
+module.base.aws_route_table_association.public[0]: Destruction complete after 1s
+module.alb.aws_lb_listener_rule.app["wiki"]: Destruction complete after 1s
+module.base.aws_route_table.public: Destroying... [id=rtb-0e0497df91a7fbabd]
+module.alb.aws_lb_listener.https: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-base/9f0c4f008528ae07/2b849d3a26f2a0c7]
+module.alb.aws_lb_listener.https: Destruction complete after 0s
+module.base.aws_subnet.private[1]: Destruction complete after 1s
+module.base.aws_acm_certificate.this: Destroying... [id=arn:aws:acm:us-east-1:111122223333:certificate/3e2a972c-da08-422a-ad0b-0d658b065586]
+module.alb.aws_lb.this: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-base/9f0c4f008528ae07]
+module.base.aws_subnet.private[0]: Destruction complete after 1s
+module.alb.aws_lambda_permission.alb["admin"]: Destruction complete after 1s
+module.alb.aws_lambda_permission.alb["wiki"]: Destruction complete after 1s
+module.base.aws_route_table.public: Destruction complete after 1s
+module.base.aws_internet_gateway.this: Destroying... [id=igw-0faa388b22ca05030]
+module.alb.aws_lambda_permission.alb["expense"]: Destruction complete after 2s
+module.alb.aws_lb_target_group.app["wiki"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-wiki-fn/df9207581707d58a]
+module.alb.aws_lambda_function.app: Destroying... [id=employee-apps-base-app]
+module.alb.aws_lb_target_group.app["expense"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-expense-fn/50611494f24f7fec]
+module.alb.aws_lb_target_group.app["admin"]: Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-base-admin-fn/7701ed2ec3cbc6d2]
+module.alb.aws_lb_target_group.app["wiki"]: Destruction complete after 0s
+module.alb.aws_lb_target_group.app["admin"]: Destruction complete after 0s
+module.alb.aws_lb_target_group.app["expense"]: Destruction complete after 0s
+module.base.aws_acm_certificate.this: Destruction complete after 4s
+module.base.tls_self_signed_cert.this: Destroying... [id=317156823366325032594257035066029454893]
+module.base.tls_self_signed_cert.this: Destruction complete after 0s
+module.base.tls_private_key.this: Destroying... [id=2dad0fdd3cf7e8bdf985a0a007a3281f5bf308fc]
+module.base.tls_private_key.this: Destruction complete after 0s
+module.alb.aws_lambda_function.app: Destruction complete after 5s
+module.alb.aws_iam_role_policy.app_logs: Destroying... [id=syw-employee-apps-base-app:terraform-83b0dcb1441ac3b483207a2be4]
+module.alb.aws_iam_role_policy.app_logs: Destruction complete after 2s
+module.alb.aws_cloudwatch_log_group.app: Destroying... [id=/aws/lambda/employee-apps-base-app]
+module.alb.aws_iam_role.app: Destroying... [id=syw-employee-apps-base-app]
+module.alb.aws_iam_role.app: Destruction complete after 1s
+module.alb.aws_cloudwatch_log_group.app: Destruction complete after 1s
+module.alb.aws_lb.this: Still destroying... [id=arn:aws:elasticloadbalancing:us-east-1:...pp/employee-apps-base/9f0c4f008528ae07, 00m10s elapsed]
+module.base.aws_internet_gateway.this: Still destroying... [id=igw-0faa388b22ca05030, 00m10s elapsed]
+module.alb.aws_lb.this: Destruction complete after 20s
+module.base.aws_subnet.public[0]: Destroying... [id=subnet-01218334ea39acb54]
+module.alb.aws_security_group.alb: Destroying... [id=sg-0f823ea79904a732e]
+module.base.aws_subnet.public[1]: Destroying... [id=subnet-088656b1cb40899f4]
+module.base.aws_internet_gateway.this: Still destroying... [id=igw-0faa388b22ca05030, 00m20s elapsed]
+module.base.aws_subnet.public[1]: Destruction complete after 1s
+module.base.aws_subnet.public[0]: Destruction complete after 1s
+module.alb.aws_security_group.alb: Destruction complete after 1s
+module.base.aws_internet_gateway.this: Destruction complete after 21s
+module.base.aws_vpc.this: Destroying... [id=vpc-0c59bd67074c6f778]
+module.base.aws_vpc.this: Destruction complete after 1s
+
+Destroy complete! Resources: 31 destroyed.

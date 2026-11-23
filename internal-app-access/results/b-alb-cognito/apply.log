@@ -1,0 +1,608 @@
+module.alb.data.archive_file.app: Reading...
+module.base.tls_private_key.this: Refreshing state... [id=d20c8e64ecd9e59596e695edb28434ff46253f90]
+module.alb.data.archive_file.app: Read complete after 0s [id=7d1b8141351ab438328f842acbfd0643b4a16e33]
+module.base.tls_self_signed_cert.this: Refreshing state... [id=288553414277285146187761236829341475497]
+module.base.data.aws_availability_zones.available: Reading...
+module.base.aws_vpc.this: Refreshing state... [id=vpc-0a9f89c37d7f12018]
+module.alb.aws_vpc_security_group_egress_rule.targets: Refreshing state... [id=sgr-000e102e49ffe991f]
+module.base.aws_acm_certificate.this: Refreshing state... [id=arn:aws:acm:us-east-1:111122223333:certificate/c59ec385-11c9-41bc-bc60-5e15b020fcc3]
+module.alb.aws_lb_target_group.app["admin"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-admin/0c9f417913c9b2cd]
+module.alb.aws_lb_target_group.app["wiki"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-wiki/5e461617b9f6d378]
+module.alb.aws_lb_target_group.app["expense"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-expense/68a1116b4d10a632]
+aws_cognito_user_pool.employees: Refreshing state... [id=us-east-1_adF3rMmJ3]
+module.base.data.aws_availability_zones.available: Read complete after 1s [id=us-east-1]
+aws_cognito_user_pool_domain.this: Refreshing state... [id=employee-apps-48f69f63]
+aws_cognito_identity_provider.google: Refreshing state... [id=us-east-1_adF3rMmJ3:GoogleWorkspace]
+module.base.aws_internet_gateway.this: Refreshing state... [id=igw-019e290518c216467]
+module.base.aws_subnet.private[1]: Refreshing state... [id=subnet-011cac98eb6f1ee2b]
+module.base.aws_subnet.private[0]: Refreshing state... [id=subnet-0203765036e68c669]
+module.base.aws_subnet.public[1]: Refreshing state... [id=subnet-039b93a647ba893aa]
+module.alb.aws_security_group.alb: Refreshing state... [id=sg-0d2b7ebf776527845]
+module.base.aws_subnet.public[0]: Refreshing state... [id=subnet-033d7c10ca0b9426b]
+aws_vpc_security_group_egress_rule.idp: Refreshing state... [id=sgr-0aa995f9c511bbecc]
+aws_vpc_security_group_ingress_rule.https: Refreshing state... [id=sgr-010ffc788a734b6ae]
+module.base.aws_route_table.public: Refreshing state... [id=rtb-0abe6b190f4538eec]
+module.alb.aws_lb.this: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:loadbalancer/app/employee-apps-b/6fd6b2fce06b5b43]
+module.base.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-0c84ebfb6ff961688]
+module.base.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-06c30a6bcb0ddad35]
+aws_cognito_user_pool_client.alb: Refreshing state... [id=82gcf396p17crf1b0u1ps2lmi]
+module.alb.aws_lb_listener.https: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39]
+module.alb.aws_lb_listener_rule.app["wiki"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/0fb7dfa5723cb2d0]
+module.alb.aws_lb_listener_rule.app["admin"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/aa943d6936ade7b9]
+module.alb.aws_lb_listener_rule.app["expense"]: Refreshing state... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/053e31491c7f7e73]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+  ~ update in-place
+  - destroy
++/- create replacement and then destroy
+
+Terraform will perform the following actions:
+
+  # aws_cognito_identity_provider.google will be updated in-place
+  ~ resource "aws_cognito_identity_provider" "google" {
+      ~ attribute_mapping = {
+          + "custom:groups" = "groups"
+            # (1 unchanged element hidden)
+        }
+        id                = "us-east-1_adF3rMmJ3:GoogleWorkspace"
+      ~ provider_details  = {
+          - "ActiveEncryptionCertificate" = "MIICvTCCAaWgAwIBAgIJAIubtya4sRtpMA0GCSqGSIb3DQEBCwUAMB4xHDAaBgNVBAMME3VzLWVhc3QtMV9hZEYzck1tSjMwHhcNMjYxMTIzMDA0NDEzWhcNMzYxMTIyMTA1NjEzWjAeMRwwGgYDVQQDDBN1cy1lYXN0LTFfYWRGM3JNbUozMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv6WAIGYtcH3H1MTUeWPI9cv9Euu5dormx4VJFe9lYrFMk4uYHuuOT4Akgs7uOdMAld+IEwwDZLhsYNMFmkDrSy9D1/1NRK57uR017CwFeL+eEwiWKymdkqGFrLHLjl+PN1TWKM0gzv5UyPWtK3QzQHrcDd+EMYFt+YjLbEq7EPNuUld5ie7jNlCIA55+fAXQQMlJNca8KLILV/RgbHxCBtdzOBgIyQ0U2qzNoczAbmNhWbix/wermU0GgRgs7w3HapRRr8vjRFUBDdlFRUXFoLDAU65gcraZGfzKhXD22NrAvk4oOC9BMgKNl43DEI4nPNiCdS//fClARdSnL+AtrwIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQCZQXHe9z/iXsd5blLDjBUI5wq5fWulTLXXS5xNeQryvkAGC/NvDCmkLvZBl7U2Qk5R9+sTjfzo4TrNxtTJC/X5AXODzJtwQhMb5F2inEJWccZZ4YoODLQzuTrIknWo+A0nGR19YoSEUzK0swKte+eTDrBpIp8VtH0ecBluK32dO5FPUT7oLHfVxx1GyKM5YBErsM7HotkFXVky6jFHfRUAM5CRW/pvFqtAY2hqQmZBd/e/zdRFBBu1LCYE1m3HeOEMvp6KH2OZGEou2byGq0OboC6upF+5/zo+uF70Ni6EvnrkFGPynNi3PHXutvIdTEeIk/Ts5piMrnGmyJsSGTIe" -> null
+          - "SSORedirectBindingURI"       = "https://accounts.google.com/o/saml2/idp?idpid=C00000000" -> null
+            # (1 unchanged element hidden)
+        }
+        # (5 unchanged attributes hidden)
+    }
+
+  # aws_cognito_user_pool.employees will be updated in-place
+  ~ resource "aws_cognito_user_pool" "employees" {
+        id                         = "us-east-1_adF3rMmJ3"
+        name                       = "employees"
+        tags                       = {}
+        # (18 unchanged attributes hidden)
+
+      + schema {
+          + attribute_data_type = "String"
+          + mutable             = true
+          + name                = "groups"
+
+          + string_attribute_constraints {
+              + max_length = "2048"
+              + min_length = "0"
+            }
+        }
+
+        # (6 unchanged blocks hidden)
+    }
+
+  # aws_cognito_user_pool_client.alb will be updated in-place
+  ~ resource "aws_cognito_user_pool_client" "alb" {
+      ~ allowed_oauth_scopes                          = [
+          + "profile",
+            # (2 unchanged elements hidden)
+        ]
+      ~ callback_urls                                 = [
+          + "https://employee-apps-b-1503386973.us-east-1.elb.amazonaws.com/oauth2/idpresponse",
+            # (3 unchanged elements hidden)
+        ]
+        id                                            = "82gcf396p17crf1b0u1ps2lmi"
+        name                                          = "alb"
+        # (19 unchanged attributes hidden)
+    }
+
+  # module.alb.aws_cloudwatch_log_group.app will be created
+  + resource "aws_cloudwatch_log_group" "app" {
+      + arn                         = (known after apply)
+      + deletion_protection_enabled = (known after apply)
+      + id                          = (known after apply)
+      + log_group_class             = (known after apply)
+      + name                        = "/aws/lambda/employee-apps-b-app"
+      + name_prefix                 = (known after apply)
+      + region                      = "us-east-1"
+      + retention_in_days           = 1
+      + skip_destroy                = false
+      + tags_all                    = (known after apply)
+    }
+
+  # module.alb.aws_iam_role.app will be created
+  + resource "aws_iam_role" "app" {
+      + arn                   = (known after apply)
+      + assume_role_policy    = jsonencode(
+            {
+              + Statement = [
+                  + {
+                      + Action    = "sts:AssumeRole"
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + Service = "lambda.amazonaws.com"
+                        }
+                    },
+                ]
+              + Version   = "2012-10-17"
+            }
+        )
+      + create_date           = (known after apply)
+      + force_detach_policies = false
+      + id                    = (known after apply)
+      + managed_policy_arns   = (known after apply)
+      + max_session_duration  = 3600
+      + name                  = "syw-employee-apps-b-app"
+      + name_prefix           = (known after apply)
+      + path                  = "/"
+      + tags_all              = (known after apply)
+      + unique_id             = (known after apply)
+
+      + inline_policy (known after apply)
+    }
+
+  # module.alb.aws_iam_role_policy.app_logs will be created
+  + resource "aws_iam_role_policy" "app_logs" {
+      + id          = (known after apply)
+      + name        = (known after apply)
+      + name_prefix = (known after apply)
+      + policy      = (known after apply)
+      + role        = (known after apply)
+    }
+
+  # module.alb.aws_lambda_function.app will be created
+  + resource "aws_lambda_function" "app" {
+      + architectures                  = (known after apply)
+      + arn                            = (known after apply)
+      + code_sha256                    = (known after apply)
+      + filename                       = "./.terraform-build/app.zip"
+      + function_name                  = "employee-apps-b-app"
+      + handler                        = "app.handler"
+      + id                             = (known after apply)
+      + invoke_arn                     = (known after apply)
+      + last_modified                  = (known after apply)
+      + memory_size                    = 128
+      + package_type                   = "Zip"
+      + publish                        = false
+      + qualified_arn                  = (known after apply)
+      + qualified_invoke_arn           = (known after apply)
+      + region                         = "us-east-1"
+      + reserved_concurrent_executions = -1
+      + response_streaming_invoke_arn  = (known after apply)
+      + role                           = (known after apply)
+      + runtime                        = "python3.13"
+      + signing_job_arn                = (known after apply)
+      + signing_profile_version_arn    = (known after apply)
+      + skip_destroy                   = false
+      + source_code_hash               = "TAtEi5jrptiFJSFOJZN40xnCVFbf57s/BHMKE02nng8="
+      + source_code_size               = (known after apply)
+      + tags_all                       = (known after apply)
+      + timeout                        = 3
+      + version                        = (known after apply)
+
+      + ephemeral_storage (known after apply)
+
+      + logging_config (known after apply)
+
+      + tracing_config (known after apply)
+    }
+
+  # module.alb.aws_lambda_permission.alb["admin"] will be created
+  + resource "aws_lambda_permission" "alb" {
+      + action              = "lambda:InvokeFunction"
+      + function_name       = "employee-apps-b-app"
+      + id                  = (known after apply)
+      + principal           = "elasticloadbalancing.amazonaws.com"
+      + region              = "us-east-1"
+      + source_arn          = (known after apply)
+      + statement_id        = "alb-admin"
+      + statement_id_prefix = (known after apply)
+    }
+
+  # module.alb.aws_lambda_permission.alb["expense"] will be created
+  + resource "aws_lambda_permission" "alb" {
+      + action              = "lambda:InvokeFunction"
+      + function_name       = "employee-apps-b-app"
+      + id                  = (known after apply)
+      + principal           = "elasticloadbalancing.amazonaws.com"
+      + region              = "us-east-1"
+      + source_arn          = (known after apply)
+      + statement_id        = "alb-expense"
+      + statement_id_prefix = (known after apply)
+    }
+
+  # module.alb.aws_lambda_permission.alb["wiki"] will be created
+  + resource "aws_lambda_permission" "alb" {
+      + action              = "lambda:InvokeFunction"
+      + function_name       = "employee-apps-b-app"
+      + id                  = (known after apply)
+      + principal           = "elasticloadbalancing.amazonaws.com"
+      + region              = "us-east-1"
+      + source_arn          = (known after apply)
+      + statement_id        = "alb-wiki"
+      + statement_id_prefix = (known after apply)
+    }
+
+  # module.alb.aws_lb_listener.https will be updated in-place
+  ~ resource "aws_lb_listener" "https" {
+        id                                                                    = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39"
+        tags                                                                  = {}
+        # (27 unchanged attributes hidden)
+
+      ~ default_action {
+          ~ type             = "fixed-response" -> "authenticate-cognito"
+            # (2 unchanged attributes hidden)
+
+          + authenticate_cognito {
+              + user_pool_arn       = "arn:aws:cognito-idp:us-east-1:111122223333:userpool/us-east-1_adF3rMmJ3"
+              + user_pool_client_id = "82gcf396p17crf1b0u1ps2lmi"
+              + user_pool_domain    = "employee-apps-48f69f63"
+            }
+
+            # (1 unchanged block hidden)
+        }
+      + default_action {
+          + order            = 2
+          + target_group_arn = (known after apply)
+          + type             = "forward"
+        }
+
+        # (1 unchanged block hidden)
+    }
+
+  # module.alb.aws_lb_listener_rule.app["admin"] will be updated in-place
+  ~ resource "aws_lb_listener_rule" "app" {
+        id           = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/aa943d6936ade7b9"
+        tags         = {}
+        # (5 unchanged attributes hidden)
+
+      ~ action {
+          + target_group_arn = (known after apply)
+          ~ type             = "fixed-response" -> "forward"
+            # (1 unchanged attribute hidden)
+
+            # (1 unchanged block hidden)
+        }
+
+        # (2 unchanged blocks hidden)
+    }
+
+  # module.alb.aws_lb_listener_rule.app["expense"] will be updated in-place
+  ~ resource "aws_lb_listener_rule" "app" {
+        id           = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/053e31491c7f7e73"
+        tags         = {}
+        # (5 unchanged attributes hidden)
+
+      ~ action {
+          + target_group_arn = (known after apply)
+          ~ type             = "fixed-response" -> "forward"
+            # (1 unchanged attribute hidden)
+
+            # (1 unchanged block hidden)
+        }
+
+        # (2 unchanged blocks hidden)
+    }
+
+  # module.alb.aws_lb_listener_rule.app["wiki"] will be updated in-place
+  ~ resource "aws_lb_listener_rule" "app" {
+        id           = "arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/0fb7dfa5723cb2d0"
+        tags         = {}
+        # (5 unchanged attributes hidden)
+
+      ~ action {
+          + target_group_arn = (known after apply)
+          ~ type             = "fixed-response" -> "forward"
+            # (1 unchanged attribute hidden)
+
+            # (1 unchanged block hidden)
+        }
+
+        # (2 unchanged blocks hidden)
+    }
+
+  # module.alb.aws_lb_target_group.app["admin"] must be replaced
++/- resource "aws_lb_target_group" "app" {
+      ~ arn                                = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-admin/0c9f417913c9b2cd" -> (known after apply)
+      ~ arn_suffix                         = "targetgroup/employee-apps-b-admin/0c9f417913c9b2cd" -> (known after apply)
+      + connection_termination             = (known after apply)
+      ~ id                                 = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-admin/0c9f417913c9b2cd" -> (known after apply)
+      ~ ip_address_type                    = "ipv4" -> (known after apply)
+      ~ load_balancer_arns                 = [] -> (known after apply)
+      ~ load_balancing_algorithm_type      = "round_robin" -> (known after apply)
+      ~ load_balancing_anomaly_mitigation  = "off" -> (known after apply)
+      ~ load_balancing_cross_zone_enabled  = "use_load_balancer_configuration" -> (known after apply)
+      ~ name                               = "employee-apps-b-admin" -> "employee-apps-b-admin-fn" # forces replacement
+      + name_prefix                        = (known after apply)
+      - port                               = 8080 -> null
+      + preserve_client_ip                 = (known after apply)
+      - protocol                           = "HTTP" -> null
+      ~ protocol_version                   = "HTTP1" -> (known after apply)
+      - tags                               = {} -> null
+      ~ tags_all                           = {} -> (known after apply)
+      - target_control_port                = 0 -> null
+      ~ target_type                        = "ip" -> "lambda" # forces replacement
+      - vpc_id                             = "vpc-0a9f89c37d7f12018" -> null
+        # (5 unchanged attributes hidden)
+
+      ~ health_check (known after apply)
+      - health_check {
+          - enabled             = true -> null
+          - healthy_threshold   = 3 -> null
+          - interval            = 30 -> null
+          - matcher             = "200" -> null
+          - path                = "/healthz" -> null
+          - port                = "traffic-port" -> null
+          - protocol            = "HTTP" -> null
+          - timeout             = 5 -> null
+          - unhealthy_threshold = 3 -> null
+        }
+
+      ~ stickiness (known after apply)
+      - stickiness {
+          - cookie_duration = 86400 -> null
+          - enabled         = false -> null
+          - type            = "lb_cookie" -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      ~ target_failover (known after apply)
+      - target_failover {}
+
+      ~ target_group_health (known after apply)
+      - target_group_health {
+          - dns_failover {
+              - minimum_healthy_targets_count      = "1" -> null
+              - minimum_healthy_targets_percentage = "off" -> null
+            }
+          - unhealthy_state_routing {
+              - minimum_healthy_targets_count      = 1 -> null
+              - minimum_healthy_targets_percentage = "off" -> null
+            }
+        }
+
+      ~ target_health_state (known after apply)
+      - target_health_state {}
+    }
+
+  # module.alb.aws_lb_target_group.app["expense"] must be replaced
++/- resource "aws_lb_target_group" "app" {
+      ~ arn                                = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-expense/68a1116b4d10a632" -> (known after apply)
+      ~ arn_suffix                         = "targetgroup/employee-apps-b-expense/68a1116b4d10a632" -> (known after apply)
+      + connection_termination             = (known after apply)
+      ~ id                                 = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-expense/68a1116b4d10a632" -> (known after apply)
+      ~ ip_address_type                    = "ipv4" -> (known after apply)
+      ~ load_balancer_arns                 = [] -> (known after apply)
+      ~ load_balancing_algorithm_type      = "round_robin" -> (known after apply)
+      ~ load_balancing_anomaly_mitigation  = "off" -> (known after apply)
+      ~ load_balancing_cross_zone_enabled  = "use_load_balancer_configuration" -> (known after apply)
+      ~ name                               = "employee-apps-b-expense" -> "employee-apps-b-expense-fn" # forces replacement
+      + name_prefix                        = (known after apply)
+      - port                               = 8080 -> null
+      + preserve_client_ip                 = (known after apply)
+      - protocol                           = "HTTP" -> null
+      ~ protocol_version                   = "HTTP1" -> (known after apply)
+      - tags                               = {} -> null
+      ~ tags_all                           = {} -> (known after apply)
+      - target_control_port                = 0 -> null
+      ~ target_type                        = "ip" -> "lambda" # forces replacement
+      - vpc_id                             = "vpc-0a9f89c37d7f12018" -> null
+        # (5 unchanged attributes hidden)
+
+      ~ health_check (known after apply)
+      - health_check {
+          - enabled             = true -> null
+          - healthy_threshold   = 3 -> null
+          - interval            = 30 -> null
+          - matcher             = "200" -> null
+          - path                = "/healthz" -> null
+          - port                = "traffic-port" -> null
+          - protocol            = "HTTP" -> null
+          - timeout             = 5 -> null
+          - unhealthy_threshold = 3 -> null
+        }
+
+      ~ stickiness (known after apply)
+      - stickiness {
+          - cookie_duration = 86400 -> null
+          - enabled         = false -> null
+          - type            = "lb_cookie" -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      ~ target_failover (known after apply)
+      - target_failover {}
+
+      ~ target_group_health (known after apply)
+      - target_group_health {
+          - dns_failover {
+              - minimum_healthy_targets_count      = "1" -> null
+              - minimum_healthy_targets_percentage = "off" -> null
+            }
+          - unhealthy_state_routing {
+              - minimum_healthy_targets_count      = 1 -> null
+              - minimum_healthy_targets_percentage = "off" -> null
+            }
+        }
+
+      ~ target_health_state (known after apply)
+      - target_health_state {}
+    }
+
+  # module.alb.aws_lb_target_group.app["wiki"] must be replaced
++/- resource "aws_lb_target_group" "app" {
+      ~ arn                                = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-wiki/5e461617b9f6d378" -> (known after apply)
+      ~ arn_suffix                         = "targetgroup/employee-apps-b-wiki/5e461617b9f6d378" -> (known after apply)
+      + connection_termination             = (known after apply)
+      ~ id                                 = "arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-wiki/5e461617b9f6d378" -> (known after apply)
+      ~ ip_address_type                    = "ipv4" -> (known after apply)
+      ~ load_balancer_arns                 = [] -> (known after apply)
+      ~ load_balancing_algorithm_type      = "round_robin" -> (known after apply)
+      ~ load_balancing_anomaly_mitigation  = "off" -> (known after apply)
+      ~ load_balancing_cross_zone_enabled  = "use_load_balancer_configuration" -> (known after apply)
+      ~ name                               = "employee-apps-b-wiki" -> "employee-apps-b-wiki-fn" # forces replacement
+      + name_prefix                        = (known after apply)
+      - port                               = 8080 -> null
+      + preserve_client_ip                 = (known after apply)
+      - protocol                           = "HTTP" -> null
+      ~ protocol_version                   = "HTTP1" -> (known after apply)
+      - tags                               = {} -> null
+      ~ tags_all                           = {} -> (known after apply)
+      - target_control_port                = 0 -> null
+      ~ target_type                        = "ip" -> "lambda" # forces replacement
+      - vpc_id                             = "vpc-0a9f89c37d7f12018" -> null
+        # (5 unchanged attributes hidden)
+
+      ~ health_check (known after apply)
+      - health_check {
+          - enabled             = true -> null
+          - healthy_threshold   = 3 -> null
+          - interval            = 30 -> null
+          - matcher             = "200" -> null
+          - path                = "/healthz" -> null
+          - port                = "traffic-port" -> null
+          - protocol            = "HTTP" -> null
+          - timeout             = 5 -> null
+          - unhealthy_threshold = 3 -> null
+        }
+
+      ~ stickiness (known after apply)
+      - stickiness {
+          - cookie_duration = 86400 -> null
+          - enabled         = false -> null
+          - type            = "lb_cookie" -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      ~ target_failover (known after apply)
+      - target_failover {}
+
+      ~ target_group_health (known after apply)
+      - target_group_health {
+          - dns_failover {
+              - minimum_healthy_targets_count      = "1" -> null
+              - minimum_healthy_targets_percentage = "off" -> null
+            }
+          - unhealthy_state_routing {
+              - minimum_healthy_targets_count      = 1 -> null
+              - minimum_healthy_targets_percentage = "off" -> null
+            }
+        }
+
+      ~ target_health_state (known after apply)
+      - target_health_state {}
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["admin"] will be created
+  + resource "aws_lb_target_group_attachment" "app" {
+      + id               = (known after apply)
+      + region           = "us-east-1"
+      + target_group_arn = (known after apply)
+      + target_id        = (known after apply)
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["expense"] will be created
+  + resource "aws_lb_target_group_attachment" "app" {
+      + id               = (known after apply)
+      + region           = "us-east-1"
+      + target_group_arn = (known after apply)
+      + target_id        = (known after apply)
+    }
+
+  # module.alb.aws_lb_target_group_attachment.app["wiki"] will be created
+  + resource "aws_lb_target_group_attachment" "app" {
+      + id               = (known after apply)
+      + region           = "us-east-1"
+      + target_group_arn = (known after apply)
+      + target_id        = (known after apply)
+    }
+
+  # module.alb.aws_vpc_security_group_egress_rule.targets will be destroyed
+  # (because aws_vpc_security_group_egress_rule.targets is not in configuration)
+  - resource "aws_vpc_security_group_egress_rule" "targets" {
+      - arn                    = "arn:aws:ec2:us-east-1:111122223333:security-group-rule/sgr-000e102e49ffe991f" -> null
+      - cidr_ipv4              = "10.0.0.0/16" -> null
+      - from_port              = 8080 -> null
+      - id                     = "sgr-000e102e49ffe991f" -> null
+      - ip_protocol            = "tcp" -> null
+      - region                 = "us-east-1" -> null
+      - security_group_id      = "sg-0d2b7ebf776527845" -> null
+      - security_group_rule_id = "sgr-000e102e49ffe991f" -> null
+      - tags_all               = {} -> null
+      - to_port                = 8080 -> null
+    }
+
+Plan: 13 to add, 7 to change, 4 to destroy.
+
+Changes to Outputs:
+  + alb_dns_name   = "employee-apps-b-1503386973.us-east-1.elb.amazonaws.com"
+  + cognito_domain = "employee-apps-48f69f63.auth.us-east-1.amazoncognito.com"
+  + log_group_name = "/aws/lambda/employee-apps-b-app"
+  + user_pool_id   = "us-east-1_adF3rMmJ3"
+module.alb.aws_vpc_security_group_egress_rule.targets: Destroying... [id=sgr-000e102e49ffe991f]
+module.alb.aws_cloudwatch_log_group.app: Creating...
+module.alb.aws_iam_role.app: Creating...
+module.alb.aws_lb_target_group.app["expense"]: Creating...
+module.alb.aws_lb_target_group.app["admin"]: Creating...
+module.alb.aws_lb_target_group.app["wiki"]: Creating...
+aws_cognito_user_pool.employees: Modifying... [id=us-east-1_adF3rMmJ3]
+module.alb.aws_vpc_security_group_egress_rule.targets: Destruction complete after 1s
+module.alb.aws_cloudwatch_log_group.app: Creation complete after 2s [id=/aws/lambda/employee-apps-b-app]
+module.alb.aws_iam_role.app: Creation complete after 2s [id=syw-employee-apps-b-app]
+module.alb.aws_iam_role_policy.app_logs: Creating...
+aws_cognito_user_pool.employees: Modifications complete after 2s [id=us-east-1_adF3rMmJ3]
+aws_cognito_identity_provider.google: Modifying... [id=us-east-1_adF3rMmJ3:GoogleWorkspace]
+module.alb.aws_iam_role_policy.app_logs: Creation complete after 0s [id=syw-employee-apps-b-app:terraform-be33d915faa371e67ea15d9fb3]
+module.alb.aws_lambda_function.app: Creating...
+module.alb.aws_lb_target_group.app["admin"]: Creation complete after 2s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-admin-fn/b0046198d3c667d3]
+module.alb.aws_lb_target_group.app["wiki"]: Creation complete after 2s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-wiki-fn/0b1187e6bdf886a0]
+module.alb.aws_lb_target_group.app["expense"]: Creation complete after 2s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-expense-fn/cf43833387b0ba69]
+aws_cognito_identity_provider.google: Modifications complete after 1s [id=us-east-1_adF3rMmJ3:GoogleWorkspace]
+aws_cognito_user_pool_client.alb: Modifying... [id=82gcf396p17crf1b0u1ps2lmi]
+aws_cognito_user_pool_client.alb: Modifications complete after 0s [id=82gcf396p17crf1b0u1ps2lmi]
+module.alb.aws_lb_listener.https: Modifying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39]
+module.alb.aws_lb_listener.https: Modifications complete after 1s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39]
+module.alb.aws_lb_listener_rule.app["wiki"]: Modifying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/0fb7dfa5723cb2d0]
+module.alb.aws_lb_listener_rule.app["expense"]: Modifying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/053e31491c7f7e73]
+module.alb.aws_lb_listener_rule.app["admin"]: Modifying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/aa943d6936ade7b9]
+module.alb.aws_lb_listener_rule.app["expense"]: Modifications complete after 1s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/053e31491c7f7e73]
+module.alb.aws_lb_listener_rule.app["wiki"]: Modifications complete after 1s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/0fb7dfa5723cb2d0]
+module.alb.aws_lb_listener_rule.app["admin"]: Modifications complete after 1s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:listener-rule/app/employee-apps-b/6fd6b2fce06b5b43/7fb35999c6692e39/aa943d6936ade7b9]
+module.alb.aws_lambda_function.app: Still creating... [00m10s elapsed]
+module.alb.aws_lambda_function.app: Creation complete after 17s [id=employee-apps-b-app]
+module.alb.aws_lambda_permission.alb["admin"]: Creating...
+module.alb.aws_lambda_permission.alb["expense"]: Creating...
+module.alb.aws_lambda_permission.alb["wiki"]: Creating...
+module.alb.aws_lambda_permission.alb["expense"]: Creation complete after 0s [id=alb-expense]
+module.alb.aws_lambda_permission.alb["admin"]: Creation complete after 1s [id=alb-admin]
+module.alb.aws_lambda_permission.alb["wiki"]: Creation complete after 1s [id=alb-wiki]
+module.alb.aws_lb_target_group_attachment.app["expense"]: Creating...
+module.alb.aws_lb_target_group_attachment.app["wiki"]: Creating...
+module.alb.aws_lb_target_group_attachment.app["admin"]: Creating...
+module.alb.aws_lb_target_group_attachment.app["wiki"]: Creation complete after 1s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-wiki-fn/0b1187e6bdf886a0,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-b-app]
+module.alb.aws_lb_target_group_attachment.app["expense"]: Creation complete after 1s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-expense-fn/cf43833387b0ba69,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-b-app]
+module.alb.aws_lb_target_group_attachment.app["admin"]: Creation complete after 1s [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-admin-fn/b0046198d3c667d3,arn:aws:lambda:us-east-1:111122223333:function:employee-apps-b-app]
+module.alb.aws_lb_target_group.app["admin"] (deposed object b3a682cc): Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-admin/0c9f417913c9b2cd]
+module.alb.aws_lb_target_group.app["expense"] (deposed object 9549ab11): Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-expense/68a1116b4d10a632]
+module.alb.aws_lb_target_group.app["wiki"] (deposed object cb5e35f9): Destroying... [id=arn:aws:elasticloadbalancing:us-east-1:111122223333:targetgroup/employee-apps-b-wiki/5e461617b9f6d378]
+module.alb.aws_lb_target_group.app["expense"]: Destruction complete after 0s
+module.alb.aws_lb_target_group.app["admin"]: Destruction complete after 0s
+module.alb.aws_lb_target_group.app["wiki"]: Destruction complete after 0s
+
+Warning: Invalid Attribute Combination
+
+  with module.alb.aws_lb_listener.https,
+  on ../modules/alb/main.tf line 142, in resource "aws_lb_listener" "https":
+ 142: resource "aws_lb_listener" "https" {
+
+Attribute "default_action[0].fixed_response" cannot be specified when
+"default_action[0].type" is "authenticate-cognito".
+
+This will be an error in a future release of the provider.
+
+(and 3 more similar warnings elsewhere)
+
+Apply complete! Resources: 13 added, 7 changed, 4 destroyed.
+
+Outputs:
+
+alb_dns_name = "employee-apps-b-1503386973.us-east-1.elb.amazonaws.com"
+alb_name = "employee-apps-b"
+cognito_domain = "employee-apps-48f69f63.auth.us-east-1.amazoncognito.com"
+log_group_name = "/aws/lambda/employee-apps-b-app"
+user_pool_id = "us-east-1_adF3rMmJ3"

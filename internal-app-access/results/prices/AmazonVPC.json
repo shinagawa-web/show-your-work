@@ -1,0 +1,2153 @@
+{
+  "formatVersion" : "v1.0",
+  "disclaimer" : "This pricing list is for informational purposes only. All prices are subject to the additional terms included in the pricing pages on http://aws.amazon.com. All Free Tier prices are also subject to the terms included at https://aws.amazon.com/free/",
+  "offerCode" : "AmazonVPC",
+  "version" : "20261119205545",
+  "publicationDate" : "2026-11-19T20:55:45Z",
+  "products" : {
+    "2B8KQXTXH4334KU3" : {
+      "sku" : "2B8KQXTXH4334KU3",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSVerifiedAccess",
+        "groupDescription" : "Data processed by AWS Verified Access",
+        "usagetype" : "APN1-VerifiedAccess-DataProcess-Bytes",
+        "operation" : "VerifiedAccess-data",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "V2SX7P6Z3JGC5D9N" : {
+      "sku" : "V2SX7P6Z3JGC5D9N",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSVPCAccessAnalyzer",
+        "groupDescription" : "Charge per ENI processed by VPC Access Analyzer",
+        "usagetype" : "APN1-NetworkInterface-Assessment",
+        "operation" : "AnalyzeENI",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "347T79BGQDAH7BRS" : {
+      "sku" : "347T79BGQDAH7BRS",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcLattice",
+        "groupDescription" : "Charge per Hour per VPC Lattice Service",
+        "usagetype" : "APN1-VPCLattice-Service-Hourly",
+        "operation" : "VpcLattice",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "P44N6MND9ZX3G2P9" : {
+      "sku" : "P44N6MND9ZX3G2P9",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Charge for per GB data processed by AWS Transit Gateways  for Site-to-Site VPN attachments",
+        "usagetype" : "APN1-TransitGateway-Bytes",
+        "operation" : "TransitGatewayVPN",
+        "attachmentType" : "AWS Site-to-Site VPN",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "MSC25USH9XNBSPS8" : {
+      "sku" : "MSC25USH9XNBSPS8",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Endpoint Service",
+        "group" : "VPCE:VPCEnpoint",
+        "groupDescription" : "Charge per hour per active remote region for a VPCE service",
+        "usagetype" : "APN1-VpcEndpoint-Service-Hours",
+        "operation" : "VpcEndpoint",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "685J6U7GJ2W2U7S7" : {
+      "sku" : "685J6U7GJ2W2U7S7",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTrafficMirroring",
+        "groupDescription" : "Hourly charge for Traffic Mirroring Source",
+        "usagetype" : "APN1-ENI-Mirror",
+        "operation" : "ENI-to-ENI",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "F4GJN5CGPH2YYX7K" : {
+      "sku" : "F4GJN5CGPH2YYX7K",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Gateway Load Balancer Endpoint",
+        "group" : "VPCE:VpcEndpoint",
+        "groupDescription" : "Charge for per GB data processed by AWS Gateway Load Balancer VPC Endpoint",
+        "usagetype" : "APN1-VpcEndpoint-GWLBE-Bytes",
+        "operation" : "VpcEndpoint",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "H42FSMTWXYSE3PM9" : {
+      "sku" : "H42FSMTWXYSE3PM9",
+      "productFamily" : "VPC Encryption Controls",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VPCEncryptionControls",
+        "groupDescription" : "Hourly charge for VPC Encryption Controls",
+        "usagetype" : "APN1-VPCEncryptionControls-hours",
+        "operation" : "VPCEncryptionControls",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "DTMU2QY9YBMNA6EF" : {
+      "sku" : "DTMU2QY9YBMNA6EF",
+      "productFamily" : "VPC Peering",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-OdbPeering-In-Bytes",
+        "operation" : "",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "trafficDirection" : "In-Bytes"
+      }
+    },
+    "C6BJNYVFQBQV5K3M" : {
+      "sku" : "C6BJNYVFQBQV5K3M",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSClientVPN",
+        "groupDescription" : "Hourly charge for Client VPN connections",
+        "usagetype" : "APN1-ClientVPN-ConnectionHours",
+        "operation" : "ClientVPNConnections",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "WTH4JSZ4B7CPWVCX" : {
+      "sku" : "WTH4JSZ4B7CPWVCX",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Hourly charge for Transit Gateway AWS Direct Connect Gateway attachments",
+        "usagetype" : "APN1-TransitGateway-Hours",
+        "operation" : "TransitGatewayDirectConnect",
+        "attachmentType" : "AWS DirectConnect",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "KJYB5SWT9JV3AJ92" : {
+      "sku" : "KJYB5SWT9JV3AJ92",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcLattice",
+        "groupDescription" : "Charge per Connection per hour processed by VPC Lattice Service",
+        "usagetype" : "APN1-VPCLattice-ConnectionCount-Charged",
+        "operation" : "VpcLattice",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "U8BBGVBVNTCA62R3" : {
+      "sku" : "U8BBGVBVNTCA62R3",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcResources",
+        "groupDescription" : "Hourly charge to access VPC Resource through service-network",
+        "usagetype" : "APN1-VpcLattice-Service-Network-Resource-Hours",
+        "operation" : "VpcResourceConsumer",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "ZMU3XK8HJMWJVMTN" : {
+      "sku" : "ZMU3XK8HJMWJVMTN",
+      "productFamily" : "Cloud Connectivity",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "IPsec",
+        "usagetype" : "APN1-VPN-large-Usage-Hours:ipsec.1",
+        "operation" : "CreateVpnConnection",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "vpnType" : "VPN Large (5 Gbps)"
+      }
+    },
+    "W5KUR855UCRX4QZ8" : {
+      "sku" : "W5KUR855UCRX4QZ8",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "PrivateLink",
+        "group" : "VPCE:VpcEndpoint",
+        "groupDescription" : "Hourly charge for VPC Endpoints",
+        "usagetype" : "APN1-VpcEndpoint-Hours",
+        "operation" : "VpcEndpoint",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "7V3F9BKJY3T82MQQ" : {
+      "sku" : "7V3F9BKJY3T82MQQ",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Hourly charge for Transit Gateway Site-to-Site VPN Concentrator attachments",
+        "usagetype" : "APN1-TransitGateway-Hours",
+        "operation" : "TransitGatewayConcentratorVPN",
+        "attachmentType" : "Site-to-Site VPN Concentrator",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "CP8VN8FEKXP535M7" : {
+      "sku" : "CP8VN8FEKXP535M7",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcResources",
+        "groupDescription" : "Per GB charge for provider of VPC Resource",
+        "usagetype" : "APN1-VpcResource-Provider-Bytes",
+        "operation" : "VpcResourceProvider",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "DFNHQQZU2Y3ZUNRK" : {
+      "sku" : "DFNHQQZU2Y3ZUNRK",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSVerifiedAccess",
+        "groupDescription" : "Hourly charge for non-HTTP Verified Access endpoints",
+        "usagetype" : "APN1-VerifiedAccess-non-HTTP-App-Hours",
+        "operation" : "VerifiedAccess-NonHTTP-Apps",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "9HBGS87S2KXSH63V" : {
+      "sku" : "9HBGS87S2KXSH63V",
+      "productFamily" : "VPC Peering",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-OdbPeering-AZ-Out-Bytes",
+        "operation" : "",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "trafficDirection" : "AZ-Out-Bytes"
+      }
+    },
+    "BMM3VSXMZQXMRVCB" : {
+      "sku" : "BMM3VSXMZQXMRVCB",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VPCIPv4ContiguousBlocks",
+        "groupDescription" : "Hourly charge for IPv4 address in a contiguous block of IPv4 address",
+        "usagetype" : "APN1-PublicIPv4:ContiguousBlock",
+        "operation" : "ProvisionIpamPoolCidr",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "6CRQJ7BNA8VQV6B7" : {
+      "sku" : "6CRQJ7BNA8VQV6B7",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "PrivateLink",
+        "group" : "VPCE:VpcEndpoint",
+        "groupDescription" : "Charge for per GB data processed by VPC Endpoints",
+        "usagetype" : "APN1-VpcEndpoint-Bytes",
+        "operation" : "VpcEndpoint",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "JFHV56ARSDRVER46" : {
+      "sku" : "JFHV56ARSDRVER46",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Charge for per GB data processed by AWS Transit Gateways for AWS Direct Connect Gateway attachments",
+        "usagetype" : "APN1-TransitGateway-Bytes",
+        "operation" : "TransitGatewayDirectConnect",
+        "attachmentType" : "AWS DirectConnect",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "JDX6CXDG3SN7FEEF" : {
+      "sku" : "JDX6CXDG3SN7FEEF",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Hourly charge for Transit Gateway Connect attachments",
+        "usagetype" : "APN1-TransitGateway-Hours",
+        "operation" : "TransitGatewayConnect",
+        "attachmentType" : "Transit Gateway Connect",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "6NVNPXGUQ4HKS83V" : {
+      "sku" : "6NVNPXGUQ4HKS83V",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Resource",
+        "group" : "VpcResources",
+        "groupDescription" : "Hourly charge to access ODB Network Resource through Resource-endpoint",
+        "usagetype" : "APN1-VpcEndpoint-ODB-Resource-Hours",
+        "operation" : "VpcResourceConsumer",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "WKVRERJW2HGQSB9J" : {
+      "sku" : "WKVRERJW2HGQSB9J",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Resource",
+        "group" : "VpcResources",
+        "groupDescription" : "Hourly charge to access VPC Resource through Resource-endpoint",
+        "usagetype" : "APN1-VpcEndpoint-Resource-Hours",
+        "operation" : "VpcResourceConsumer",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "MMYTPNY38NP7H9XM" : {
+      "sku" : "MMYTPNY38NP7H9XM",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VPCPublicIPv4Address",
+        "groupDescription" : "Hourly charge for Idle Public IPv4 Addresses",
+        "usagetype" : "APN1-PublicIPv4:IdleAddress",
+        "operation" : "",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "RF4RQYTW65R4DEHE" : {
+      "sku" : "RF4RQYTW65R4DEHE",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Charge for per GB data processed by AWS Transit Gateway for Multicast receivers",
+        "usagetype" : "APN1-TGW-Multicast-Consumer-Bytes",
+        "operation" : "TransitGatewayVPC",
+        "attachmentType" : "VPC",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "J76TADTPSSPEZGGF" : {
+      "sku" : "J76TADTPSSPEZGGF",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSVPCIPAddressManager",
+        "groupDescription" : "Hourly charge for Active IP Addresses",
+        "usagetype" : "APN1-IPAddressManager-IP-Hours",
+        "operation" : "IPAM-Active-IP",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "8W29R8UHUR6476WD" : {
+      "sku" : "8W29R8UHUR6476WD",
+      "productFamily" : "VPC Peering",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "transferType" : "Intra Region Peering Outbound",
+        "fromLocation" : "Asia Pacific (Tokyo)",
+        "fromLocationType" : "AWS Region",
+        "toLocation" : "Asia Pacific (Tokyo)",
+        "toLocationType" : "AWS Region",
+        "usagetype" : "APN1-VpcPeering-Out-Bytes",
+        "operation" : "",
+        "fromRegionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "toRegionCode" : "ap-northeast-1"
+      }
+    },
+    "MNQXAS8DA3F8D74Z" : {
+      "sku" : "MNQXAS8DA3F8D74Z",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcLattice",
+        "groupDescription" : "Free for the first 300,000 Connections per hour processed by VPC Lattice Service",
+        "usagetype" : "APN1-VPCLattice-ConnectionCount-Free",
+        "operation" : "VpcLattice",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "KFJ8UEG3MASCYZR3" : {
+      "sku" : "KFJ8UEG3MASCYZR3",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Hourly charge for Transit Gateway VPC Attachments",
+        "usagetype" : "APN1-TransitGateway-Hours",
+        "operation" : "TransitGatewayVPC",
+        "attachmentType" : "VPC",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "RG9UJZH52369E8TQ" : {
+      "sku" : "RG9UJZH52369E8TQ",
+      "productFamily" : "VPC Peering",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-OdbPeering-AZ-In-Bytes",
+        "operation" : "",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "trafficDirection" : "AZ-In-Bytes"
+      }
+    },
+    "ZP85FQT9FHKJRAG5" : {
+      "sku" : "ZP85FQT9FHKJRAG5",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VPCPublicIPv4Address",
+        "groupDescription" : "Hourly charge for In-use Public IPv4 Addresses",
+        "usagetype" : "APN1-PublicIPv4:InUseAddress",
+        "operation" : "",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "CS6YFDU2FEQ2A58S" : {
+      "sku" : "CS6YFDU2FEQ2A58S",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcLattice",
+        "groupDescription" : "Charge per GB Data Processed by VPC Lattice Service",
+        "usagetype" : "APN1-VPCLattice-DataProcessing-Bytes",
+        "operation" : "VpcLattice",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "4FSAF25G57MDBQC9" : {
+      "sku" : "4FSAF25G57MDBQC9",
+      "productFamily" : "VPC Peering",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "transferType" : "Intra Region Peering Inbound",
+        "fromLocation" : "Asia Pacific (Tokyo)",
+        "fromLocationType" : "AWS Region",
+        "toLocation" : "Asia Pacific (Tokyo)",
+        "toLocationType" : "AWS Region",
+        "usagetype" : "APN1-VpcPeering-In-Bytes",
+        "operation" : "",
+        "fromRegionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "toRegionCode" : "ap-northeast-1"
+      }
+    },
+    "AQ99M3AP2Q7Z4678" : {
+      "sku" : "AQ99M3AP2Q7Z4678",
+      "productFamily" : "VPC Peering",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "usagetype" : "APN1-OdbPeering-Out-Bytes",
+        "operation" : "",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "trafficDirection" : "Out-Bytes"
+      }
+    },
+    "FF6QFCF97BQJ8748" : {
+      "sku" : "FF6QFCF97BQJ8748",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcLattice",
+        "groupDescription" : "Charge per Request per hour processed by VPC Lattice Service",
+        "usagetype" : "APN1-VPCLattice-RequestCount-Charged",
+        "operation" : "VpcLattice",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "44VHFGTKQE5FBPTV" : {
+      "sku" : "44VHFGTKQE5FBPTV",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcLattice",
+        "groupDescription" : "Hourly charge to access ODB Network Resource through service-network",
+        "usagetype" : "APN1-VpcLattice-Service-Network-ODB-Resource-Hours",
+        "operation" : "VpcResourceConsumer",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "7C65ZNTSPWB4QUQ7" : {
+      "sku" : "7C65ZNTSPWB4QUQ7",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcResources",
+        "groupDescription" : "Per GB charge for provider of ODB Network Resource",
+        "usagetype" : "APN1-VpcResource-ODB-Provider-Bytes",
+        "operation" : "VpcResourceProvider",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "66XTCKB2WY2ANCXP" : {
+      "sku" : "66XTCKB2WY2ANCXP",
+      "productFamily" : "Cloud Connectivity",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "IPsec",
+        "usagetype" : "APN1-VPN-concentrator-Usage-Hours:ipsec.1",
+        "operation" : "CreateVpnConcentrator",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "vpnType" : "VPN Concentrator"
+      }
+    },
+    "KDZCUS7U93Z65TRN" : {
+      "sku" : "KDZCUS7U93Z65TRN",
+      "productFamily" : "Cloud Connectivity",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "IPsec",
+        "usagetype" : "APN1-VPN-concentrator-site-Usage-Hours:ipsec.1",
+        "operation" : "CreateVpnConnection",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "vpnType" : "VPN Concentrator Sites"
+      }
+    },
+    "63GC6P4BS3ZU6RFS" : {
+      "sku" : "63GC6P4BS3ZU6RFS",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Resource",
+        "group" : "VpcResources",
+        "groupDescription" : "Per GB charge to access VPC Resources",
+        "usagetype" : "APN1-VpcResource-Consumer-Bytes",
+        "operation" : "VpcResourceConsumer",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "VADA4W4JS9ZX8Y8D" : {
+      "sku" : "VADA4W4JS9ZX8Y8D",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSVerifiedAccess",
+        "groupDescription" : "Hourly charge for Verified Access Applications",
+        "usagetype" : "APN1-VerifiedAccess-App-Hours",
+        "operation" : "VerifiedAccess-Apps",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "9TZTAVEA4WRAKTG4" : {
+      "sku" : "9TZTAVEA4WRAKTG4",
+      "productFamily" : "VPC Route Server",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "Route Server",
+        "groupDescription" : "Hourly charge for Route Server Endpoints",
+        "usagetype" : "APN1-RouteServer-EndpointHours",
+        "operation" : "RouteServerEndpoint",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "5NRZJN2G5UQKPUY7" : {
+      "sku" : "5NRZJN2G5UQKPUY7",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Gateway Load Balancer Endpoint",
+        "group" : "VPCE:VpcEndpoint",
+        "groupDescription" : "Hourly charge for AWS Gateway Load Balancer VPC Endpoint",
+        "usagetype" : "APN1-VpcEndpoint-GWLBE-Hours",
+        "operation" : "VpcEndpoint",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "H8N3V8DCUN9TE6DR" : {
+      "sku" : "H8N3V8DCUN9TE6DR",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSVerifiedAccess",
+        "groupDescription" : "Hourly charge for Verified Access connections",
+        "usagetype" : "APN1-VerifiedAccess-ConnectionHours",
+        "operation" : "VerifiedAccessConnection",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "46SM3DW5J2H9JMCV" : {
+      "sku" : "46SM3DW5J2H9JMCV",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Charge for per GB data processed by AWS Transit Gateways for VPC attachments",
+        "usagetype" : "APN1-TransitGateway-Bytes",
+        "operation" : "TransitGatewayVPC",
+        "attachmentType" : "VPC",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "H39JZZE7K5Y7H6PT" : {
+      "sku" : "H39JZZE7K5Y7H6PT",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Tunnel",
+        "group" : "VpcResources",
+        "groupDescription" : "Hourly charge to access CIDR resources through Tunnel endpoint",
+        "usagetype" : "APN1-VpcEndpoint-Tunnel-Hours",
+        "operation" : "VpcResourceConsumer",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "HTVGCWW7XTE6JXET" : {
+      "sku" : "HTVGCWW7XTE6JXET",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Hourly charge for Transit Gateway Site-to-Site VPN attachments",
+        "usagetype" : "APN1-TransitGateway-Hours",
+        "operation" : "TransitGatewayVPN",
+        "attachmentType" : "AWS Site-to-Site VPN",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "43GJG5VYEU5XFZF9" : {
+      "sku" : "43GJG5VYEU5XFZF9",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Resource",
+        "group" : "VpcResources",
+        "groupDescription" : "Per GB charge to access ODB Network Resources",
+        "usagetype" : "APN1-VpcResource-ODB-Consumer-Bytes",
+        "operation" : "VpcResourceConsumer",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "8QFXZXRE5PVNW74J" : {
+      "sku" : "8QFXZXRE5PVNW74J",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSClientVPN",
+        "groupDescription" : "Hourly charge for Client VPN Endpoints",
+        "usagetype" : "APN1-ClientVPN-EndpointHours",
+        "operation" : "ClientVPNEndpoints",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "BCAKK7NVEV73ZKSK" : {
+      "sku" : "BCAKK7NVEV73ZKSK",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Charge for per GB data processed by AWS Transit Gateways for Site-to-Site VPN Concentrator attachments",
+        "usagetype" : "APN1-TransitGateway-Bytes",
+        "operation" : "TransitGatewayConcentratorVPN",
+        "attachmentType" : "Site-to-Site VPN Concentrator",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "ZK3Z9M78N3X9NK72" : {
+      "sku" : "ZK3Z9M78N3X9NK72",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "VpcLattice",
+        "groupDescription" : "Free for the first 300,000 Requests per hour processed by VPC Lattice Service",
+        "usagetype" : "APN1-VPCLattice-RequestCount-Free",
+        "operation" : "VpcLattice",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "BD77UK3X6VXBFAGG" : {
+      "sku" : "BD77UK3X6VXBFAGG",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSReachabilityAnalyzer",
+        "groupDescription" : "Charge per analysis processed by VPC Reachability Analyzer",
+        "usagetype" : "APN1-Analysis-Runs",
+        "operation" : "RunAnalysis",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "JNAFCTVG7Q7W9MEV" : {
+      "sku" : "JNAFCTVG7Q7W9MEV",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "group" : "AWSTransitGateway",
+        "groupDescription" : "Hourly charge for Transit Gateway Peering Attachments",
+        "usagetype" : "APN1-TransitGateway-Hours",
+        "operation" : "TransitGatewayPeering",
+        "attachmentType" : "Transit Gateway",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "KWZMWGK3WEZYMV46" : {
+      "sku" : "KWZMWGK3WEZYMV46",
+      "productFamily" : "VpcEndpoint",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "Tunnel",
+        "group" : "VpcResources",
+        "groupDescription" : "Per GB charge to access CIDR Resources through Tunnel Endpoint",
+        "usagetype" : "APN1-VpcResource-Tunnel-Consumer-Bytes",
+        "operation" : "VpcResourceConsumer",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud"
+      }
+    },
+    "SYJRAFHKRRHH7M38" : {
+      "sku" : "SYJRAFHKRRHH7M38",
+      "productFamily" : "Cloud Connectivity",
+      "attributes" : {
+        "servicecode" : "AmazonVPC",
+        "location" : "Asia Pacific (Tokyo)",
+        "locationType" : "AWS Region",
+        "endpointType" : "IPsec",
+        "usagetype" : "APN1-VPN-Usage-Hours:ipsec.1",
+        "operation" : "CreateVpnConnection",
+        "regionCode" : "ap-northeast-1",
+        "servicename" : "Amazon Virtual Private Cloud",
+        "vpnType" : "VPN Standard (1.25 Gbps)"
+      }
+    }
+  },
+  "terms" : {
+    "OnDemand" : {
+      "43GJG5VYEU5XFZF9" : {
+        "43GJG5VYEU5XFZF9.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "43GJG5VYEU5XFZF9",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "43GJG5VYEU5XFZF9.JRTCKXETXF.D7RZ6WCPVW" : {
+              "rateCode" : "43GJG5VYEU5XFZF9.JRTCKXETXF.D7RZ6WCPVW",
+              "description" : "$0.01 from 0 to 1 PB - Per GB charge to access ODB Network Resources",
+              "beginRange" : "0",
+              "endRange" : "1048576",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "43GJG5VYEU5XFZF9.JRTCKXETXF.RBMR72YW69" : {
+              "rateCode" : "43GJG5VYEU5XFZF9.JRTCKXETXF.RBMR72YW69",
+              "description" : "$0.006 from 1 PB to 5 PB - Per GB charge to access ODB Network Resources",
+              "beginRange" : "1048576",
+              "endRange" : "5242880",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0060000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "43GJG5VYEU5XFZF9.JRTCKXETXF.SW9U2ZKBYX" : {
+              "rateCode" : "43GJG5VYEU5XFZF9.JRTCKXETXF.SW9U2ZKBYX",
+              "description" : "$0.004 after the first 5 PB - Per GB charge to access ODB Network Resources",
+              "beginRange" : "5242880",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0040000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "7V3F9BKJY3T82MQQ" : {
+        "7V3F9BKJY3T82MQQ.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "7V3F9BKJY3T82MQQ",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "7V3F9BKJY3T82MQQ.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "7V3F9BKJY3T82MQQ.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.07 per hour - Hourly charge for Transit Gateway Site-to-Site VPN Concentrator attachments",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hour",
+              "pricePerUnit" : {
+                "USD" : "0.0700000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "BMM3VSXMZQXMRVCB" : {
+        "BMM3VSXMZQXMRVCB.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "BMM3VSXMZQXMRVCB",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "BMM3VSXMZQXMRVCB.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "BMM3VSXMZQXMRVCB.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.008 per hour per IPv4 address in contiguous IPv4 block",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0080000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "ZMU3XK8HJMWJVMTN" : {
+        "ZMU3XK8HJMWJVMTN.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "ZMU3XK8HJMWJVMTN",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "ZMU3XK8HJMWJVMTN.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "ZMU3XK8HJMWJVMTN.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.60 per hour for CreateVpnConnection in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.6000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "63GC6P4BS3ZU6RFS" : {
+        "63GC6P4BS3ZU6RFS.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "63GC6P4BS3ZU6RFS",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "63GC6P4BS3ZU6RFS.JRTCKXETXF.D7RZ6WCPVW" : {
+              "rateCode" : "63GC6P4BS3ZU6RFS.JRTCKXETXF.D7RZ6WCPVW",
+              "description" : "$0.01 per GB for upto 1 PB monthly data processed for VPC resources ",
+              "beginRange" : "0",
+              "endRange" : "1048576",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "63GC6P4BS3ZU6RFS.JRTCKXETXF.RBMR72YW69" : {
+              "rateCode" : "63GC6P4BS3ZU6RFS.JRTCKXETXF.RBMR72YW69",
+              "description" : "$0.006 per GB for more than 1 PB and less than 5 PB monthly data processed for VPC resources",
+              "beginRange" : "1048576",
+              "endRange" : "5242880",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0060000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "63GC6P4BS3ZU6RFS.JRTCKXETXF.SW9U2ZKBYX" : {
+              "rateCode" : "63GC6P4BS3ZU6RFS.JRTCKXETXF.SW9U2ZKBYX",
+              "description" : "$0.004 per GB for more than 5 PB monthly data processed for VPC resources ",
+              "beginRange" : "5242880",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0040000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "9TZTAVEA4WRAKTG4" : {
+        "9TZTAVEA4WRAKTG4.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "9TZTAVEA4WRAKTG4",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "9TZTAVEA4WRAKTG4.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "9TZTAVEA4WRAKTG4.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$1.03 per Hour for APN1-RouteServer-EndpointHours in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hour",
+              "pricePerUnit" : {
+                "USD" : "1.0300000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "P44N6MND9ZX3G2P9" : {
+        "P44N6MND9ZX3G2P9.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "P44N6MND9ZX3G2P9",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "P44N6MND9ZX3G2P9.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "P44N6MND9ZX3G2P9.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.02 per GB Data Processed by Transit Gateway VPN Attachment",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GigaBytes",
+              "pricePerUnit" : {
+                "USD" : "0.0200000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "5NRZJN2G5UQKPUY7" : {
+        "5NRZJN2G5UQKPUY7.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "5NRZJN2G5UQKPUY7",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "5NRZJN2G5UQKPUY7.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "5NRZJN2G5UQKPUY7.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.014 per Hrs for VpcEndpoint-GWLBE-Hours:VpcEndpoint in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0140000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "WTH4JSZ4B7CPWVCX" : {
+        "WTH4JSZ4B7CPWVCX.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "WTH4JSZ4B7CPWVCX",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "WTH4JSZ4B7CPWVCX.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "WTH4JSZ4B7CPWVCX.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.07 per Transit Gateway DirectConnect Attachment Hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hour",
+              "pricePerUnit" : {
+                "USD" : "0.0700000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "DTMU2QY9YBMNA6EF" : {
+        "DTMU2QY9YBMNA6EF.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "DTMU2QY9YBMNA6EF",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "DTMU2QY9YBMNA6EF.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "DTMU2QY9YBMNA6EF.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.01 per GB for APN1-OdbPeering-In-Bytes in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "46SM3DW5J2H9JMCV" : {
+        "46SM3DW5J2H9JMCV.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "46SM3DW5J2H9JMCV",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "46SM3DW5J2H9JMCV.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "46SM3DW5J2H9JMCV.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.02 per GB Data Processed by Transit Gateway VPC Attachment",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GigaBytes",
+              "pricePerUnit" : {
+                "USD" : "0.0200000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "8QFXZXRE5PVNW74J" : {
+        "8QFXZXRE5PVNW74J.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "8QFXZXRE5PVNW74J",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "8QFXZXRE5PVNW74J.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "8QFXZXRE5PVNW74J.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.15 per Client VPN Endpoint Association Hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hourly",
+              "pricePerUnit" : {
+                "USD" : "0.1500000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "U8BBGVBVNTCA62R3" : {
+        "U8BBGVBVNTCA62R3.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "U8BBGVBVNTCA62R3",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "U8BBGVBVNTCA62R3.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "U8BBGVBVNTCA62R3.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.14 per hour per VPC resource in a service-network in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.1400000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "MNQXAS8DA3F8D74Z" : {
+        "MNQXAS8DA3F8D74Z.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "MNQXAS8DA3F8D74Z",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "MNQXAS8DA3F8D74Z.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "MNQXAS8DA3F8D74Z.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0 for the first 300,000 Connections per hour processed by VPC Lattice Service (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Connections",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "44VHFGTKQE5FBPTV" : {
+        "44VHFGTKQE5FBPTV.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "44VHFGTKQE5FBPTV",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "44VHFGTKQE5FBPTV.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "44VHFGTKQE5FBPTV.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.14 - Hourly charge to access ODB Network Resource through service-network in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.1400000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "J76TADTPSSPEZGGF" : {
+        "J76TADTPSSPEZGGF.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "J76TADTPSSPEZGGF",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "J76TADTPSSPEZGGF.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "J76TADTPSSPEZGGF.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.00027 per hours for IPAddressManager-IP-Hours:IPAM-Active-IP in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hours",
+              "pricePerUnit" : {
+                "USD" : "0.0002700000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "JFHV56ARSDRVER46" : {
+        "JFHV56ARSDRVER46.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "JFHV56ARSDRVER46",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "JFHV56ARSDRVER46.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "JFHV56ARSDRVER46.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.02 per GB Data Processed by Transit Gateway DirectConnect Attachment",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GigaBytes",
+              "pricePerUnit" : {
+                "USD" : "0.0200000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "JNAFCTVG7Q7W9MEV" : {
+        "JNAFCTVG7Q7W9MEV.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "JNAFCTVG7Q7W9MEV",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "JNAFCTVG7Q7W9MEV.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "JNAFCTVG7Q7W9MEV.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.07 per hour for TransitGateway-Hours:TransitGatewayPeering in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hour",
+              "pricePerUnit" : {
+                "USD" : "0.0700000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "KWZMWGK3WEZYMV46" : {
+        "KWZMWGK3WEZYMV46.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "KWZMWGK3WEZYMV46",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "KWZMWGK3WEZYMV46.JRTCKXETXF.D7RZ6WCPVW" : {
+              "rateCode" : "KWZMWGK3WEZYMV46.JRTCKXETXF.D7RZ6WCPVW",
+              "description" : "$0.01 from 0 to 1 PB - Per GB charge to access CIDR Resources through Tunnel Endpoint",
+              "beginRange" : "0",
+              "endRange" : "1048576",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "KWZMWGK3WEZYMV46.JRTCKXETXF.RBMR72YW69" : {
+              "rateCode" : "KWZMWGK3WEZYMV46.JRTCKXETXF.RBMR72YW69",
+              "description" : "$0.006 from 1 PB to 5 PB - Per GB charge to access CIDR Resources through Tunnel Endpoint",
+              "beginRange" : "1048576",
+              "endRange" : "5242880",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0060000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "KWZMWGK3WEZYMV46.JRTCKXETXF.SW9U2ZKBYX" : {
+              "rateCode" : "KWZMWGK3WEZYMV46.JRTCKXETXF.SW9U2ZKBYX",
+              "description" : "$0.004 after the first 5 PB - Per GB charge to access CIDR Resources through Tunnel Endpoint",
+              "beginRange" : "5242880",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0040000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "H39JZZE7K5Y7H6PT" : {
+        "H39JZZE7K5Y7H6PT.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "H39JZZE7K5Y7H6PT",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "H39JZZE7K5Y7H6PT.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "H39JZZE7K5Y7H6PT.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.028 - Hourly charge to access CIDR resources through Tunnel endpoint",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0280000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "CS6YFDU2FEQ2A58S" : {
+        "CS6YFDU2FEQ2A58S.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "CS6YFDU2FEQ2A58S",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "CS6YFDU2FEQ2A58S.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "CS6YFDU2FEQ2A58S.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.0325 per GB Data Processed by VPC Lattice Service (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0325000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "HTVGCWW7XTE6JXET" : {
+        "HTVGCWW7XTE6JXET.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "HTVGCWW7XTE6JXET",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "HTVGCWW7XTE6JXET.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "HTVGCWW7XTE6JXET.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.07 per Transit Gateway VPN Attachment Hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hour",
+              "pricePerUnit" : {
+                "USD" : "0.0700000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "6CRQJ7BNA8VQV6B7" : {
+        "6CRQJ7BNA8VQV6B7.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "6CRQJ7BNA8VQV6B7",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "6CRQJ7BNA8VQV6B7.JRTCKXETXF.D7RZ6WCPVW" : {
+              "rateCode" : "6CRQJ7BNA8VQV6B7.JRTCKXETXF.D7RZ6WCPVW",
+              "description" : "$0.01 per GB for upto 1 PB monthly data processed by VPC Endpoints",
+              "beginRange" : "0",
+              "endRange" : "1048576",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "6CRQJ7BNA8VQV6B7.JRTCKXETXF.RBMR72YW69" : {
+              "rateCode" : "6CRQJ7BNA8VQV6B7.JRTCKXETXF.RBMR72YW69",
+              "description" : "$0.006 per GB for more than 1 PB and less than 5 PB monthly data processed by VPC Endpoints",
+              "beginRange" : "1048576",
+              "endRange" : "5242880",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0060000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "6CRQJ7BNA8VQV6B7.JRTCKXETXF.SW9U2ZKBYX" : {
+              "rateCode" : "6CRQJ7BNA8VQV6B7.JRTCKXETXF.SW9U2ZKBYX",
+              "description" : "$0.004 per GB for more than 5 PB monthly data processed by VPC Endpoints",
+              "beginRange" : "5242880",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0040000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "JDX6CXDG3SN7FEEF" : {
+        "JDX6CXDG3SN7FEEF.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "JDX6CXDG3SN7FEEF",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "JDX6CXDG3SN7FEEF.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "JDX6CXDG3SN7FEEF.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.07 per hour for TransitGateway-Hours:TransitGatewayConnect in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hour",
+              "pricePerUnit" : {
+                "USD" : "0.0700000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "685J6U7GJ2W2U7S7" : {
+        "685J6U7GJ2W2U7S7.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "685J6U7GJ2W2U7S7",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "685J6U7GJ2W2U7S7.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "685J6U7GJ2W2U7S7.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.018 per Traffic Mirroring Source Hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hour",
+              "pricePerUnit" : {
+                "USD" : "0.0180000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "8W29R8UHUR6476WD" : {
+        "8W29R8UHUR6476WD.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "8W29R8UHUR6476WD",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "8W29R8UHUR6476WD.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "8W29R8UHUR6476WD.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.01 per GB for APN1-VpcPeering-Out-Bytes",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "66XTCKB2WY2ANCXP" : {
+        "66XTCKB2WY2ANCXP.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "66XTCKB2WY2ANCXP",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "66XTCKB2WY2ANCXP.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "66XTCKB2WY2ANCXP.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$1.95 per hour for CreateVpnConcentrator in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "1.9500000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "VADA4W4JS9ZX8Y8D" : {
+        "VADA4W4JS9ZX8Y8D.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "VADA4W4JS9ZX8Y8D",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "VADA4W4JS9ZX8Y8D.JRTCKXETXF.YHRGHAZCQU" : {
+              "rateCode" : "VADA4W4JS9ZX8Y8D.JRTCKXETXF.YHRGHAZCQU",
+              "description" : "USD0.35 per hours for VerifiedAccess-App-Hours:VerifiedAccess-Apps in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "148800",
+              "unit" : "hours",
+              "pricePerUnit" : {
+                "USD" : "0.3500000000"
+              },
+              "appliesTo" : [ ]
+            },
+            "VADA4W4JS9ZX8Y8D.JRTCKXETXF.7P82R4JVNG" : {
+              "rateCode" : "VADA4W4JS9ZX8Y8D.JRTCKXETXF.7P82R4JVNG",
+              "description" : "USD0.26 per hours for VerifiedAccess-App-Hours:VerifiedAccess-Apps in Asia Pacific (Tokyo)",
+              "beginRange" : "148800",
+              "endRange" : "Inf",
+              "unit" : "hours",
+              "pricePerUnit" : {
+                "USD" : "0.2600000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "2B8KQXTXH4334KU3" : {
+        "2B8KQXTXH4334KU3.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "2B8KQXTXH4334KU3",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "2B8KQXTXH4334KU3.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "2B8KQXTXH4334KU3.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD0.02 per GB for VerifiedAccess-DataProcess-Bytes:VerifiedAccess-data in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0200000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "ZP85FQT9FHKJRAG5" : {
+        "ZP85FQT9FHKJRAG5.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "ZP85FQT9FHKJRAG5",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "ZP85FQT9FHKJRAG5.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "ZP85FQT9FHKJRAG5.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.005 per In-use public IPv4 address per hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0050000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "6NVNPXGUQ4HKS83V" : {
+        "6NVNPXGUQ4HKS83V.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "6NVNPXGUQ4HKS83V",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "6NVNPXGUQ4HKS83V.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "6NVNPXGUQ4HKS83V.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.028 - Hourly charge to access ODB Network Resource through Resource-endpoint",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0280000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "DFNHQQZU2Y3ZUNRK" : {
+        "DFNHQQZU2Y3ZUNRK.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "DFNHQQZU2Y3ZUNRK",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "DFNHQQZU2Y3ZUNRK.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "DFNHQQZU2Y3ZUNRK.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD0.26 per hours for VerifiedAccess-non-HTTP-App-Hours:VerifiedAccess-NonHTTP-Apps in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hours",
+              "pricePerUnit" : {
+                "USD" : "0.2600000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "KDZCUS7U93Z65TRN" : {
+        "KDZCUS7U93Z65TRN.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "KDZCUS7U93Z65TRN",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "KDZCUS7U93Z65TRN.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "KDZCUS7U93Z65TRN.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.01 per hour for CreateVpnConnection in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "MMYTPNY38NP7H9XM" : {
+        "MMYTPNY38NP7H9XM.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "MMYTPNY38NP7H9XM",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "MMYTPNY38NP7H9XM.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "MMYTPNY38NP7H9XM.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.005 per Idle public IPv4 address per hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0050000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "CP8VN8FEKXP535M7" : {
+        "CP8VN8FEKXP535M7.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "CP8VN8FEKXP535M7",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "CP8VN8FEKXP535M7.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "CP8VN8FEKXP535M7.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.006 per GB for data processed by VPC resource in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0060000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "FF6QFCF97BQJ8748" : {
+        "FF6QFCF97BQJ8748.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "FF6QFCF97BQJ8748",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "FF6QFCF97BQJ8748.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "FF6QFCF97BQJ8748.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.00000013 per Request per hour processed by VPC Lattice Service (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Requests",
+              "pricePerUnit" : {
+                "USD" : "0.0000001300"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "F4GJN5CGPH2YYX7K" : {
+        "F4GJN5CGPH2YYX7K.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "F4GJN5CGPH2YYX7K",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "F4GJN5CGPH2YYX7K.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "F4GJN5CGPH2YYX7K.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.0035 per GB for VpcEndpoint-GWLBE-Bytes:VpcEndpoint in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0035000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "H8N3V8DCUN9TE6DR" : {
+        "H8N3V8DCUN9TE6DR.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "H8N3V8DCUN9TE6DR",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "H8N3V8DCUN9TE6DR.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "H8N3V8DCUN9TE6DR.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "USD0.001 per Hourly for VerifiedAccess-ConnectionHours:VerifiedAccessConnection in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hourly",
+              "pricePerUnit" : {
+                "USD" : "0.0010000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "ZK3Z9M78N3X9NK72" : {
+        "ZK3Z9M78N3X9NK72.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "ZK3Z9M78N3X9NK72",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "ZK3Z9M78N3X9NK72.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "ZK3Z9M78N3X9NK72.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0 for the first 300,000 Requests per hour processed by VPC Lattice Service (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Requests",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "BD77UK3X6VXBFAGG" : {
+        "BD77UK3X6VXBFAGG.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "BD77UK3X6VXBFAGG",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "BD77UK3X6VXBFAGG.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "BD77UK3X6VXBFAGG.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.1 per analysis processed by VPC Reachability Analyzer",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "ReachabilityAnalyses",
+              "pricePerUnit" : {
+                "USD" : "0.1000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "RF4RQYTW65R4DEHE" : {
+        "RF4RQYTW65R4DEHE.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "RF4RQYTW65R4DEHE",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "RF4RQYTW65R4DEHE.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "RF4RQYTW65R4DEHE.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.02 per GigaBytes for TGW-Multicast-Consumer-Bytes:TransitGatewayVPC in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GigaBytes",
+              "pricePerUnit" : {
+                "USD" : "0.0200000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "SYJRAFHKRRHH7M38" : {
+        "SYJRAFHKRRHH7M38.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "SYJRAFHKRRHH7M38",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "SYJRAFHKRRHH7M38.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "SYJRAFHKRRHH7M38.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.048 per VPN Connection-Hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0480000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "W5KUR855UCRX4QZ8" : {
+        "W5KUR855UCRX4QZ8.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "W5KUR855UCRX4QZ8",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "W5KUR855UCRX4QZ8.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "W5KUR855UCRX4QZ8.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.014 per VPC Endpoint Hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0140000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "KJYB5SWT9JV3AJ92" : {
+        "KJYB5SWT9JV3AJ92.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "KJYB5SWT9JV3AJ92",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "KJYB5SWT9JV3AJ92.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "KJYB5SWT9JV3AJ92.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.00000013 per Connection per hour processed by VPC Lattice Service (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Connections",
+              "pricePerUnit" : {
+                "USD" : "0.0000001300"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "MSC25USH9XNBSPS8" : {
+        "MSC25USH9XNBSPS8.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "MSC25USH9XNBSPS8",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "MSC25USH9XNBSPS8.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "MSC25USH9XNBSPS8.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.05 per hour per active remote region for a VPCE service",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0500000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "KFJ8UEG3MASCYZR3" : {
+        "KFJ8UEG3MASCYZR3.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "KFJ8UEG3MASCYZR3",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "KFJ8UEG3MASCYZR3.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "KFJ8UEG3MASCYZR3.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.07 per Transit Gateway VPC Attachment Hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hour",
+              "pricePerUnit" : {
+                "USD" : "0.0700000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "AQ99M3AP2Q7Z4678" : {
+        "AQ99M3AP2Q7Z4678.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "AQ99M3AP2Q7Z4678",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "AQ99M3AP2Q7Z4678.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "AQ99M3AP2Q7Z4678.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.01 per GB for APN1-OdbPeering-Out-Bytes in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "9HBGS87S2KXSH63V" : {
+        "9HBGS87S2KXSH63V.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "9HBGS87S2KXSH63V",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "9HBGS87S2KXSH63V.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "9HBGS87S2KXSH63V.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.00 per GB for APN1-OdbPeering-AZ-Out-Bytes in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "C6BJNYVFQBQV5K3M" : {
+        "C6BJNYVFQBQV5K3M.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "C6BJNYVFQBQV5K3M",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "C6BJNYVFQBQV5K3M.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "C6BJNYVFQBQV5K3M.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.05 per Client VPN Connection Hour",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hourly",
+              "pricePerUnit" : {
+                "USD" : "0.0500000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "347T79BGQDAH7BRS" : {
+        "347T79BGQDAH7BRS.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "347T79BGQDAH7BRS",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "347T79BGQDAH7BRS.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "347T79BGQDAH7BRS.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.0325 per Hour per VPC Lattice Service (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0325000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "BCAKK7NVEV73ZKSK" : {
+        "BCAKK7NVEV73ZKSK.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "BCAKK7NVEV73ZKSK",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "BCAKK7NVEV73ZKSK.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "BCAKK7NVEV73ZKSK.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.02 per GB - data processed by AWS Transit Gateways for Site-to-Site VPN Concentrator attachments",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GigaBytes",
+              "pricePerUnit" : {
+                "USD" : "0.0200000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "WKVRERJW2HGQSB9J" : {
+        "WKVRERJW2HGQSB9J.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "WKVRERJW2HGQSB9J",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "WKVRERJW2HGQSB9J.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "WKVRERJW2HGQSB9J.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.028 per hour per VPC resource for VPC endpoint of type 'resource' in  Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "Hrs",
+              "pricePerUnit" : {
+                "USD" : "0.0280000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "7C65ZNTSPWB4QUQ7" : {
+        "7C65ZNTSPWB4QUQ7.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "7C65ZNTSPWB4QUQ7",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "7C65ZNTSPWB4QUQ7.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "7C65ZNTSPWB4QUQ7.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.006 - Per GB charge for provider of ODB Network Resource in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0060000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "4FSAF25G57MDBQC9" : {
+        "4FSAF25G57MDBQC9.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "4FSAF25G57MDBQC9",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "4FSAF25G57MDBQC9.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "4FSAF25G57MDBQC9.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.01 per GB for APN1-VpcPeering-In-Bytes",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0100000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "V2SX7P6Z3JGC5D9N" : {
+        "V2SX7P6Z3JGC5D9N.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "V2SX7P6Z3JGC5D9N",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "V2SX7P6Z3JGC5D9N.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "V2SX7P6Z3JGC5D9N.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.002 per ENI processed by VPC Network Access Analyzer ap-northeast-1",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "NetworkInterface-Assessment",
+              "pricePerUnit" : {
+                "USD" : "0.0020000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "RG9UJZH52369E8TQ" : {
+        "RG9UJZH52369E8TQ.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "RG9UJZH52369E8TQ",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "RG9UJZH52369E8TQ.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "RG9UJZH52369E8TQ.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.00 per GB for APN1-OdbPeering-AZ-In-Bytes in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "GB",
+              "pricePerUnit" : {
+                "USD" : "0.0000000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      },
+      "H42FSMTWXYSE3PM9" : {
+        "H42FSMTWXYSE3PM9.JRTCKXETXF" : {
+          "offerTermCode" : "JRTCKXETXF",
+          "sku" : "H42FSMTWXYSE3PM9",
+          "effectiveDate" : "2026-11-17T00:00:00Z",
+          "priceDimensions" : {
+            "H42FSMTWXYSE3PM9.JRTCKXETXF.6YS6EN2CT7" : {
+              "rateCode" : "H42FSMTWXYSE3PM9.JRTCKXETXF.6YS6EN2CT7",
+              "description" : "$0.21 per hour for VPCEncryptionControls-hours in Asia Pacific (Tokyo)",
+              "beginRange" : "0",
+              "endRange" : "Inf",
+              "unit" : "hour",
+              "pricePerUnit" : {
+                "USD" : "0.2100000000"
+              },
+              "appliesTo" : [ ]
+            }
+          },
+          "termAttributes" : { }
+        }
+      }
+    }
+  },
+  "attributesList" : { }
+}

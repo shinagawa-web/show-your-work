@@ -1,0 +1,28 @@
+Request: GET the Location of the 302 above, once
+Prediction: Cognito redirects to the SAML identity provider, the dummy Google SSO URL
+
+$ curl -sS -k --max-time 10 -o body -D headers -w '%{http_code} %{exitcode}\n' 'https://employee-apps-48f69f63.auth.us-east-1.amazoncognito.com/oauth2/authorize?client_id=82gcf396p17crf1b0u1ps2lmi&redirect_uri=https%3A%2F%2Fwiki.internal-app-access.example.com%2Foauth2%2Fidpresponse&response_type=code&scope=openid&state=<redacted>
+(attempts: 1)
+--- write-out (http_code exitcode)
+302 0
+--- headers
+HTTP/2 302 
+date: Mon, 23 Nov 2026 00:52:19 GMT
+content-length: 0
+location: https://accounts.google.com/o/saml2/idp?idpid=C00000000&SAMLRequest=<redacted>&RelayState=<redacted>
+x-amz-cognito-request-id: 044fa987-78a1-4c74-a1c8-8c2d07688a62
+set-cookie: XSRF-TOKEN=<redacted>; Path=/; Secure; HttpOnly; SameSite=Lax
+cache-control: no-cache, no-store, max-age=0, must-revalidate
+pragma: no-cache
+set-cookie: csrf-state=<redacted>; Path=/; Secure; HttpOnly; SameSite=None
+set-cookie: csrf-state-legacy=<redacted>; Expires=Mon, 23-Nov-2026 00:57:19 GMT; Path=/; Secure; HttpOnly
+set-cookie: oidc-nonce=<redacted>; Expires=Thu, 01-Jan-1970 00:00:10 GMT; Path=/; Secure; HttpOnly; SameSite=None
+set-cookie: oidc-nonce-legacy=<redacted>; Expires=Thu, 01-Jan-1970 00:00:10 GMT; Path=/; Secure; HttpOnly
+x-content-type-options: nosniff
+x-xss-protection: 0
+strict-transport-security: max-age=31536000 ; includeSubDomains
+x-frame-options: DENY
+server: Server
+--- body
+
+

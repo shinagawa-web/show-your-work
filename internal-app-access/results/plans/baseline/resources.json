@@ -1,0 +1,222 @@
+[
+  {
+    "address": "module.alb.aws_cloudwatch_log_group.app",
+    "type": "aws_cloudwatch_log_group",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_iam_role.app",
+    "type": "aws_iam_role",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_iam_role_policy.app_logs",
+    "type": "aws_iam_role_policy",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lambda_function.app",
+    "type": "aws_lambda_function",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lambda_permission.alb[\"admin\"]",
+    "type": "aws_lambda_permission",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lambda_permission.alb[\"expense\"]",
+    "type": "aws_lambda_permission",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lambda_permission.alb[\"wiki\"]",
+    "type": "aws_lambda_permission",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb.this",
+    "type": "aws_lb",
+    "actions": [
+      "create"
+    ],
+    "values": {
+      "internal": false
+    }
+  },
+  {
+    "address": "module.alb.aws_lb_listener.https",
+    "type": "aws_lb_listener",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_listener_rule.app[\"admin\"]",
+    "type": "aws_lb_listener_rule",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_listener_rule.app[\"expense\"]",
+    "type": "aws_lb_listener_rule",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_listener_rule.app[\"wiki\"]",
+    "type": "aws_lb_listener_rule",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_target_group.app[\"admin\"]",
+    "type": "aws_lb_target_group",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_target_group.app[\"expense\"]",
+    "type": "aws_lb_target_group",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_target_group.app[\"wiki\"]",
+    "type": "aws_lb_target_group",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_target_group_attachment.app[\"admin\"]",
+    "type": "aws_lb_target_group_attachment",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_target_group_attachment.app[\"expense\"]",
+    "type": "aws_lb_target_group_attachment",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_lb_target_group_attachment.app[\"wiki\"]",
+    "type": "aws_lb_target_group_attachment",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.alb.aws_security_group.alb",
+    "type": "aws_security_group",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_acm_certificate.this",
+    "type": "aws_acm_certificate",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_internet_gateway.this",
+    "type": "aws_internet_gateway",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_route_table.public",
+    "type": "aws_route_table",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_route_table_association.public[0]",
+    "type": "aws_route_table_association",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_route_table_association.public[1]",
+    "type": "aws_route_table_association",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_subnet.private[0]",
+    "type": "aws_subnet",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_subnet.private[1]",
+    "type": "aws_subnet",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_subnet.public[0]",
+    "type": "aws_subnet",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_subnet.public[1]",
+    "type": "aws_subnet",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.aws_vpc.this",
+    "type": "aws_vpc",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.tls_private_key.this",
+    "type": "tls_private_key",
+    "actions": [
+      "create"
+    ]
+  },
+  {
+    "address": "module.base.tls_self_signed_cert.this",
+    "type": "tls_self_signed_cert",
+    "actions": [
+      "create"
+    ]
+  }
+]

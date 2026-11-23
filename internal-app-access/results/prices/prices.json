@@ -1,0 +1,146 @@
+{
+  "fetched_at": "2026-11-23T01:13:15Z",
+  "offers": {
+    "AWSELB": {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ap-northeast-1/index.json",
+      "publicationDate": "2026-11-19T22:27:09Z",
+      "version": "20261119222709"
+    },
+    "AmazonVPC": {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ap-northeast-1/index.json",
+      "publicationDate": "2026-11-19T20:55:45Z",
+      "version": "20261119205545"
+    },
+    "AmazonCognito": {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCognito/current/ap-northeast-1/index.json",
+      "publicationDate": "2026-11-19T18:39:22Z",
+      "version": "20261119183922"
+    }
+  },
+  "prices": {
+    "alb_hour": {
+      "offer": "AWSELB",
+      "usagetype": "APN1-LoadBalancerUsage",
+      "operation": "LoadBalancing:Application",
+      "unit": "Hrs",
+      "usd": "0.0243000000",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.0243 per Application LoadBalancer-hour (or partial hour)",
+      "tiers": [
+        {
+          "begin_range": "0",
+          "end_range": "Inf",
+          "usd": "0.0243000000"
+        }
+      ]
+    },
+    "alb_lcu_hour": {
+      "offer": "AWSELB",
+      "usagetype": "APN1-LCUUsage",
+      "operation": "LoadBalancing:Application",
+      "unit": "LCU-Hrs",
+      "usd": "0.0080000000",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.008 per used Application load balancer capacity unit-hour (or partial hour)",
+      "tiers": [
+        {
+          "begin_range": "0",
+          "end_range": "Inf",
+          "usd": "0.0080000000"
+        }
+      ]
+    },
+    "public_ipv4_hour": {
+      "offer": "AmazonVPC",
+      "usagetype": "APN1-PublicIPv4:InUseAddress",
+      "operation": "",
+      "unit": "Hrs",
+      "usd": "0.0050000000",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "$0.005 per In-use public IPv4 address per hour",
+      "tiers": [
+        {
+          "begin_range": "0",
+          "end_range": "Inf",
+          "usd": "0.0050000000"
+        }
+      ]
+    },
+    "cognito_saml_mau": {
+      "offer": "AmazonCognito",
+      "usagetype": "APN1-CognitoEnterpriseMAU",
+      "operation": "CognitoEnterpriseOperation",
+      "unit": "CognitoUserPoolsMAU",
+      "usd": "0.0150000000",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "Cognito User Pools ap-northeast-1 enterprise users tier 1 pricing",
+      "tiers": [
+        {
+          "begin_range": "0",
+          "end_range": "Inf",
+          "usd": "0.0150000000"
+        }
+      ]
+    },
+    "cognito_saml_mau_free": {
+      "offer": "AmazonCognito",
+      "usagetype": "Globalv1-CognitoEnterpriseMAU",
+      "operation": "CognitoEnterpriseOperation",
+      "unit": "CognitoUserPoolsMAU",
+      "usd": "0.0000000000",
+      "begin_range": "0",
+      "end_range": "50",
+      "description": "Cognito User Pools global enterprise users free tier pricing",
+      "tiers": [
+        {
+          "begin_range": "0",
+          "end_range": "50",
+          "usd": "0.0000000000"
+        }
+      ]
+    },
+    "verified_access_app_hour": {
+      "offer": "AmazonVPC",
+      "usagetype": "APN1-VerifiedAccess-App-Hours",
+      "operation": "VerifiedAccess-Apps",
+      "unit": "hours",
+      "usd": "0.3500000000",
+      "begin_range": "0",
+      "end_range": "148800",
+      "description": "USD0.35 per hours for VerifiedAccess-App-Hours:VerifiedAccess-Apps in Asia Pacific (Tokyo)",
+      "tiers": [
+        {
+          "begin_range": "0",
+          "end_range": "148800",
+          "usd": "0.3500000000"
+        },
+        {
+          "begin_range": "148800",
+          "end_range": "Inf",
+          "usd": "0.2600000000"
+        }
+      ]
+    },
+    "verified_access_gb": {
+      "offer": "AmazonVPC",
+      "usagetype": "APN1-VerifiedAccess-DataProcess-Bytes",
+      "operation": "VerifiedAccess-data",
+      "unit": "GB",
+      "usd": "0.0200000000",
+      "begin_range": "0",
+      "end_range": "Inf",
+      "description": "USD0.02 per GB for VerifiedAccess-DataProcess-Bytes:VerifiedAccess-data in Asia Pacific (Tokyo)",
+      "tiers": [
+        {
+          "begin_range": "0",
+          "end_range": "Inf",
+          "usd": "0.0200000000"
+        }
+      ]
+    }
+  }
+}

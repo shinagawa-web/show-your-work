@@ -1,0 +1,27 @@
+Request: GET https://wiki.internal-app-access.example.com/ to the ALB without a session cookie
+Prediction: 302 to /oauth2/authorize on the Cognito domain, and no app body
+
+$ python3 -c 'socket.getaddrinfo("employee-apps-b-1503386973.us-east-1.elb.amazonaws.com", 443, socket.AF_INET)'
+100.57.15.165 32.198.161.201
+All addresses private: False
+
+$ curl -sS -k --max-time 10 -o body -D headers -w '%{http_code} %{exitcode}\n' --connect-to wiki.internal-app-access.example.com:443:employee-apps-b-1503386973.us-east-1.elb.amazonaws.com:443 https://wiki.internal-app-access.example.com/
+(attempts: 1)
+--- write-out (http_code exitcode)
+302 0
+--- headers
+HTTP/2 302 
+server: awselb/2.0
+date: Mon, 23 Nov 2026 00:52:18 GMT
+content-type: text/html
+content-length: 110
+location: https://employee-apps-48f69f63.auth.us-east-1.amazoncognito.com/oauth2/authorize?client_id=82gcf396p17crf1b0u1ps2lmi&redirect_uri=https%3A%2F%2Fwiki.internal-app-access.example.com%2Foauth2%2Fidpresponse&response_type=code&scope=openid&state=<redacted>
+set-cookie: AWSALBAuthNonce=<redacted>; Expires=Mon, 23 Nov 2026 01:07:18 GMT; Path=/; Secure; HttpOnly
+--- body
+<html>
+<head><title>302 Found</title></head>
+<body>
+<center><h1>302 Found</h1></center>
+</body>
+</html>
+

@@ -1,0 +1,12 @@
+aws_cognito_identity_provider.google: Modifying... [id=us-east-1_adF3rMmJ3:GoogleWorkspace]
+aws_cognito_identity_provider.google: Modifications complete after 1s [id=us-east-1_adF3rMmJ3:GoogleWorkspace]
+
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+
+Outputs:
+
+alb_dns_name = "employee-apps-b-1503386973.us-east-1.elb.amazonaws.com"
+alb_name = "employee-apps-b"
+cognito_domain = "employee-apps-48f69f63.auth.us-east-1.amazoncognito.com"
+log_group_name = "/aws/lambda/employee-apps-b-app"
+user_pool_id = "us-east-1_adF3rMmJ3"

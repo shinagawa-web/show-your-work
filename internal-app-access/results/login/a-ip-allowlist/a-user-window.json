@@ -1,0 +1,59 @@
+{
+  "label": "a-user-window",
+  "opened_at": "2026-11-23T04:03:33Z (from x-amzn-trace-id)",
+  "note": "Measured (Lambda log): the requests below reached the app, and no x-amzn-oidc-* or x-amzn-ava-user-context header arrived. Reported: opened by the user in a normal window of the user's Chrome. The allowed CIDR was this host's egress IP address (/32).",
+  "events": [
+    {
+      "timestamp": "2026-11-23T04:03:33Z",
+      "host": "employee-apps-a-1178252552.us-east-1.elb.amazonaws.com",
+      "path": "/",
+      "header_names": [
+        "accept",
+        "accept-encoding",
+        "accept-language",
+        "cache-control",
+        "host",
+        "priority",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "sec-fetch-user",
+        "upgrade-insecure-requests",
+        "user-agent",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
+        "x-forwarded-port",
+        "x-forwarded-proto"
+      ],
+      "decoded": {}
+    },
+    {
+      "timestamp": "2026-11-23T04:03:34Z",
+      "host": "employee-apps-a-1178252552.us-east-1.elb.amazonaws.com",
+      "path": "/favicon.ico",
+      "header_names": [
+        "accept",
+        "accept-encoding",
+        "accept-language",
+        "host",
+        "priority",
+        "referer",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "user-agent",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
+        "x-forwarded-port",
+        "x-forwarded-proto"
+      ],
+      "decoded": {}
+    }
+  ]
+}

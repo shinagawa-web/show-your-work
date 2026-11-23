@@ -1,0 +1,7 @@
+b-alb-cognito	apply	31
+baseline	apply	151
+baseline	destroy	38
+a-ip-allowlist	apply	151
+a-ip-allowlist	apply-office-only	13
+a-ip-allowlist	destroy	36
+c-verified-access	apply	1199

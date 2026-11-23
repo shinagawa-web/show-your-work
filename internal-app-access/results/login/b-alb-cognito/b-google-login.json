@@ -1,0 +1,89 @@
+{
+  "label": "b-google-login",
+  "operated_at": "2026-11-23T01:03:23Z",
+  "note": "The user signed in with Google Workspace in a browser opened at the ALB DNS name; time is auth_time of the access token",
+  "events": [
+    {
+      "timestamp": "2026-11-23T01:03:24Z",
+      "host": "employee-apps-b-1503386973.us-east-1.elb.amazonaws.com",
+      "path": "/",
+      "header_names": [
+        "accept",
+        "accept-encoding",
+        "accept-language",
+        "cache-control",
+        "cookie",
+        "host",
+        "priority",
+        "referer",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "upgrade-insecure-requests",
+        "user-agent",
+        "x-amzn-oidc-accesstoken",
+        "x-amzn-oidc-data",
+        "x-amzn-oidc-identity",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
+        "x-forwarded-port",
+        "x-forwarded-proto"
+      ],
+      "decoded": {
+        "x-amzn-oidc-data": {
+          "sub": "<redacted>",
+          "email_verified": "<redacted>",
+          "identities": "[{\"dateCreated\":\"1795395802733\",\"userId\":\"user@example.com\",\"providerName\":\"GoogleWorkspace\",\"providerType\":\"SAML\",\"issuer\":\"https://accounts.google.com/o/saml2?idpid=C00000000\",\"primary\":\"true\"}]",
+          "email": "user@example.com",
+          "custom:groups": "<group-name>",
+          "username": "GoogleWorkspace_user@example.com",
+          "exp": 1795395924,
+          "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_adF3rMmJ3"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-23T01:03:24Z",
+      "host": "employee-apps-b-1503386973.us-east-1.elb.amazonaws.com",
+      "path": "/favicon.ico",
+      "header_names": [
+        "accept",
+        "accept-encoding",
+        "accept-language",
+        "cookie",
+        "host",
+        "priority",
+        "referer",
+        "sec-ch-ua",
+        "sec-ch-ua-mobile",
+        "sec-ch-ua-platform",
+        "sec-fetch-dest",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "user-agent",
+        "x-amzn-oidc-accesstoken",
+        "x-amzn-oidc-data",
+        "x-amzn-oidc-identity",
+        "x-amzn-trace-id",
+        "x-forwarded-for",
+        "x-forwarded-port",
+        "x-forwarded-proto"
+      ],
+      "decoded": {
+        "x-amzn-oidc-data": {
+          "sub": "<redacted>",
+          "email_verified": "<redacted>",
+          "identities": "[{\"dateCreated\":\"1795395802733\",\"userId\":\"user@example.com\",\"providerName\":\"GoogleWorkspace\",\"providerType\":\"SAML\",\"issuer\":\"https://accounts.google.com/o/saml2?idpid=C00000000\",\"primary\":\"true\"}]",
+          "email": "user@example.com",
+          "custom:groups": "<group-name>",
+          "username": "GoogleWorkspace_user@example.com",
+          "exp": 1795395924,
+          "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_adF3rMmJ3"
+        }
+      }
+    }
+  ]
+}
