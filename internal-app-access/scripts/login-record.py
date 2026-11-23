@@ -9,7 +9,7 @@ import subprocess
 TOKEN_HEADERS = {"x-amzn-oidc-accesstoken", "x-amzn-oidc-identity", "x-amzn-oidc-data", "x-amzn-ava-user-context", "cookie"}
 JWT_HEADERS = {"x-amzn-oidc-data", "x-amzn-ava-user-context"}
 GROUP_CLAIMS = {"custom:groups", "groups"}
-SHOWN_CLAIMS = {"email", "custom:groups", "groups", "identities", "username", "iss", "exp", "aud"}
+SHOWN_CLAIMS = {"email", "address", "verified", "custom:groups", "groups", "identities", "username", "iss", "exp", "aud"}
 
 p = argparse.ArgumentParser()
 p.add_argument("--log-group", required=True)
