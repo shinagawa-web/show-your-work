@@ -47,24 +47,22 @@ applied=
 failures=0
 
 leftovers() {
-  local out
   {
-    echo '$ aws ec2 describe-verified-access-endpoints'
-    aws ec2 describe-verified-access-endpoints --query 'VerifiedAccessEndpoints[].VerifiedAccessEndpointId' --output json
-    echo '$ aws ec2 describe-verified-access-groups'
-    aws ec2 describe-verified-access-groups --query 'VerifiedAccessGroups[].VerifiedAccessGroupId' --output json
-    echo '$ aws ec2 describe-verified-access-instances'
-    aws ec2 describe-verified-access-instances --query 'VerifiedAccessInstances[].VerifiedAccessInstanceId' --output json
-    echo '$ aws ec2 describe-verified-access-trust-providers'
-    aws ec2 describe-verified-access-trust-providers --query 'VerifiedAccessTrustProviders[].VerifiedAccessTrustProviderId' --output json
-    echo '$ aws elbv2 describe-load-balancers'
-    aws elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerArn' --output json
-    echo '$ aws cognito-idp list-user-pools --max-results 60'
-    aws cognito-idp list-user-pools --max-results 60 --query 'UserPools[].Id' --output json
-    echo '$ aws acm list-certificates'
-    aws acm list-certificates --query 'CertificateSummaryList[].CertificateArn' --output json
-    echo "$ aws ec2 describe-vpcs --filters 'Name=tag:Name,Values=employee-apps*'"
-    aws ec2 describe-vpcs --filters 'Name=tag:Name,Values=employee-apps*' --query 'Vpcs[].VpcId' --output json
+    local failed=0
+    query() {
+      echo "\$ aws $1"
+      shift
+      aws "$@" --output json || failed=1
+    }
+    query 'ec2 describe-verified-access-endpoints' ec2 describe-verified-access-endpoints --query 'VerifiedAccessEndpoints[].VerifiedAccessEndpointId'
+    query 'ec2 describe-verified-access-groups' ec2 describe-verified-access-groups --query 'VerifiedAccessGroups[].VerifiedAccessGroupId'
+    query 'ec2 describe-verified-access-instances' ec2 describe-verified-access-instances --query 'VerifiedAccessInstances[].VerifiedAccessInstanceId'
+    query 'ec2 describe-verified-access-trust-providers' ec2 describe-verified-access-trust-providers --query 'VerifiedAccessTrustProviders[].VerifiedAccessTrustProviderId'
+    query 'elbv2 describe-load-balancers' elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerArn'
+    query 'cognito-idp list-user-pools --max-results 60' cognito-idp list-user-pools --max-results 60 --query 'UserPools[].Id'
+    query 'acm list-certificates' acm list-certificates --query 'CertificateSummaryList[].CertificateArn'
+    query "ec2 describe-vpcs --filters 'Name=tag:Name,Values=employee-apps*'" ec2 describe-vpcs --filters 'Name=tag:Name,Values=employee-apps*' --query 'Vpcs[].VpcId'
+    ((failed == 0))
   } 2>&1 | mask
 }
 
@@ -83,13 +81,13 @@ destroy() {
 finish() {
   local rc=$?
   if [[ -n $applied ]]; then destroy || rc=1; fi
-  leftovers | tee "$results/leftovers.log"
+  leftovers | tee "$results/leftovers.log" || rc=1
   if grep -qE '^\s*"|An error occurred|Unable to' "$results/leftovers.log"; then
     echo 'Resources are left in the account, or a check failed, see results/leftovers.log'
     rc=1
   fi
   local leaks
-  leaks=$(scan_results)
+  leaks=$(scan_results) || rc=1
   if [[ -n $leaks ]]; then
     echo "Values to mask remain in: $leaks"
     rc=1
