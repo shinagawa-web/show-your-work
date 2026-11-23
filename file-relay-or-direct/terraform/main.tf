@@ -227,13 +227,13 @@ resource "aws_iam_role" "app" {
 }
 
 resource "aws_iam_role_policy" "app" {
-  name = "read-write-files"
+  name = "read-files"
   role = aws_iam_role.app.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["s3:GetObject", "s3:PutObject", "s3:AbortMultipartUpload"]
+      Action   = "s3:GetObject"
       Resource = "${aws_s3_bucket.files.arn}/*"
     }]
   })
