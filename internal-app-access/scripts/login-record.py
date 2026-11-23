@@ -14,6 +14,7 @@ SHOWN_CLAIMS = {"email", "address", "verified", "custom:groups", "groups", "iden
 p = argparse.ArgumentParser()
 p.add_argument("--log-group", required=True)
 p.add_argument("--since", required=True)
+p.add_argument("--until", default="")
 p.add_argument("--opened-at", required=True)
 p.add_argument("--label", required=True)
 p.add_argument("--out", required=True)
@@ -59,15 +60,19 @@ def claim_view(claims):
 
 
 since = datetime.datetime.fromisoformat(args.since.replace("Z", "+00:00"))
+command = ["aws", "logs", "filter-log-events", "--log-group-name", args.log_group,
+           "--start-time", str(int(since.timestamp() * 1000)), "--output", "json"]
+if args.until:
+    until = datetime.datetime.fromisoformat(args.until.replace("Z", "+00:00"))
+    command += ["--end-time", str(int(until.timestamp() * 1000))]
 r = subprocess.run(
-    ["aws", "logs", "filter-log-events", "--log-group-name", args.log_group,
-     "--start-time", str(int(since.timestamp() * 1000)), "--output", "json"],
+    command,
     capture_output=True, text=True, check=True,
 )
 events = json.loads(r.stdout)["events"]
 
 records = []
-lines = [f"Opened at: {args.opened_at}", f"Log group: {args.log_group}", f"Log events since: {args.since}"]
+lines = [f"Opened at: {args.opened_at}", f"Log group: {args.log_group}", f"Log events since: {args.since}" + (f", until: {args.until}" if args.until else "")]
 if args.note:
     lines.append(f"Note: {args.note}")
 lines.append("")
