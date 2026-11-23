@@ -283,6 +283,17 @@ write_summary() {
   {
     echo '# file-relay-or-direct'
     echo
+    echo "## Requests without the app's permission"
+    echo
+    echo 'HTTP status for one object in `private/`, requested without the permission header `X-Allow: 1`: through the app, and with an S3 presigned URL and a CloudFront signed URL that the app had issued earlier to a request with the header.'
+    echo
+    log=access.jsonl
+    echo '| Request | Status |'
+    echo '|---|---|'
+    echo "| Relay through the app | $(cell_of relay-download-without-header) |"
+    echo "| S3 presigned URL issued by the app | $(cell_of s3-presigned-get) |"
+    echo "| CloudFront signed URL issued by the app | $(cell_of cf-signed-private) |"
+    echo
     echo '## After the object is deleted from S3'
     echo
     echo 'HTTP status for one object in `private/`, requested through the app with the permission header and with the same two URLs issued by the app: after CloudFront cached the object, after the object was deleted from S3, and after a CloudFront invalidation of the path completed.'

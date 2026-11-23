@@ -1,5 +1,15 @@
 # file-relay-or-direct
 
+## Requests without the app's permission
+
+HTTP status for one object in `private/`, requested without the permission header `X-Allow: 1`: through the app, and with an S3 presigned URL and a CloudFront signed URL that the app had issued earlier to a request with the header.
+
+| Request | Status |
+|---|---|
+| Relay through the app | 403 |
+| S3 presigned URL issued by the app | 200 |
+| CloudFront signed URL issued by the app | 200 |
+
 ## After the object is deleted from S3
 
 HTTP status for one object in `private/`, requested through the app with the permission header and with the same two URLs issued by the app: after CloudFront cached the object, after the object was deleted from S3, and after a CloudFront invalidation of the path completed.
