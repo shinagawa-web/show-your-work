@@ -6,12 +6,13 @@ const read = (name) => readFileSync(join(results, name), 'utf8');
 const lines = (name) => read(name).split('\n');
 const json = (name) => JSON.parse(read(name));
 
-const exitCode = (name) => {
-  const line = lines(name).find((l) => l.startsWith('exit code: '));
-  return line ? line.slice('exit code: '.length) : 'missing';
+const need = (value, what, name) => {
+  if (value === undefined) throw new Error(`no ${what} in ${name}`);
+  return value;
 };
-const countLine = (name) => lines(name).find((l) => l.startsWith('❌ ') || l.startsWith('Woohoo! ')) ?? 'missing';
-const ignoredLine = (name) => lines(name).find((l) => / problems? (are|is) explicitly ignored\.$/.test(l)) ?? 'missing';
+const exitCode = (name) => need(lines(name).find((l) => l.startsWith('exit code: ')), 'exit code line', name).slice('exit code: '.length);
+const countLine = (name) => need(lines(name).find((l) => l.startsWith('❌ ') || l.startsWith('Woohoo! ')), 'count line', name);
+const ignoredLine = (name) => need(lines(name).find((l) => / problems? (are|is) explicitly ignored\.$/.test(l)), 'ignored line', name);
 const counts = (name) => {
   const text = read(name);
   const num = (re) => Number(text.match(re)?.[1] ?? 0);
@@ -23,7 +24,11 @@ const counts = (name) => {
 };
 const problemRow = (p) => `| \`${p.ruleId}\` | ${p.severity} | \`${p.location[0].pointer}\` |`;
 const fence = (lang, text) => ['```' + lang, text.trimEnd(), '```'];
-const annotations = (name) => lines(name).filter((l) => l.startsWith('::'));
+const annotations = (name) => {
+  const found = lines(name).filter((l) => l.startsWith('::'));
+  if (found.length === 0) throw new Error(`no annotation lines in ${name}`);
+  return found;
+};
 
 const out = ['# openapi-lint-getting-started', ''];
 
@@ -76,7 +81,7 @@ const requests = [
 for (const [state, name] of requests) {
   const file = lines(`section6-${name}.txt`);
   const caller = file[0].replace(/^request: .* as /, '');
-  const status = file.find((l) => l.startsWith('status: '))?.slice('status: '.length) ?? 'missing';
+  const status = need(file.find((l) => l.startsWith('status: ')), 'status line', name).slice('status: '.length);
   out.push(`| ${state} | ${caller} | ${status} |`);
 }
 out.push('');
