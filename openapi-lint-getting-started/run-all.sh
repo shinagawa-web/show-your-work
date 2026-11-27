@@ -8,8 +8,9 @@ export REDOCLY_SUPPRESS_UPDATE_NOTICE=true
 
 rm -rf results
 mkdir -p results/work
+abort() { echo "RUN INVALID: $1" | tee results/summary.md; exit 1; }
 
-npm ci --no-audit --no-fund > results/npm-ci.log 2>&1 || { tail -30 results/npm-ci.log; exit 1; }
+npm ci --no-audit --no-fund > results/npm-ci.log 2>&1 || { tail -30 results/npm-ci.log; abort "npm ci failed"; }
 echo "[$(el)s] npm ci done"
 
 workdir() {
@@ -26,13 +27,14 @@ lint() {
   rc=$?
   echo "exit code: $rc" >> "results/$out.txt"
   echo "[$(el)s] $out done (exit code $rc)"
+  return $rc
 }
 
 section5() {
   local name=$1 patch=$2 d
   d=$here/results/work/$name
   cp -R "$s4" "$d"
-  node scripts/patch.mjs "$d/openapi.yaml" "$patch" || exit 1
+  node scripts/patch.mjs "$d/openapi.yaml" "$patch" || abort "the change $patch could not be applied"
   lint "$d" "$name"
   lint "$d" "$name-github-actions" --format=github-actions
 }
@@ -59,8 +61,8 @@ s4=$(workdir section4)
 cp redocly.yaml "$s4/"
 (cd "$s4" && npx redocly lint --generate-ignore-file openapi.yaml) > results/section4-generate.txt 2>&1
 echo "exit code: $?" >> results/section4-generate.txt
-cp "$s4/.redocly.lint-ignore.yaml" results/section4-lint-ignore.yaml || echo "no .redocly.lint-ignore.yaml was generated" >&2
-lint "$s4" section4-lint
+cp "$s4/.redocly.lint-ignore.yaml" results/section4-lint-ignore.yaml || abort "no .redocly.lint-ignore.yaml was generated in section 4"
+lint "$s4" section4-lint || abort "the section 4 lint did not pass with the ignore file, so section 6 has no passing lint to compare with"
 lint_json "$s4" section4-lint
 
 section5 section5-error-in-excluded-schema snake-case-property-in-order
@@ -71,11 +73,11 @@ cp -R "$here/results/work/section5-error-in-excluded-schema" "$s5r"
 cp "$s5r/.redocly.lint-ignore.yaml" results/section5-regenerate-ignore-before.yaml
 (cd "$s5r" && npx redocly lint --generate-ignore-file openapi.yaml) > results/section5-regenerate-generate.txt 2>&1
 echo "exit code: $?" >> results/section5-regenerate-generate.txt
-cp "$s5r/.redocly.lint-ignore.yaml" results/section5-regenerate-ignore-after.yaml
+cp "$s5r/.redocly.lint-ignore.yaml" results/section5-regenerate-ignore-after.yaml || abort "no .redocly.lint-ignore.yaml was generated in section 5"
 (cd results && diff -u --label section5-regenerate-ignore-before.yaml --label section5-regenerate-ignore-after.yaml section5-regenerate-ignore-before.yaml section5-regenerate-ignore-after.yaml) > results/section5-regenerate-ignore.diff
 lint "$s5r" section5-regenerate
 
-(cd server && npm ci --no-audit --no-fund) > results/server-npm-ci.log 2>&1 || { tail -30 results/server-npm-ci.log; exit 1; }
+(cd server && npm ci --no-audit --no-fund) > results/server-npm-ci.log 2>&1 || { tail -30 results/server-npm-ci.log; abort "npm ci in server/ failed"; }
 echo "[$(el)s] server npm ci done"
 
 order_id=3f6c2a1e-8b4d-4c3a-9e2f-1a2b3c4d5e6f
@@ -93,11 +95,11 @@ start_server() {
   SKIP_ORDER_ACCESS_CHECK=$skip PORT=3000 node server/app.mjs > "results/section6-$state-server.log" 2>&1 &
   server_pid=$!
   for _ in $(seq 100); do
-    curl -s -o /dev/null http://127.0.0.1:3000/ && return 0
+    grep -q '^listening on 3000' "results/section6-$state-server.log" && return 0
+    kill -0 "$server_pid" 2> /dev/null || break
     sleep 0.1
   done
-  echo "RUN INVALID: the server did not answer on :3000" >&2
-  exit 1
+  abort "the server did not start listening on :3000"
 }
 
 request() {
@@ -106,11 +108,12 @@ request() {
   [ -z "$token" ] || auth=(-H "Authorization: Bearer $token")
   {
     echo "request: GET /orders/$order_id as $who"
-    curl -sS -o "$body" -w 'status: %{http_code}\n' "${auth[@]}" "http://127.0.0.1:3000/orders/$order_id"
+    curl -sS -o "$body" -w 'status: %{http_code}\n' "${auth[@]}" "http://127.0.0.1:3000/orders/$order_id" || echo "curl failed"
     cat "$body"
     echo
   } > "results/section6-$out.txt"
   rm -f "$body"
+  ! grep -q '^curl failed' "results/section6-$out.txt" || abort "the request $out did not reach the server"
 }
 
 start_server check 0
@@ -128,6 +131,6 @@ request skip-no-token "no token" ""
 stop_server
 echo "[$(el)s] section 6 without the order access check done"
 
-node scripts/summary.mjs results || exit 1
+node scripts/summary.mjs results || abort "results/summary.md could not be written"
 
 echo "[$(el)s] done" | tee results/total.txt
