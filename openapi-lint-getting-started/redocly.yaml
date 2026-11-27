@@ -1,0 +1,8 @@
+extends:
+  - recommended
+rules:
+  rule/schema-properties-camel-case:
+    subject:
+      type: SchemaProperties
+    assertions:
+      casing: camelCase
