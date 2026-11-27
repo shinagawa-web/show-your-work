@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 here=$(pwd)
 start=$(date +%s.%N)
 el() { awk -v a="$(date +%s.%N)" -v b="$start" 'BEGIN{printf "%.1f", a-b}'; }
-export REDOCLY_SUPPRESS_UPDATE_NOTICE=true
+export REDOCLY_SUPPRESS_UPDATE_NOTICE=true NO_COLOR=1
 
 rm -rf results
 mkdir -p results/work
