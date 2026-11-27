@@ -75,4 +75,57 @@ cp "$s5r/.redocly.lint-ignore.yaml" results/section5-regenerate-ignore-after.yam
 (cd results && diff -u --label section5-regenerate-ignore-before.yaml --label section5-regenerate-ignore-after.yaml section5-regenerate-ignore-before.yaml section5-regenerate-ignore-after.yaml) > results/section5-regenerate-ignore.diff
 lint "$s5r" section5-regenerate
 
+(cd server && npm ci --no-audit --no-fund) > results/server-npm-ci.log 2>&1 || { tail -30 results/server-npm-ci.log; exit 1; }
+echo "[$(el)s] server npm ci done"
+
+order_id=3f6c2a1e-8b4d-4c3a-9e2f-1a2b3c4d5e6f
+server_pid=
+stop_server() {
+  [ -n "$server_pid" ] || return 0
+  kill "$server_pid" 2> /dev/null
+  wait "$server_pid" 2> /dev/null
+  server_pid=
+}
+trap stop_server EXIT
+
+start_server() {
+  local state=$1 skip=$2
+  SKIP_ORDER_ACCESS_CHECK=$skip PORT=3000 node server/app.mjs > "results/section6-$state-server.log" 2>&1 &
+  server_pid=$!
+  for _ in $(seq 100); do
+    curl -s -o /dev/null http://127.0.0.1:3000/ && return 0
+    sleep 0.1
+  done
+  echo "RUN INVALID: the server did not answer on :3000" >&2
+  exit 1
+}
+
+request() {
+  local out=$1 who=$2 token=$3 body auth=()
+  body=$(mktemp)
+  [ -z "$token" ] || auth=(-H "Authorization: Bearer $token")
+  {
+    echo "request: GET /orders/$order_id as $who"
+    curl -sS -o "$body" -w 'status: %{http_code}\n' "${auth[@]}" "http://127.0.0.1:3000/orders/$order_id"
+    cat "$body"
+    echo
+  } > "results/section6-$out.txt"
+  rm -f "$body"
+}
+
+start_server check 0
+request check-a "user A (org X)" token-a
+request check-b "user B (org Y)" token-b
+request check-no-token "no token" ""
+stop_server
+echo "[$(el)s] section 6 with the order access check done"
+
+start_server skip 1
+request skip-a "user A (org X)" token-a
+request skip-b "user B (org Y)" token-b
+request skip-c "user C (org X)" token-c
+request skip-no-token "no token" ""
+stop_server
+echo "[$(el)s] section 6 without the order access check done"
+
 echo "[$(el)s] done" | tee results/total.txt
