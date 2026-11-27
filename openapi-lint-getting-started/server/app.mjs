@@ -62,6 +62,7 @@ app.get('/orders/:id', authenticate, (req, res) => {
 });
 
 const port = Number(process.env.PORT ?? 3000);
-app.listen(port, () => {
+app.listen(port, '127.0.0.1', (error) => {
+  if (error) throw error;
   console.log(`listening on ${port}, order access check ${skipOrderAccessCheck ? 'skipped' : 'enabled'}`);
 });
