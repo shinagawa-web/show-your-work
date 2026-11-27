@@ -128,4 +128,6 @@ request skip-no-token "no token" ""
 stop_server
 echo "[$(el)s] section 6 without the order access check done"
 
+node scripts/summary.mjs results || exit 1
+
 echo "[$(el)s] done" | tee results/total.txt
