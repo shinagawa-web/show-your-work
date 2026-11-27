@@ -1,0 +1,48 @@
+name: openapi-lint-getting-started
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "openapi-lint-getting-started/**"
+      - ".github/workflows/openapi-lint-getting-started.yml"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: openapi-lint-getting-started
+
+jobs:
+  s2-s6:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.3
+      - run: ./run-all.sh
+      - run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - if: always() && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          [ -n "$pr" ] || exit 0
+          marker='<!-- openapi-lint-getting-started -->'
+          { echo "$marker"; cat results/summary.md; } > results/comment.md
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@results/comment.md > /dev/null
+          else
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file results/comment.md
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: openapi-lint-getting-started-results
+          path: openapi-lint-getting-started/results/
